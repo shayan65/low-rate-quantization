@@ -922,3 +922,79 @@ installed into the model, with the failing case dumped on violation. The frozen
 confirmation additionally writes each arm's artifact to disk and re-decodes it
 from the reloaded files, exact in all four arms. The check is cheap, it is the
 only reason the anomaly was noticed, and it should be kept rather than relaxed.
+
+## 12. Refit variability: what the published intervals leave out (2026-09-22)
+
+Every interval in this document is a paired block bootstrap over evaluation
+text, conditional on one fitted quantizer. §11 showed that conditioning is not
+harmless — doubling calibration tokens moved a contrast across non-overlapping
+intervals on identical evaluation blocks — but one nested pair on one
+checkpoint could not separate a size effect from draw-to-draw variability.
+`run_calib_variability_v1.py` separates them on the 0.8B QKV projections,
+holding the recipe fixed and varying three things independently: three disjoint
+calibration draws at 65,536 tokens, three k-means seeds at fixed calibration,
+and calibration size from 16k to 131k tokens.
+
+Eight refits, complete validation stream, four arms each.
+
+| Contrast | median within-refit half-width | spread across draws | across seeds | across sizes |
+|---|---:|---:|---:|---:|
+| VQ8 vs scalar | 0.002416 | 0.004255 (**1.76x**) | 0.005057 (**2.09x**) | 0.004474 (**1.85x**) |
+| VQ8 vs scalar g64 | 0.002416 | 0.007078 (**2.93x**) | 0.005057 (**2.09x**) | 0.007110 (**2.94x**) |
+| VQ8 vs VQ4 | 0.002324 | 0.003893 (**1.68x**) | 0.006350 (**2.73x**) | 0.011189 (**4.82x**) |
+| g64 vs g128 | 0.001983 | 0.005548 (**2.80x**) | 0.000000 (0.00x) | 0.007441 (**3.75x**) |
+
+### The intervals understate uncertainty by roughly two to five fold
+
+For every contrast and every factor, the spread produced by refitting the
+quantizer exceeds the bootstrap half-width that the paper reports — by 1.7x to
+4.8x. **The dominant source of uncertainty in these comparisons is not which
+text was evaluated but which quantizer was fitted**, and text-only intervals
+are the wrong summary to attach to them.
+
+The single zero is a check on the harness rather than an exception: the
+`g64 vs g128` contrast compares two scalar arms, whose codebooks come from a
+deterministic Lloyd pass, so a k-means seed cannot move it and the measured
+spread is exactly $0.000000$.
+
+### What survives, and what does not
+
+| Contrast | range over 8 refits | sign |
+|---|---|---|
+| VQ8 vs scalar | $-0.037809$ to $-0.031061$ | negative 8/8 |
+| VQ8 vs scalar g64 | $-0.040478$ to $-0.027224$ | negative 8/8 |
+| VQ8 vs VQ4 | $-0.018548$ to $-0.005101$ | negative 8/8 |
+| g64 vs g128 | $-0.004638$ to $+0.005035$ | **flips, 5/8 negative** |
+
+The three headline claims are **directionally robust**: the vector code beats
+scalar ternary, beats the higher-storage scalar control, and beats
+dimension-4, in all eight refits. Their *magnitudes* are not — VQ8 vs VQ4 moves
+by a factor of 3.6 across refits — so effect sizes should be quoted as ranges
+over refits, not as a single interval.
+
+The `g64 vs g128` contrast **changes sign** across refits. That retrospectively
+explains every inconclusive reading of it in §§5c, 8 and 11: it was never a
+small effect measured imprecisely, it is a refit-dependent one. Any statement
+about finer scalar groups, in either direction, is unsupported.
+
+### Calibration size has a direction
+
+Along the nested size axis, VQ8's advantage over scalar grows monotonically
+with calibration: $-0.033335$ (16k), $-0.035775$ (32k), $-0.036118$ (65k),
+$-0.037809$ (131k). VQ8 vs VQ4 trends the same way, less smoothly. This
+reproduces the direction of the 27B observation in §11 — more calibration, a
+larger vector-code advantage — on an independent checkpoint, which is weak
+evidence that the 27B movement was a size effect rather than a draw effect.
+Four nested sizes on one draw cannot establish it.
+
+### Consequence for the paper
+
+Reported intervals stay, labelled as text-sampling variability conditional on
+one fitted quantizer, and refit ranges are reported beside them for the primary
+contrasts. The honest headline is the direction and a range, not a single
+six-decimal margin: on this target set, eight-dimensional VQ reduces damage
+relative to learned scalar ternary by **0.031 to 0.038 NLL across eight
+refits**, always in the same direction. A comparable measurement at 27B was not
+run — it would cost roughly eight times the frozen confirmation — so the 27B
+intervals should be read as conditional in exactly the same way, with their
+refit variability unmeasured.

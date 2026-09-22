@@ -284,8 +284,17 @@ characterized budget-sensitive defect is withdrawn. Every reported run used
 additionally re-decodes each artifact from disk.
 
 \textbf{Statistical scope.} Intervals measure text-sampling variability
-conditional on one fitted quantizer; they do not include calibration or
-codebook-seed variability. Adjacent 128-target blocks may be dependent even with
+conditional on one fitted quantizer, and that conditioning is load-bearing.
+Refitting the quantizer over three calibration draws, three codebook seeds and
+four calibration sizes moves every contrast by $1.7$ to $4.8$ times the
+bootstrap half-width, so the dominant uncertainty is which quantizer was fitted
+rather than which text was evaluated. Directions survive --- the vector code
+wins in all eight refits on all three primary contrasts --- but magnitudes
+should be read as ranges over refits ($-0.031$ to $-0.038$ for VQ8 against
+scalar), not as single intervals. The scalar group-size contrast changes sign
+across refits, which is why every reading of it here is inconclusive. The 27B
+intervals carry the same conditioning, with refit variability unmeasured
+there. Adjacent 128-target blocks may be dependent even with
 state reset, so block-bootstrap intervals may be optimistic. Validation text has
 guided many decisions in this project, so the confirmation run freezes the
 recipe and prespecifies its contrasts.
