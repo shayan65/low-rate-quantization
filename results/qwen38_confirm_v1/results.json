@@ -1,0 +1,195 @@
+{
+  "plan": {
+    "model": "../models/Qwen3.8-27B-metadata",
+    "target_layers": [
+      0,
+      1,
+      2,
+      4,
+      5,
+      6,
+      8,
+      9,
+      10,
+      12,
+      13,
+      14,
+      16,
+      17,
+      18,
+      20,
+      21,
+      22,
+      24,
+      25,
+      26,
+      28,
+      29,
+      30,
+      32,
+      33,
+      34,
+      36,
+      37,
+      38,
+      40,
+      41,
+      42,
+      44,
+      45,
+      46,
+      48,
+      49,
+      50,
+      52,
+      53,
+      54,
+      56,
+      57,
+      58,
+      60,
+      61,
+      62
+    ],
+    "tensor_shape": [
+      10240,
+      5120
+    ],
+    "target_params": 2516582400,
+    "total_params": 26895998464,
+    "share": 0.09356716774684598,
+    "eval_blocks": 512,
+    "eval_targets": 65536,
+    "hadamard_block": 1024,
+    "protocol": "section 5c recipe at 27B; bits/weight measured from packed bytes; weights decoded back from those bytes; calibration on train split"
+  },
+  "bf16": {
+    "nll": 2.579685464967042,
+    "target_tokens": 65536
+  },
+  "arms": {
+    "scalar3_rot_gptq": {
+      "nll": 2.58990037557669,
+      "delta_nll": 0.010214910609647632,
+      "delta_ci": [
+        0.007007798767881468,
+        0.013455066923052069
+      ],
+      "bits_per_weight": 1.7250000190734864,
+      "stored_bytes": 542638086,
+      "codebook_bytes": 6,
+      "decode_exact": true,
+      "weight_mse": 7.416306449679862e-05,
+      "dim": 1,
+      "k": 3,
+      "group": 128,
+      "fit_seconds": 3.472058600978926,
+      "quantize_seconds": 201.7399852089584
+    },
+    "vq4_rot_gptq": {
+      "nll": 2.5861246089916676,
+      "delta_nll": 0.006439144024625421,
+      "delta_ci": [
+        0.0034728979400824754,
+        0.009489652013871816
+      ],
+      "bits_per_weight": 1.7250020599365234,
+      "stored_bytes": 542638728,
+      "codebook_bytes": 648,
+      "decode_exact": true,
+      "weight_mse": 6.399506787298065e-05,
+      "dim": 4,
+      "k": 81,
+      "group": 128,
+      "fit_seconds": 3.0964002459077165,
+      "quantize_seconds": 109.7816420989111
+    },
+    "vq8_rot_gptq": {
+      "nll": 2.5859435631427914,
+      "delta_nll": 0.006258098175749183,
+      "delta_ci": [
+        0.0034078043361660095,
+        0.009205739147728308
+      ],
+      "bits_per_weight": 1.725333709716797,
+      "stored_bytes": 542743056,
+      "codebook_bytes": 104976,
+      "decode_exact": true,
+      "weight_mse": 5.947165111844545e-05,
+      "dim": 8,
+      "k": 6561,
+      "group": 128,
+      "fit_seconds": 7.7159710839623585,
+      "quantize_seconds": 141.1063539040042
+    },
+    "scalar3_g64_rot_gptq": {
+      "nll": 2.5876799090765417,
+      "delta_nll": 0.007994444109499454,
+      "delta_ci": [
+        0.004834551131352782,
+        0.011247299227397888
+      ],
+      "bits_per_weight": 1.8500000190734864,
+      "stored_bytes": 581959686,
+      "codebook_bytes": 6,
+      "decode_exact": true,
+      "weight_mse": 7.388114808242347e-05,
+      "dim": 1,
+      "k": 3,
+      "group": 64,
+      "fit_seconds": 3.391657961998135,
+      "quantize_seconds": 200.83704042399768
+    }
+  },
+  "comparisons": {
+    "scalar3_rot_gptq_vs_scalar3_g64_rot_gptq": {
+      "delta": 0.002220466500148177,
+      "ci": [
+        -3.995944280177339e-06,
+        0.004450284288031981
+      ],
+      "byte_ratio": 0.9324324331290536
+    },
+    "vq4_rot_gptq_vs_scalar3_rot_gptq": {
+      "delta": -0.003775766585022211,
+      "ci": [
+        -0.006494902278063819,
+        -0.0010449674562551102
+      ],
+      "byte_ratio": 1.0000011831089939
+    },
+    "vq4_rot_gptq_vs_scalar3_g64_rot_gptq": {
+      "delta": -0.001555300084874034,
+      "ci": [
+        -0.004232076846528798,
+        0.001122286036843434
+      ],
+      "byte_ratio": 0.9324335362982514
+    },
+    "vq8_rot_gptq_vs_scalar3_rot_gptq": {
+      "delta": -0.003956812433898449,
+      "ci": [
+        -0.0068049958208575845,
+        -0.001083035499323162
+      ],
+      "byte_ratio": 1.0001934438490556
+    },
+    "vq8_rot_gptq_vs_scalar3_g64_rot_gptq": {
+      "delta": -0.0017363459337502718,
+      "ci": [
+        -0.00444405828602612,
+        0.0009230763535015277
+      ],
+      "byte_ratio": 0.9326128064479023
+    },
+    "scalar3_g64_rot_gptq_vs_scalar3_rot_gptq": {
+      "delta": -0.002220466500148177,
+      "ci": [
+        -0.004450284288031981,
+        3.995944280176659e-06
+      ],
+      "byte_ratio": 1.0724637673147033
+    }
+  },
+  "seconds": 3010.3
+}

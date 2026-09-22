@@ -272,7 +272,17 @@ def main() -> None:
             p = (encode_scalar3(idx, sc, (rows, cols), group) if dim == 1
                  else encode_vq(idx, sc, (rows, cols), group, dim, k))
             dq = decode(p, book, "cuda")
-            maxdiff = max(maxdiff, (dq - ref).abs().max().item())
+            dmax = (dq - ref).abs().max().item()
+            if dmax != 0.0:  # name the tensor, not just the worst number over 48
+                print(json.dumps({"decode_mismatch": {
+                    "layer": i, "max_abs": dmax,
+                    "scale_min": sc.min().item(), "scale_max": sc.max().item(),
+                    "scale_fp16_exact": bool(torch.equal(sc, sc.to(torch.float16).float())),
+                    "w_finite": bool(torch.isfinite(w).all()),
+                    "ref_finite": bool(torch.isfinite(ref).all()),
+                    "idx_min": int(idx.min()), "idx_max": int(idx.max()),
+                    "n_differing": int((dq - ref).abs().gt(0).sum())}}), flush=True)
+            maxdiff = max(maxdiff, dmax)
             wse += (dq - w).square().double().sum().item()
             wn += rows * cols
             tw = stores[i]

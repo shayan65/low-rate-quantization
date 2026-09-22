@@ -747,3 +747,77 @@ extreme rates, not as the route to a deployable 27B model on this hardware. For
 that goal the evidence now points somewhere much duller: quantize at 3 to 4
 bits, where damage is 0.06 NLL or less, and spend the engineering effort on the
 packed inference kernel that §6 still lacks.
+
+## 11. Scale transfer: the recipe on Qwen3.8-27B (2026-09-22)
+
+Every codec result to this point was measured on Qwen3.5-0.8B.
+`run_qwen38_confirm_v1.py` applies the §5c recipe to all 48
+`linear_attn.in_proj_qkv` tensors of Qwen3.8-27B (10240×5120 each,
+2,516,582,400 params, **9.36% of the model**), evaluating 65,536 validation
+targets over 512 blocks. Every arm asserts `decode(encode(w))` bit-exact per
+tensor, and all four passed.
+
+| Arm | bits/wt | stored MB | weight MSE | ΔNLL vs BF16 |
+|---|---:|---:|---:|---:|
+| scalar3_rot_gptq | 1.7250 | 542.6 | 7.416e-05 | $+0.010215$ |
+| scalar3_g64_rot_gptq | 1.8500 | 582.0 | 7.388e-05 | $+0.007994$ |
+| vq4_rot_gptq | 1.7250 | 542.6 | 6.400e-05 | $+0.006439$ |
+| **vq8_rot_gptq** | 1.7253 | 542.7 | 5.947e-05 | $\mathbf{+0.006258}$ |
+
+### The parity-byte result transfers
+
+At byte parity, dimension-8 VQ beats learned scalar ternary by $-0.003957$
+$[-0.006805,-0.001083]$, excluding zero — **38.7% less damage**, against 31.9%
+at 0.8B. Dimension-4 at exactly equal bytes gives $-0.003776$
+$[-0.006495,-0.001045]$, 37.0%. The weight-MSE ordering again matches the NLL
+ordering within this fixed recipe. **The central claim survives a 32x scale
+jump.**
+
+### The storage-dominance result does not
+
+At 0.8B the stronger claim also held: dimension-8 VQ beat a scalar control
+spending 6.4% *more* bytes, by $-0.113585$, decisively. At 27B the same
+comparison is $-0.001736$ $[-0.004444,+0.000923]$ — the interval **includes
+zero**. The sign is right and the point estimate favours VQ, but this is a tie,
+not a win, and it must be reported as one.
+
+The cause is not a failure of the codec but the shrinking of everything being
+measured. Ternary scalar quantization of 9.36% of a 27B model costs only
+$+0.010215$ NLL — **9.0% of the corresponding 0.8B damage**, or $+1.03\%$
+perplexity against $+0.63\%$ for dimension-8 VQ. All margins shrink with it,
+into the resolution of a 65,536-target evaluation whose paired interval has a
+half-width of about $0.0027$.
+
+This is a resolution limit, not a refutation, and the arithmetic says what it
+would take to settle: the full 261,284-target stream would shrink the
+half-width to roughly $0.0013$, which would exclude zero for a $-0.0017$ margin
+**only just**. A definitive answer needs either the full stream or more
+evaluation data than wikitext-2 validation contains.
+
+### What this says about the 27B programme
+
+Two findings replicate here. The extra 7.25% of bytes spent on finer scalar
+groups again buys nothing measurable ($-0.002220$ $[-0.004450,+0.000004]$,
+including zero) — the third independent replication of that result, after §5c
+and §8.
+
+And the absolute numbers reinforce §10 from a different direction. Converting
+9.36% of a 27B model to ternary costs about 1% perplexity whichever codec is
+used; the choice between them moves 0.4 percentage points. Combined with the
+finding that a full-coverage 4-bit conversion fits the card with 6 GB to spare
+and costs 0.24%, the honest conclusion is that **at 27B this codec choice is
+not where deployment quality is decided**. It remains a real and now
+scale-confirmed result about low-rate codecs; it is not a lever on the
+deployed model.
+
+### A defect that is mitigated but not explained
+
+At a 17 GiB GPU-weight budget the per-tensor bit-exactness assertion fired with
+a decoded-vs-quantized difference of 0.036 — far too large to be rounding. At
+15 GiB every tensor is exact. The codec itself is exact at 10240×5120 with
+synthetic data, all 48 targets genuinely share one shape, and layer 0 passes
+the full real path, so the obvious explanations are excluded; the cause is
+**not understood**. The runs above use 15 GiB and keep the assertion enabled
+per tensor, which converts any recurrence into a loud failure rather than a
+quiet wrong number. That is a mitigation, and anyone extending this work should
+treat the assertion as load-bearing rather than optional.
