@@ -65,10 +65,15 @@ def arm_table(key, caption, label, rows=None):
         L.append(f"{esc(n)} & {a['bits_per_weight']:.4f} & "
                  f"{a['stored_bytes'] / 1e6:.2f} & ${a['delta_nll']:+.6f}$ & {fmt_ci(a['delta_ci'])} \\\\")
     L += [r"\bottomrule", r"\end{tabular}",
-          f"\\caption{{{caption} Source: \\texttt{{results/{RUNS[key][0]}}} ({RUNS[key][1]}); "
+          f"\\caption{{{caption} Source: \\texttt{{results/{esc(RUNS[key][0])}}} ({RUNS[key][1]}); "
           f"BF16 NLL {r['bf16']['nll']:.6f}.}}",
           f"\\label{{{label}}}", r"\end{table}", ""]
     return "\n".join(L)
+
+
+SHORT = {"v3": "0.8B/no-comp", "v4": "0.8B/GPTQ", "mlp": "0.8B-MLP/GPTQ",
+         "alloc": "0.8B/alloc", "rate": "0.8B/rate", "q27": "27B/pilot",
+         "q27b": "27B/frozen", "refit": "0.8B/refit", "gen": "0.8B/gen"}
 
 
 def comparison_table(entries, caption, label):
@@ -82,7 +87,7 @@ def comparison_table(entries, caption, label):
             L.append(f"% missing: {key} {ck}")
             continue
         c = r["comparisons"][ck]
-        L.append(f"{esc(human)} & {esc(RUNS[key][1])} & ${c['delta']:+.6f}$ & "
+        L.append(f"{esc(human)} & {esc(SHORT[key])} & ${c['delta']:+.6f}$ & "
                  f"{fmt_ci(c['ci'])} & {c['byte_ratio']:.5f} \\\\")
     L += [r"\bottomrule", r"\end{tabular}",
           "\\caption{" + caption + " Each row names the run it comes from; rows from "
@@ -109,7 +114,7 @@ def rate_table():
           f"\\caption{{Uniform rate sweep at fixed coverage (50.2\\% of parameters), "
           f"dimension 4 throughout so rate varies alone; six rates from 1.600 to "
           f"4.000 index bits. Stored-byte range "
-          f"{hi / lo:.2f}$\\times$. Source: \\texttt{{results/{RUNS['rate'][0]}}}; "
+          f"{hi / lo:.2f}$\\times$. Source: \\texttt{{results/{esc(RUNS['rate'][0])}}}; "
           f"BF16 NLL {r['bf16']['nll']:.6f}.}}",
           r"\label{tab:rate}", r"\end{table}", ""]
     return "\n".join(L)
@@ -148,7 +153,7 @@ def refit_table():
           r"$^{*}$Calibration size changes the experimental condition rather than "
           r"resampling it. The zero for seed on the scalar-only contrast is a harness "
           r"check: both arms use a deterministic Lloyd fit, so a seed cannot move it. "
-          f"Source: \\texttt{{results/{RUNS['refit'][0]}}}.}}",
+          f"Source: \\texttt{{results/{esc(RUNS['refit'][0])}}}.}}",
           r"\label{tab:refit}", r"\end{table}", ""]
     return "\n".join(L)
 
@@ -181,7 +186,7 @@ def generalization_table():
           r"corpora and three context lengths, not five independent replications --- the "
           r"three \texttt{wt2\_test} columns share their text and differ only in "
           r"blocking. $\dagger$ marks an interval including zero. "
-          f"Source: \\texttt{{results/{RUNS['gen'][0]}}}.}}",
+          f"Source: \\texttt{{results/{esc(RUNS['gen'][0])}}}.}}",
           r"\label{tab:gen}", r"\end{table}", ""]
     return "\n".join(L)
 

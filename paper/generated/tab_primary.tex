@@ -5,14 +5,14 @@
 \toprule
 Contrast & Run & $\Delta$NLL & 95\% CI & byte ratio \\
 \midrule
-VQ8 vs scalar (0.8B) & 0.8B, GPTQ recipe & $-0.036118$ & $[-0.038414, -0.033768]$ & 1.00430 \\
-VQ8 vs scalar (27B) & 27B, GPTQ recipe, frozen full stream & $-0.007121$ & $[-0.008513, -0.005725]$ & 1.00019 \\
-VQ4 vs scalar (0.8B) & 0.8B, GPTQ recipe & $-0.024667$ & $[-0.027041, -0.022348]$ & 1.00003 \\
-VQ4 vs scalar (27B) & 27B, GPTQ recipe, frozen full stream & $-0.003087$ & $[-0.004364, -0.001807]$ & 1.00000 \\
-VQ8 vs scalar g64 (0.8B) & 0.8B, GPTQ recipe & $-0.034303$ & $[-0.036660, -0.031971]$ & 0.93644 \\
-VQ8 vs scalar g64 (27B) & 27B, GPTQ recipe, frozen full stream & $-0.007836$ & $[-0.009247, -0.006356]$ & 0.93261 \\
+VQ8 vs scalar (0.8B) & 0.8B/GPTQ & $-0.036118$ & $[-0.038414, -0.033768]$ & 1.00430 \\
+VQ8 vs scalar (27B) & 27B/frozen & $-0.007121$ & $[-0.008513, -0.005725]$ & 1.00019 \\
+VQ4 vs scalar (0.8B) & 0.8B/GPTQ & $-0.024667$ & $[-0.027041, -0.022348]$ & 1.00003 \\
+VQ4 vs scalar (27B) & 27B/frozen & $-0.003087$ & $[-0.004364, -0.001807]$ & 1.00000 \\
+VQ8 vs scalar g64 (0.8B) & 0.8B/GPTQ & $-0.034303$ & $[-0.036660, -0.031971]$ & 0.93644 \\
+VQ8 vs scalar g64 (27B) & 27B/frozen & $-0.007836$ & $[-0.009247, -0.006356]$ & 0.93261 \\
 % missing: v4 vq8_rot_gptq_vs_vq4_rot_gptq
-VQ8 vs VQ4 (27B) & 27B, GPTQ recipe, frozen full stream & $-0.004034$ & $[-0.005334, -0.002715]$ & 1.00019 \\
+VQ8 vs VQ4 (27B) & 27B/frozen & $-0.004034$ & $[-0.005334, -0.002715]$ & 1.00019 \\
 \bottomrule
 \end{tabular}
 \caption{Primary and secondary contrasts, matched recipe across checkpoints. The 0.8B rows come from the GPTQ run, not the earlier uncompensated one. Each row names the run it comes from; rows from different runs are not matched comparisons. Byte ratios are printed to five decimals because ``byte-matched'' here means near-equal payload, not literal parity.}

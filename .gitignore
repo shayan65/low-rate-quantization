@@ -17,3 +17,5 @@ results/**/*.bin
 tmp/
 output/
 *.log
+
+# built PDF is regenerable but small; keep it for circulation
