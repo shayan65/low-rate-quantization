@@ -1,0 +1,329 @@
+{
+  "manifest": {
+    "args": {
+      "model": "../models/Qwen3.8-27B-metadata",
+      "data": "../data/wikitext2",
+      "out": "../results/qwen38_confirm_v2",
+      "gpu_gib": 15,
+      "cpu_gib": 46,
+      "eval_blocks": 0,
+      "eval_batch": 8,
+      "cal_blocks": 128,
+      "cal_len": 512,
+      "cal_batch": 2,
+      "seconds": 18000.0,
+      "only": ""
+    },
+    "seed": 0,
+    "git_revision": null,
+    "git_dirty": false,
+    "source_sha256_16": {
+      "run_qwen38_confirm_v2.py": "52017903e4c6cfb1",
+      "packed_lowrate.py": "d88ea245737eab70",
+      "run_ternary_task_v4.py": "aaf26c42f4f2ae2f",
+      "run_rate_sweep.py": "4f307bb7a221bee3"
+    },
+    "data_sha256_16": "afb74bc2e9521b79",
+    "torch": "2.11.0+cu128",
+    "cuda": "12.8",
+    "gpu": "NVIDIA GeForce RTX 3090",
+    "checkpoint_index_sha256_16": "77042094076611b6",
+    "checkpoint_config_sha256_16": "191e0af232104ed8",
+    "target_layers": [
+      0,
+      1,
+      2,
+      4,
+      5,
+      6,
+      8,
+      9,
+      10,
+      12,
+      13,
+      14,
+      16,
+      17,
+      18,
+      20,
+      21,
+      22,
+      24,
+      25,
+      26,
+      28,
+      29,
+      30,
+      32,
+      33,
+      34,
+      36,
+      37,
+      38,
+      40,
+      41,
+      42,
+      44,
+      45,
+      46,
+      48,
+      49,
+      50,
+      52,
+      53,
+      54,
+      56,
+      57,
+      58,
+      60,
+      61,
+      62
+    ],
+    "target_weight_devices": {
+      "cuda:0": 11,
+      "meta": 37
+    },
+    "hadamard_block": 1024,
+    "cal_tokens": 65536,
+    "eval_blocks_used": 2042,
+    "eval_blocks_available": 2042,
+    "eval_targets_used": 261284,
+    "eval_targets_available": 261284,
+    "prespecified": {
+      "primary": "vq8_rot_gptq vs scalar3_rot_gptq (near-equal payload bytes)",
+      "secondary": [
+        "vq8_rot_gptq vs scalar3_g64_rot_gptq (storage dominance)",
+        "vq8_rot_gptq vs vq4_rot_gptq (is dimension 8 needed?)"
+      ]
+    }
+  },
+  "plan": {
+    "model": "../models/Qwen3.8-27B-metadata",
+    "target_layers": [
+      0,
+      1,
+      2,
+      4,
+      5,
+      6,
+      8,
+      9,
+      10,
+      12,
+      13,
+      14,
+      16,
+      17,
+      18,
+      20,
+      21,
+      22,
+      24,
+      25,
+      26,
+      28,
+      29,
+      30,
+      32,
+      33,
+      34,
+      36,
+      37,
+      38,
+      40,
+      41,
+      42,
+      44,
+      45,
+      46,
+      48,
+      49,
+      50,
+      52,
+      53,
+      54,
+      56,
+      57,
+      58,
+      60,
+      61,
+      62
+    ],
+    "tensor_shape": [
+      10240,
+      5120
+    ],
+    "target_params": 2516582400,
+    "total_params": 26895998464,
+    "share": 0.09356716774684598,
+    "eval_blocks": 2042,
+    "eval_targets": 261284,
+    "hadamard_block": 1024,
+    "protocol": "section 5c recipe at 27B; bits/weight measured from packed bytes; weights decoded back from those bytes; calibration on train split"
+  },
+  "bf16": {
+    "nll": 2.6911169876633805,
+    "target_tokens": 261284
+  },
+  "arms": {
+    "scalar3_rot_gptq": {
+      "nll": 2.702075248175499,
+      "delta_nll": 0.010958260512118567,
+      "delta_ci": [
+        0.009366449926033226,
+        0.012560881760131348
+      ],
+      "bits_per_weight": 1.7250000190734864,
+      "stored_bytes": 542638086,
+      "payload_bytes": 542638086,
+      "artifact_file_bytes": 542669401,
+      "codebook_bytes": 6,
+      "decode_exact": true,
+      "artifact_reload_exact": true,
+      "weight_mse": 7.056570392865801e-05,
+      "dim": 1,
+      "k": 3,
+      "group": 128,
+      "fit_seconds": 3.561239065020345,
+      "quantize_seconds": 219.9795583760133
+    },
+    "vq4_rot_gptq": {
+      "nll": 2.6989884529750907,
+      "delta_nll": 0.007871465311710235,
+      "delta_ci": [
+        0.006436216352886592,
+        0.009330987364653053
+      ],
+      "bits_per_weight": 1.7250020599365234,
+      "stored_bytes": 542638728,
+      "payload_bytes": 542638728,
+      "artifact_file_bytes": 542670686,
+      "codebook_bytes": 648,
+      "decode_exact": true,
+      "artifact_reload_exact": true,
+      "weight_mse": 6.0863082832679805e-05,
+      "dim": 4,
+      "k": 81,
+      "group": 128,
+      "fit_seconds": 3.1053887229645625,
+      "quantize_seconds": 123.91947189194616
+    },
+    "vq8_rot_gptq": {
+      "nll": 2.694954126007958,
+      "delta_nll": 0.00383713834457744,
+      "delta_ci": [
+        0.0024199013601592045,
+        0.005250497731955161
+      ],
+      "bits_per_weight": 1.725333709716797,
+      "stored_bytes": 542743056,
+      "payload_bytes": 542743056,
+      "artifact_file_bytes": 542879296,
+      "codebook_bytes": 104976,
+      "decode_exact": true,
+      "artifact_reload_exact": true,
+      "weight_mse": 5.6535256165732344e-05,
+      "dim": 8,
+      "k": 6561,
+      "group": 128,
+      "fit_seconds": 7.736726674018428,
+      "quantize_seconds": 147.11117000202648
+    },
+    "scalar3_g64_rot_gptq": {
+      "nll": 2.702789687754116,
+      "delta_nll": 0.01167270009073551,
+      "delta_ci": [
+        0.010078282808376771,
+        0.013263577443537077
+      ],
+      "bits_per_weight": 1.8500000190734864,
+      "stored_bytes": 581959686,
+      "payload_bytes": 581959686,
+      "artifact_file_bytes": 581991000,
+      "codebook_bytes": 6,
+      "decode_exact": true,
+      "artifact_reload_exact": true,
+      "weight_mse": 7.027673331934442e-05,
+      "dim": 1,
+      "k": 3,
+      "group": 64,
+      "fit_seconds": 3.4528052010573447,
+      "quantize_seconds": 218.05066607205663
+    }
+  },
+  "comparisons": {
+    "scalar3_rot_gptq_vs_scalar3_g64_rot_gptq": {
+      "delta": -0.0007144395786169433,
+      "ci": [
+        -0.0018277082689827971,
+        0.0003750760151456476
+      ],
+      "byte_ratio": 0.9324324331290536
+    },
+    "scalar3_rot_gptq_vs_vq4_rot_gptq": {
+      "delta": 0.003086795200408332,
+      "ci": [
+        0.001806704942454429,
+        0.004363920926569496
+      ],
+      "byte_ratio": 0.9999988168924058
+    },
+    "vq4_rot_gptq_vs_scalar3_rot_gptq": {
+      "delta": -0.003086795200408332,
+      "ci": [
+        -0.004363920926569498,
+        -0.0018067049424544306
+      ],
+      "byte_ratio": 1.0000011831089939
+    },
+    "vq4_rot_gptq_vs_scalar3_g64_rot_gptq": {
+      "delta": -0.0038012347790252754,
+      "ci": [
+        -0.005148562584273009,
+        -0.0024478986083499316
+      ],
+      "byte_ratio": 0.9324335362982514
+    },
+    "vq8_rot_gptq_vs_scalar3_rot_gptq": {
+      "delta": -0.007121122167541127,
+      "ci": [
+        -0.008513262919597475,
+        -0.005724554455639109
+      ],
+      "byte_ratio": 1.0001934438490556
+    },
+    "vq8_rot_gptq_vs_scalar3_g64_rot_gptq": {
+      "delta": -0.00783556174615807,
+      "ci": [
+        -0.009246979585240456,
+        -0.006355853034103199
+      ],
+      "byte_ratio": 0.9326128064479023
+    },
+    "vq8_rot_gptq_vs_vq4_rot_gptq": {
+      "delta": -0.004034326967132795,
+      "ci": [
+        -0.005333727321075288,
+        -0.0027145615752062094
+      ],
+      "byte_ratio": 1.0001922605125966
+    },
+    "scalar3_g64_rot_gptq_vs_scalar3_rot_gptq": {
+      "delta": 0.0007144395786169433,
+      "ci": [
+        -0.0003750760151456478,
+        0.0018277082689827963
+      ],
+      "byte_ratio": 1.0724637673147033
+    },
+    "scalar3_g64_rot_gptq_vs_vq4_rot_gptq": {
+      "delta": 0.0038012347790252754,
+      "ci": [
+        0.00244789860834993,
+        0.005148562584273008
+      ],
+      "byte_ratio": 1.0724624984746758
+    }
+  },
+  "seconds": 9512.4
+}

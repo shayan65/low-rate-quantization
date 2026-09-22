@@ -115,7 +115,7 @@ def rate_table():
 def coverage_table():
     """Protocol and coverage, the table the review asked to lead with."""
     rows = []
-    for key in ("v4", "mlp", "alloc", "rate", "q27"):
+    for key in ("v4", "mlp", "alloc", "rate", "q27", "q27b"):
         r = load(key)
         if r is None:
             continue
@@ -151,15 +151,18 @@ def main():
             "mlp", "The same recipe on all 72 MLP tensors of the 0.8B model.",
             "tab:mlp"),
         "tab_q27_arms.tex": arm_table(
-            "q27", "Scale transfer: 48 DeltaNet QKV projections of Qwen3.8-27B.",
+            "q27b", "Scale transfer, frozen confirmation: 48 DeltaNet QKV "
+            "projections of Qwen3.8-27B over the complete validation stream.",
             "tab:q27"),
         "tab_primary.tex": comparison_table([
             ("v4", "vq8_rot_gptq_vs_scalar3_rot_gptq", "VQ8 vs scalar (0.8B)"),
-            ("q27", "vq8_rot_gptq_vs_scalar3_rot_gptq", "VQ8 vs scalar (27B)"),
+            ("q27b", "vq8_rot_gptq_vs_scalar3_rot_gptq", "VQ8 vs scalar (27B)"),
             ("v4", "vq4_rot_gptq_vs_scalar3_rot_gptq", "VQ4 vs scalar (0.8B)"),
-            ("q27", "vq4_rot_gptq_vs_scalar3_rot_gptq", "VQ4 vs scalar (27B)"),
+            ("q27b", "vq4_rot_gptq_vs_scalar3_rot_gptq", "VQ4 vs scalar (27B)"),
             ("v4", "vq8_rot_gptq_vs_scalar3_g64_rot_gptq", "VQ8 vs scalar g64 (0.8B)"),
-            ("q27", "vq8_rot_gptq_vs_scalar3_g64_rot_gptq", "VQ8 vs scalar g64 (27B)"),
+            ("q27b", "vq8_rot_gptq_vs_scalar3_g64_rot_gptq", "VQ8 vs scalar g64 (27B)"),
+            ("v4", "vq8_rot_gptq_vs_vq4_rot_gptq", "VQ8 vs VQ4 (0.8B)"),
+            ("q27b", "vq8_rot_gptq_vs_vq4_rot_gptq", "VQ8 vs VQ4 (27B)"),
         ], "Primary and secondary contrasts, matched recipe across checkpoints. "
            "The 0.8B rows come from the GPTQ run, not the earlier uncompensated one.",
            "tab:primary"),

@@ -783,109 +783,96 @@ that goal the evidence now points somewhere much duller: quantize at 3 to 4
 bits, where damage is 0.06 NLL or less, and spend the engineering effort on the
 packed inference kernel that §6 still lacks.
 
-## 11. Scale transfer: the recipe on Qwen3.8-27B (2026-09-22)
+## 11. Scale transfer: frozen confirmation on Qwen3.8-27B (2026-09-22)
 
-Every codec result to this point was measured on Qwen3.5-0.8B.
-`run_qwen38_confirm_v1.py` applies the §5c recipe to all 48
-`linear_attn.in_proj_qkv` tensors of Qwen3.8-27B (10240×5120 each,
-2,516,582,400 params, **9.36% of the model**), evaluating 65,536 validation
-targets over 512 blocks. Every arm asserts `decode(encode(w))` bit-exact per
-tensor, and all four passed.
+`run_qwen38_confirm_v2.py` applies the §5c recipe to all 48
+`linear_attn.in_proj_qkv` tensors of Qwen3.8-27B (10240x5120, 2,516,582,400
+params, **9.36%** of the runner's 26.896 B text-model census) and evaluates the
+**complete** 261,284-target validation stream. Calibration is 65,536 training
+tokens, matched to the 0.8B recipe. Contrasts were prespecified before the run
+and recorded in `manifest.json`: VQ8 vs scalar g128 primary; storage dominance
+and VQ8 vs VQ4 secondary.
 
-| Arm | bits/wt | stored MB | weight MSE | ΔNLL vs BF16 |
-|---|---:|---:|---:|---:|
-| scalar3_rot_gptq | 1.7250 | 542.6 | 7.416e-05 | $+0.010215$ |
-| scalar3_g64_rot_gptq | 1.8500 | 582.0 | 7.388e-05 | $+0.007994$ |
-| vq4_rot_gptq | 1.7250 | 542.6 | 6.400e-05 | $+0.006439$ |
-| **vq8_rot_gptq** | 1.7253 | 542.7 | 5.947e-05 | $\mathbf{+0.006258}$ |
+Protocol repairs relative to the pilot: the ragged final block is no longer
+dropped, per-block losses and identifiers are saved, the encoded model is
+written to disk and **re-decoded from the reloaded files** (exact for all four
+arms), and the manifest records arguments, source and checkpoint hashes, device
+map and GPU budget.
 
-### The near-equal-byte result transfers
+| Arm | bits/wt | payload B | artifact file B | ΔNLL vs BF16 | 95% CI |
+|---|---:|---:|---:|---:|:--|
+| scalar3_rot_gptq | 1.7250 | 542,638,086 | 542,669,401 | $+0.010958$ | $[+0.009366,+0.012561]$ |
+| scalar3_g64_rot_gptq | 1.8500 | 581,959,686 | 581,991,000 | $+0.011673$ | $[+0.010078,+0.013264]$ |
+| vq4_rot_gptq | 1.7250 | 542,638,728 | 542,670,686 | $+0.007871$ | $[+0.006436,+0.009331]$ |
+| **vq8_rot_gptq** | 1.7253 | 542,743,056 | 542,879,296 | $\mathbf{+0.003837}$ | $[+0.002420,+0.005250]$ |
 
-At **near-equal payload bytes**, dimension-8 VQ beats learned scalar ternary by
-$-0.003957$ NLL, paired block-bootstrap 95% CI $[-0.006805,-0.001083]$. The
-byte match is close but not literal: VQ8 stores 542,743,056 bytes against
-scalar's 542,638,086, **0.0193% more**; VQ4 differs by 642 bytes (0.00012%).
-Earlier drafts called this "exact parity", which the accounting does not
-support. Dimension-4 gives $-0.003776$ $[-0.006495,-0.001045]$.
+BF16 NLL 2.691117.
 
-The ratios — 38.7% and 37.0% less damage — are descriptive ratios of point
-estimates, quoted after the absolute contrast rather than instead of it; their
-uncertainty is not bootstrapped jointly here. The weight-MSE ordering again
-matches the NLL ordering within this fixed recipe. **The direction of the
-small-model comparison reproduces on this larger checkpoint under the evaluated
-protocol.**
+### All three prespecified contrasts resolve
 
-### The storage-dominance result is inconclusive at 27B
+| Contrast | ΔNLL | 95% CI | payload ratio |
+|---|---:|:--|---:|
+| **primary** VQ8 vs scalar g128 | $-0.007121$ | $[-0.008513,-0.005725]$ | 1.00019 |
+| VQ8 vs scalar g64 (*more* bytes) | $-0.007836$ | $[-0.009247,-0.006356]$ | 0.93261 |
+| VQ8 vs VQ4 | $-0.004034$ | $[-0.005334,-0.002715]$ | 1.00019 |
+| g64 vs g128 (context) | $+0.000714$ | $[-0.000375,+0.001828]$ | 1.07246 |
 
-The stronger claim is that VQ8 also beats a scalar control spending *more*
-bytes. Comparing like with like — the matched GPTQ recipe, not the earlier
-uncompensated run — that margin at 0.8B is $-0.034303$
-$[-0.036660,-0.031971]$ at a byte ratio of 0.9364. (An earlier draft quoted
-$-0.113585$ here, which belongs to `ternary_task_v3` **without** GPTQ and is
-not comparable to the 27B number.)
+The primary contrast holds. **Storage dominance, inconclusive in the pilot, now
+resolves**: VQ8 beats the scalar control while storing 6.7% *fewer* payload
+bytes, interval excluding zero. And **dimension 8 earns its place**: VQ8 beats
+VQ4 by $-0.004034$, more than half the size of VQ8's entire advantage over
+scalar. The pilot had suggested the opposite, with VQ4 capturing 95.4% of the
+gain and VQ8 ahead by only $0.000181$.
 
-At 27B the same comparison is $-0.001736$ $[-0.004444,+0.000923]$ — the
-interval **includes zero**. The point estimate favours VQ8 and the sign is
-right, but the comparison is **inconclusive**: failing to reject zero is not
-evidence of equivalence, and no equivalence margin was prespecified.
+Finer scalar groups remain unsupported: g64 spends 7.25% more bytes for
+$+0.000714$ $[-0.000375,+0.001828]$, an interval including zero whose point
+estimate is now the *wrong sign* for g64. This is still not an equivalence
+result, but the earlier "21.7% benefit" reading from the pilot does not survive.
 
-Everything being measured is smaller here. Ternary scalar quantization of 9.36%
-of this 27B checkpoint costs $+0.010215$ NLL — $+1.03\%$ perplexity, against
-$+0.63\%$ for VQ8 — which is 9.0% of the corresponding 0.8B figure. That is an
-**observation, not an explained cause**. The two runs differ in checkpoint
-generation and training, target coverage (9.36% vs 15.1%), tensor dimensions,
-calibration size (**32,768 tokens at 27B against 65,536 at 0.8B**, a difference
-the earlier draft did not disclose) and evaluated text extent (65,536 targets
-against 261,284). Attributing the shrinkage to scale alone is not supported.
+### The pilot was misleading, and not because of sampling
 
-On what would settle it: under unchanged variance and exchangeable blocks,
-extending to the full 261,284-target stream projects a half-width of about
-$0.00134$. If the effect stayed at $-0.001736$ that interval would exclude
-zero — but a normal approximation gives only about **72% power** at that
-effect and sample size, and roughly 320k targets would be needed for 80%.
-These are planning calculations from a selected pilot estimate, not guarantees.
-Adjacent 128-target blocks may also be dependent even with state reset, so a
-document-cluster or moving-block resampling check belongs alongside the
-per-block bootstrap.
+The 512-block pilot gave $-0.003957$ (primary) and $-0.001736$ (dominance). The
+frozen run gives $-0.007121$ and $-0.007836$. Two checks separate the possible
+explanations.
 
-### What this says about the 27B programme
+**The corpus is homogeneous.** Splitting the frozen run into the pilot's first
+512 blocks and the 1,530 blocks never previously evaluated
+(`split_prefix_check.py`) gives consistent intervals on every contrast:
 
-One earlier observation recurs, with a correction to how it was stated. Finer
-scalar groups (g64, 7.25% more bytes) reduce damage by $0.002220$ NLL, about
-**21.7%** of scalar g128 damage, with interval $[-0.004450,+0.000004]$. That
-interval is almost entirely favourable and ends a hair above zero: it is **weak
-evidence of a benefit**, not evidence of no benefit. Earlier drafts wrote
-"buys nothing measurable" and counted this as a third *independent*
-replication; both were overstated. These runs share evaluation text, codebase
-and protocol, so they are repeated measurements under correlated conditions,
-not independent replications.
+| Contrast | prefix (65,536) | remainder (195,748) |
+|---|---:|---:|
+| VQ8 vs scalar | $-0.005912$ | $-0.007526$ |
+| VQ8 vs g64 | $-0.007681$ | $-0.007887$ |
+| VQ8 vs VQ4 | $-0.003309$ | $-0.004277$ |
 
-The absolute numbers still carry a message, stated within what was measured.
-Converting 9.36% of this 27B checkpoint to ternary costs about 1% perplexity
-whichever codec is used, and the choice between codecs moves roughly 0.4
-percentage points of perplexity. That is a small lever on this target subset.
-Whether it is a small lever on a *deployed* model is not established here,
-because no full-coverage conversion — at four bits or any other rate — has been
-measured at 27B for either quality or runtime footprint.
+So the prefix is not unrepresentative, and extending coverage is not what moved
+the numbers.
 
-### Is dimension 8 needed?
+**The evaluation path is identical.** BF16 NLL restricted to the pilot's blocks
+is 2.579685 in the frozen run and 2.579685 in the pilot — equal to all printed
+digits. The two runs therefore differ only in the weights they produced.
 
-VQ4 captures **95.4%** of VQ8's point-estimated improvement over scalar, and
-VQ8 improves on VQ4 by only $0.000181$ NLL while storing 104,328 more bytes of
-codebook. No paired interval for that contrast was saved by the v1 runner,
-which is a gap: VQ8 was selected for headline treatment because it had the
-smallest point estimate, and whether eight dimensions are justified at this
-checkpoint is a more informative question than that selection assumed. The v2
-runner adds VQ8-vs-VQ4 as a prespecified secondary contrast.
+**What differs is calibration.** The pilot used 32,768 calibration tokens; the
+frozen run uses 65,536. On *identical evaluation blocks* the dominance contrast
+moves from $-0.001736$ $[-0.004444,+0.000923]$ to $-0.007681$
+$[-0.010467,-0.004984]$ — intervals that do not overlap.
 
-### A defect that is mitigated but not explained
+Doubling calibration data changes $H$, hence the Cholesky factor, hence the
+compensation and every arm's chosen codes. A comparison of two calibration
+sizes cannot separate a size effect from calibration-sample variability, and
+the 64-block set is a prefix of the 128-block set rather than an independent
+draw. The defensible conclusion is narrower and more uncomfortable: **at this
+rate these contrasts are sensitive to the calibration configuration, and every
+interval in this document is conditional on one fitted quantizer.** Reported
+intervals capture text-sampling variability only; calibration and codebook-seed
+variability are not in them. Repeating the frozen run across calibration draws
+and codebook seeds is the obvious missing measurement.
 
-At a 17 GiB GPU-weight budget the per-tensor bit-exactness assertion fired with
-a decoded-vs-quantized difference of 0.036 — far too large to be rounding. At
-15 GiB every tensor is exact. The codec itself is exact at 10240×5120 with
-synthetic data, all 48 targets genuinely share one shape, and layer 0 passes
-the full real path, so the obvious explanations are excluded; the cause is
-**not understood**. The runs above use 15 GiB and keep the assertion enabled
-per tensor, which converts any recurrence into a loud failure rather than a
-quiet wrong number. That is a mitigation, and anyone extending this work should
-treat the assertion as load-bearing rather than optional.
+### What this says about the programme
+
+Converting 9.36% of this checkpoint to ternary costs $+1.10\%$ perplexity with
+the scalar code and $+0.38\%$ with VQ8. The codec choice moves about 0.7
+percentage points of perplexity on this subset. Whether that matters for a
+deployed model is still unmeasured: no full-coverage conversion at any rate has
+been evaluated at 27B for quality or runtime footprint, and there is no packed
+inference kernel.
