@@ -1131,3 +1131,121 @@ five independent replications** — the three wikitext-test rows share their tex
 and differ only in blocking. It does not establish that the ordering holds on
 other model families, other calibration domains, or at 27B, where neither the
 domain nor the context axis was measured.
+
+## 14. Three mechanism tests (2026-09-22)
+
+§§12–13 reported three things without causes. Each is cheap to resolve on the
+0.8B model, and each resolution changes what the earlier section should say.
+
+### A. Domain damage is calibration mismatch, and TinyStories is the *less* sensitive corpus
+
+§13 found higher damage on TinyStories under a wikitext-calibrated quantizer
+and declined to attribute it, since intrinsic sensitivity was an equally good
+explanation. Crossing two calibration domains with two evaluation domains
+settles it. ΔNLL against BF16:
+
+| calibration \\ evaluation | wikitext-2 test | TinyStories |
+|---|---:|---:|
+| wikitext, scalar | **0.121115** | 0.183486 |
+| wikitext, VQ8 | **0.082309** | 0.140296 |
+| TinyStories, scalar | 0.288304 | **0.036675** |
+| TinyStories, VQ8 | 0.199492 | **0.029201** |
+
+Damage is minimized on the diagonal in every cell, and the off-diagonal
+penalties are large: calibrating on TinyStories and evaluating on wikitext
+costs $0.288304$ against $0.121115$ matched. **Calibration mismatch is the
+cause.**
+
+The alternative is not merely unsupported but refuted. TinyStories is the
+*less* sensitive corpus: matched, it costs $0.036675$ against wikitext's
+$0.121115$, a factor of 3.3 in the opposite direction to the one §13's numbers
+suggested. The high TinyStories figure there was entirely an artifact of
+calibrating elsewhere.
+
+VQ8 wins in all four cells, removing 20.4% to 32.0% of scalar damage. Its
+proportional advantage is largest where damage is largest (32.0% and 30.8% in
+the two worst cells, 20.4% in the mildest), so the vector code earns most in
+the regimes that hurt most.
+
+### B. Position-resolved loss finds drift, and it is specific to the vector code
+
+§13 reported flat aggregate damage through 2048 tokens and correctly refused to
+call that evidence against recurrent-state drift. Resolving loss by position
+inside the block shows why the refusal was right.
+
+Mean loss over 127 blocks of 2048 tokens, wikitext-2 test:
+
+| positions | BF16 | scalar damage | VQ8 damage | VQ8 advantage |
+|---|---:|---:|---:|---:|
+| 0–256 | 3.0776 | 0.117398 | 0.079553 | 0.037845 |
+| 256–512 | 2.6192 | 0.115513 | 0.082541 | 0.032973 |
+| 512–1024 | 2.5238 | 0.116048 | 0.082780 | 0.033268 |
+| 1024–1536 | 2.4587 | 0.113739 | 0.084449 | 0.029290 |
+| 1536–2048 | 2.4480 | 0.118204 | 0.088811 | 0.029393 |
+
+Scalar damage is flat with position. **VQ8 damage rises monotonically**, from
+$0.079553$ to $0.088811$ — about 12% — so VQ8's advantage erodes from
+$0.037845$ to $0.029393$, roughly 22%, across the block. The aggregate hid
+this because it averages the two ends.
+
+The ordering is preserved at every position, so the headline claim stands. But
+the earlier statement that context extension leaves the result undisturbed is
+now too strong: there *is* a position-dependent effect, it is specific to the
+vector code, and it points the same way as the 18% aggregate shrinkage from 128
+to 2048 tokens. Naively extrapolating to much longer contexts is unwarranted on
+five buckets.
+
+Limitation: per-block per-position losses were not stored, so these are means
+without intervals over 127 blocks. A repeat that retains them would let the
+trend be tested rather than read off.
+
+### C. Weight MSE is anti-correlated with loss inside the scalar family
+
+The hypothesis for the unstable g64 contrast was a mismatch between the local
+quantization objective and the language-model loss, with two separable causes:
+derived scales and a refitted codebook. Holding the codebook fixed across group
+sizes separates them, and the result is stronger than the hypothesis.
+
+| variant | weight MSE | ΔNLL |
+|---|---:|---:|
+| g64, g128's codebook | **9.71810e-05** (best) | **0.135133** (worst) |
+| g64, own codebook | 9.86269e-05 | 0.121852 |
+| g128, own codebook | 9.88856e-05 | 0.121115 |
+| g128, g64's codebook | **1.04436e-04** (worst) | **0.115284** (best) |
+
+The weight-MSE ordering is the **exact reverse** of the loss ordering across
+all four variants — Spearman $-1.0$. Lower reconstruction error means higher
+loss, monotonically, within this family at fixed rate.
+
+The paired contrasts locate the effect in the codebook rather than the grouping:
+
+| contrast | ΔNLL | 95% CI |
+|---|---:|:--|
+| g64 own vs g128 own | $+0.000737$ | $[-0.001213,+0.002710]$ **includes 0** |
+| g64 with g128's book vs g128 own | $+0.014019$ | $[+0.012133,+0.015908]$ |
+| g64 with g128's book vs g64 own | $+0.013281$ | $[+0.011297,+0.015222]$ |
+| g128 with g64's book vs g128 own | $-0.005831$ | $[-0.007809,-0.003792]$ |
+
+Changing the group size alone moves nothing measurable ($+0.000737$). Changing
+which codebook is used moves 0.013 to 0.014 — roughly twenty times as much.
+So the instability of the g64 contrast is not a story about scale bytes at all;
+it is that a shared three-level alphabet interacts with the group normalization
+in a way that reconstruction error actively mispredicts.
+
+One tempting number deserves a warning. The best cell, g128 quantization with
+the codebook fitted in g64-normalized space, beats the standard configuration
+by $-0.005831$ with an interval excluding zero. But §12 measured refit-to-refit
+ranges of about $0.005$ for scalar-family contrasts, so a single refit cannot
+establish this as a real recipe improvement. It is a lead, not a result, and
+the honest test is the §12 protocol applied to these four variants.
+
+### What these change upstream
+
+* §13's refusal to attribute domain damage is replaced by an attribution:
+  calibration mismatch, with intrinsic sensitivity refuted.
+* §13's "no large increase in aggregate damage through 2048 tokens" stands, but
+  "does not degrade" must not be read into it: VQ8's advantage erodes with
+  position within the block.
+* §12's hypothesis is upheld in a stronger form — the local objective is not
+  merely imperfectly aligned with loss here, it is inverted — and relocated
+  from the scale derivation to the codebook.
