@@ -1,0 +1,200 @@
+{
+  "plan": {
+    "model": "../models/Qwen3.5-0.8B-Base",
+    "layers": [
+      0,
+      1,
+      2,
+      4,
+      5,
+      6,
+      8,
+      9,
+      10,
+      12,
+      13,
+      14,
+      16,
+      17,
+      18,
+      20,
+      21,
+      22
+    ],
+    "eval_targets": 261248,
+    "note": "unweighted (no activation metric) for every arm; rotation applied at quantization time and inverted"
+  },
+  "bf16": {
+    "nll": 3.436670363504241,
+    "ppl": 31.0832896192693,
+    "blocks": 2041,
+    "target_tokens": 261248,
+    "seconds": 26.963790046051145
+  },
+  "arms": {
+    "scalar_ternary_g128": {
+      "nll": 3.8779378179123096,
+      "ppl": 48.324458415960564,
+      "delta_nll": 0.4412674544080688,
+      "delta_ci": [
+        0.4355341205171719,
+        0.44698270849887206
+      ],
+      "bits_per_weight": 1.709962500721156,
+      "quantize_seconds": 31.627015606034547
+    },
+    "scalar_ternary_g128_rot": {
+      "nll": 3.7954738550709486,
+      "ppl": 44.49931763772628,
+      "delta_nll": 0.35880349156670777,
+      "delta_ci": [
+        0.3541688142527791,
+        0.3635026992214246
+      ],
+      "bits_per_weight": 1.709962500721156,
+      "quantize_seconds": 35.35429051192477
+    },
+    "scalar_ternary_g64_rot": {
+      "nll": 3.7901677952158517,
+      "ppl": 44.263826911280006,
+      "delta_nll": 0.35349743171161085,
+      "delta_ci": [
+        0.3488443474539467,
+        0.3583191278312558
+      ],
+      "bits_per_weight": 1.834962500721156,
+      "quantize_seconds": 34.01222678099293
+    },
+    "vq_dim4_g128_rot": {
+      "nll": 3.713674596394469,
+      "ppl": 41.004203932806895,
+      "delta_nll": 0.27700423289022824,
+      "delta_ci": [
+        0.27287065441967046,
+        0.28113626873212844
+      ],
+      "bits_per_weight": 1.710786475330531,
+      "quantize_seconds": 29.12891184608452
+    },
+    "vq_dim8_g128_rot_shared": {
+      "nll": 3.658186472671281,
+      "ppl": 38.79093063056416,
+      "delta_nll": 0.22151610916704012,
+      "delta_ci": [
+        0.21767913836845282,
+        0.22536235842735144
+      ],
+      "bits_per_weight": 1.717378272205531,
+      "quantize_seconds": 34.422921087942086
+    },
+    "vq_dim8_g128_rot_pertensor": {
+      "nll": 3.6458734260476846,
+      "ppl": 38.31622462924449,
+      "delta_nll": 0.20920306254344379,
+      "delta_ci": [
+        0.20558118774340703,
+        0.21277468403959204
+      ],
+      "bits_per_weight": 1.843446387439906,
+      "quantize_seconds": 112.76170719100628
+    },
+    "vq_dim8_g128_norot_shared": {
+      "nll": 3.6829846971821167,
+      "ppl": 39.76490332237659,
+      "delta_nll": 0.24631433367787592,
+      "delta_ci": [
+        0.24247374070268937,
+        0.2500705479816267
+      ],
+      "bits_per_weight": 1.717378272205531,
+      "quantize_seconds": 34.20140248001553
+    }
+  },
+  "comparisons": {
+    "scalar_ternary_g128_minus_scalar_ternary_g128_rot": {
+      "delta": 0.08246396284136101,
+      "ci": [
+        0.0778814934825617,
+        0.08709294309311204
+      ]
+    },
+    "scalar_ternary_g128_minus_scalar_ternary_g64_rot": {
+      "delta": 0.08777002269645814,
+      "ci": [
+        0.08314989092944593,
+        0.09227348718206302
+      ]
+    },
+    "scalar_ternary_g128_rot_minus_scalar_ternary_g64_rot": {
+      "delta": 0.005306059855097126,
+      "ci": [
+        0.0031403293071103878,
+        0.007589893548994424
+      ]
+    },
+    "scalar_ternary_g64_rot_minus_scalar_ternary_g128_rot": {
+      "delta": -0.005306059855097126,
+      "ci": [
+        -0.007589893548994424,
+        -0.0031403293071103886
+      ]
+    },
+    "vq_dim4_g128_rot_minus_scalar_ternary_g128_rot": {
+      "delta": -0.0817992586764794,
+      "ci": [
+        -0.08545259131572223,
+        -0.07815321309492905
+      ]
+    },
+    "vq_dim4_g128_rot_minus_scalar_ternary_g64_rot": {
+      "delta": -0.07649319882138228,
+      "ci": [
+        -0.08024746876233703,
+        -0.07282908921992878
+      ]
+    },
+    "vq_dim8_g128_rot_shared_minus_scalar_ternary_g128_rot": {
+      "delta": -0.1372873823996679,
+      "ci": [
+        -0.14118831492650163,
+        -0.13345652628856103
+      ]
+    },
+    "vq_dim8_g128_rot_shared_minus_scalar_ternary_g64_rot": {
+      "delta": -0.13198132254457076,
+      "ci": [
+        -0.13593265261940954,
+        -0.1281044670847454
+      ]
+    },
+    "vq_dim8_g128_rot_pertensor_minus_scalar_ternary_g128_rot": {
+      "delta": -0.1496004290232642,
+      "ci": [
+        -0.15350006129127222,
+        -0.14577011649279195
+      ]
+    },
+    "vq_dim8_g128_rot_pertensor_minus_scalar_ternary_g64_rot": {
+      "delta": -0.14429436916816707,
+      "ci": [
+        -0.14825633192459547,
+        -0.14031571181073954
+      ]
+    },
+    "vq_dim8_g128_norot_shared_minus_scalar_ternary_g128_rot": {
+      "delta": -0.11248915788883207,
+      "ci": [
+        -0.11639539086164533,
+        -0.10871466411380777
+      ]
+    },
+    "vq_dim8_g128_norot_shared_minus_scalar_ternary_g64_rot": {
+      "delta": -0.10718309803373495,
+      "ci": [
+        -0.11129537578133727,
+        -0.10330051228382142
+      ]
+    }
+  },
+  "seconds": 341.0
+}

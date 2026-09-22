@@ -1,0 +1,38 @@
+{
+  "model": "models/Qwen3.5-0.8B-Base",
+  "layer": 0,
+  "shape": [
+    6144,
+    1024
+  ],
+  "pairing": "reverse_half",
+  "correctness": {
+    "max_abs_error": 1.4901161193847656e-08,
+    "rmse": 7.715411087794166e-10
+  },
+  "decode_ms": 0.03824533368319725,
+  "compressed_bytes": 3170304,
+  "bf16_bytes": 12582912,
+  "compression_ratio": 3.9689922480620154,
+  "latency": [
+    {
+      "tokens": 1,
+      "resident_bf16_gemm_ms": 0.02294651831759781,
+      "packed_decode_plus_gemm_ms": 0.10396507685362551,
+      "slowdown": 4.530756056961117
+    },
+    {
+      "tokens": 16,
+      "resident_bf16_gemm_ms": 0.023242563503556267,
+      "packed_decode_plus_gemm_ms": 0.1047813967173177,
+      "slowdown": 4.50816867516724
+    },
+    {
+      "tokens": 128,
+      "resident_bf16_gemm_ms": 0.0416847443015411,
+      "packed_decode_plus_gemm_ms": 0.12432970708379379,
+      "slowdown": 2.982618921311154
+    }
+  ],
+  "note": "Prototype decodes the packed tensor with Triton before cuBLAS GEMM; it is not a fused production matmul."
+}

@@ -1,0 +1,10 @@
+{
+  "job": {
+    "id": "hybrid_real8_seed0",
+    "architecture": "hybrid",
+    "method": "real8",
+    "seed": 0
+  },
+  "returncode": 1,
+  "log": "/home/shayan/quantum_quantization/results/wikitext103_full_v1/hybrid_real8_seed0/train.log"
+}

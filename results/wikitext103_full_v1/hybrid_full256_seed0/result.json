@@ -1,0 +1,336 @@
+{
+  "method": "full256",
+  "architecture": "hybrid",
+  "seed": 0,
+  "parameters": 13086738,
+  "best_epoch": 2,
+  "validation": {
+    "nll": 3.861651043657176,
+    "perplexity": 47.543783465757954,
+    "target_tokens": 282591,
+    "coverage": 1.0,
+    "context": 512,
+    "reset": "each contiguous context block"
+  },
+  "test": {
+    "nll": 3.8335562734665976,
+    "perplexity": 46.22664084066196,
+    "target_tokens": 322999,
+    "coverage": 1.0,
+    "context": 512,
+    "reset": "each contiguous context block"
+  },
+  "completed_epochs": [
+    {
+      "epoch": 1,
+      "train_target_tokens": 135350274,
+      "train_coverage": 1.0,
+      "train_nll": 4.35344297776333,
+      "validation": {
+        "nll": 3.8919300898316824,
+        "perplexity": 49.005380089670986,
+        "target_tokens": 282591,
+        "coverage": 1.0,
+        "context": 512,
+        "reset": "each contiguous context block"
+      },
+      "step": 16523
+    },
+    {
+      "epoch": 2,
+      "train_target_tokens": 135350274,
+      "train_coverage": 1.0,
+      "train_nll": 3.8762282271811848,
+      "validation": {
+        "nll": 3.861651043657176,
+        "perplexity": 47.543783465757954,
+        "target_tokens": 282591,
+        "coverage": 1.0,
+        "context": 512,
+        "reset": "each contiguous context block"
+      },
+      "step": 33046
+    },
+    {
+      "epoch": 3,
+      "train_target_tokens": 135350274,
+      "train_coverage": 1.0,
+      "train_nll": 3.886704374640191,
+      "validation": {
+        "nll": 3.866455586983485,
+        "perplexity": 47.77275925489967,
+        "target_tokens": 282591,
+        "coverage": 1.0,
+        "context": 512,
+        "reset": "each contiguous context block"
+      },
+      "step": 49569
+    }
+  ],
+  "deployment": {
+    "projections": [
+      {
+        "kind": "phase",
+        "bits": 8,
+        "scale_bytes": 4,
+        "name": "blocks.0.input",
+        "method": "full256",
+        "shape": [
+          384,
+          384
+        ],
+        "offset": 0,
+        "bytes": 147460,
+        "indices": 147456
+      },
+      {
+        "kind": "phase",
+        "bits": 8,
+        "scale_bytes": 4,
+        "name": "blocks.0.output",
+        "method": "full256",
+        "shape": [
+          384,
+          384
+        ],
+        "offset": 147460,
+        "bytes": 147460,
+        "indices": 147456
+      },
+      {
+        "kind": "phase",
+        "bits": 8,
+        "scale_bytes": 4,
+        "name": "blocks.0.up",
+        "method": "full256",
+        "shape": [
+          1536,
+          384
+        ],
+        "offset": 294920,
+        "bytes": 589828,
+        "indices": 589824
+      },
+      {
+        "kind": "phase",
+        "bits": 8,
+        "scale_bytes": 4,
+        "name": "blocks.0.down",
+        "method": "full256",
+        "shape": [
+          384,
+          1536
+        ],
+        "offset": 884748,
+        "bytes": 589828,
+        "indices": 589824
+      },
+      {
+        "kind": "phase",
+        "bits": 8,
+        "scale_bytes": 4,
+        "name": "blocks.1.up",
+        "method": "full256",
+        "shape": [
+          1536,
+          384
+        ],
+        "offset": 1474576,
+        "bytes": 589828,
+        "indices": 589824
+      },
+      {
+        "kind": "phase",
+        "bits": 8,
+        "scale_bytes": 4,
+        "name": "blocks.1.down",
+        "method": "full256",
+        "shape": [
+          384,
+          1536
+        ],
+        "offset": 2064404,
+        "bytes": 589828,
+        "indices": 589824
+      },
+      {
+        "kind": "phase",
+        "bits": 8,
+        "scale_bytes": 4,
+        "name": "blocks.2.input",
+        "method": "full256",
+        "shape": [
+          384,
+          384
+        ],
+        "offset": 2654232,
+        "bytes": 147460,
+        "indices": 147456
+      },
+      {
+        "kind": "phase",
+        "bits": 8,
+        "scale_bytes": 4,
+        "name": "blocks.2.output",
+        "method": "full256",
+        "shape": [
+          384,
+          384
+        ],
+        "offset": 2801692,
+        "bytes": 147460,
+        "indices": 147456
+      },
+      {
+        "kind": "phase",
+        "bits": 8,
+        "scale_bytes": 4,
+        "name": "blocks.2.up",
+        "method": "full256",
+        "shape": [
+          1536,
+          384
+        ],
+        "offset": 2949152,
+        "bytes": 589828,
+        "indices": 589824
+      },
+      {
+        "kind": "phase",
+        "bits": 8,
+        "scale_bytes": 4,
+        "name": "blocks.2.down",
+        "method": "full256",
+        "shape": [
+          384,
+          1536
+        ],
+        "offset": 3538980,
+        "bytes": 589828,
+        "indices": 589824
+      },
+      {
+        "kind": "phase",
+        "bits": 8,
+        "scale_bytes": 4,
+        "name": "blocks.3.up",
+        "method": "full256",
+        "shape": [
+          1536,
+          384
+        ],
+        "offset": 4128808,
+        "bytes": 589828,
+        "indices": 589824
+      },
+      {
+        "kind": "phase",
+        "bits": 8,
+        "scale_bytes": 4,
+        "name": "blocks.3.down",
+        "method": "full256",
+        "shape": [
+          384,
+          1536
+        ],
+        "offset": 4718636,
+        "bytes": 589828,
+        "indices": 589824
+      },
+      {
+        "kind": "phase",
+        "bits": 8,
+        "scale_bytes": 4,
+        "name": "blocks.4.input",
+        "method": "full256",
+        "shape": [
+          384,
+          384
+        ],
+        "offset": 5308464,
+        "bytes": 147460,
+        "indices": 147456
+      },
+      {
+        "kind": "phase",
+        "bits": 8,
+        "scale_bytes": 4,
+        "name": "blocks.4.output",
+        "method": "full256",
+        "shape": [
+          384,
+          384
+        ],
+        "offset": 5455924,
+        "bytes": 147460,
+        "indices": 147456
+      },
+      {
+        "kind": "phase",
+        "bits": 8,
+        "scale_bytes": 4,
+        "name": "blocks.4.up",
+        "method": "full256",
+        "shape": [
+          1536,
+          384
+        ],
+        "offset": 5603384,
+        "bytes": 589828,
+        "indices": 589824
+      },
+      {
+        "kind": "phase",
+        "bits": 8,
+        "scale_bytes": 4,
+        "name": "blocks.4.down",
+        "method": "full256",
+        "shape": [
+          384,
+          1536
+        ],
+        "offset": 6193212,
+        "bytes": 589828,
+        "indices": 589824
+      },
+      {
+        "kind": "phase",
+        "bits": 8,
+        "scale_bytes": 4,
+        "name": "blocks.5.up",
+        "method": "full256",
+        "shape": [
+          1536,
+          384
+        ],
+        "offset": 6783040,
+        "bytes": 589828,
+        "indices": 589824
+      },
+      {
+        "kind": "phase",
+        "bits": 8,
+        "scale_bytes": 4,
+        "name": "blocks.5.down",
+        "method": "full256",
+        "shape": [
+          384,
+          1536
+        ],
+        "offset": 7372868,
+        "bytes": 589828,
+        "indices": 589824
+      }
+    ],
+    "remaining_fp32_payload_bytes": 20496384,
+    "deployment_tensor_payload_bytes": 28459080,
+    "note": "No optimizer or latent quantized weights; metadata/file overhead counted separately",
+    "actual_directory_bytes": 28481559
+  },
+  "fp32_parameter_payload_bytes": 52346952,
+  "elapsed_seconds": 2347.8317110538483,
+  "peak_cuda_bytes": 2583472128,
+  "test_model": "decoded packed deployment export",
+  "source_sha256": "6fdd91f591d2cd778ff5c5dfb3f928bd49500808ba401bd06a481ccccbeecedb",
+  "dataset_manifest_sha256": "717c0a503d44017062611706852cb2914d00d25a8325a60843e8f2ad38d402d4"
+}

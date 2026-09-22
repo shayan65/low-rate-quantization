@@ -1,0 +1,37 @@
+[
+  {
+    "tensor": "none",
+    "method": "bf16",
+    "nll": 2.4406445920467377,
+    "perplexity": 11.480438557639694,
+    "target_tokens": 8192,
+    "seconds": 45.02392156899441,
+    "gpu_peak_bytes": 21602626048
+  },
+  {
+    "tensor": "attention_q",
+    "method": "real4",
+    "pairing": null,
+    "delta_nll_vs_bf16": -0.0007681846618652344,
+    "weight_mse": 4.036290192743763e-06,
+    "payload_bytes": 31506433,
+    "nll": 2.4398764073848724,
+    "perplexity": 11.471622847308478,
+    "target_tokens": 8192,
+    "seconds": 44.78073902602773,
+    "gpu_peak_bytes": 21602626048
+  },
+  {
+    "tensor": "attention_q",
+    "method": "polar3_5",
+    "pairing": "adjacent",
+    "delta_nll_vs_bf16": -0.0026161670684814453,
+    "weight_mse": 3.826313786703395e-06,
+    "payload_bytes": 31506433,
+    "nll": 2.4380284249782562,
+    "perplexity": 11.450443066070347,
+    "target_tokens": 8192,
+    "seconds": 44.757951139006764,
+    "gpu_peak_bytes": 21602626048
+  }
+]

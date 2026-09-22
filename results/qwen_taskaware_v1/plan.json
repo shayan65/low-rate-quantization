@@ -1,0 +1,50 @@
+{
+  "model": "Qwen/Qwen3.5-0.8B-Base",
+  "layers": [
+    0,
+    8,
+    16
+  ],
+  "tensor": "linear_attn.in_proj_qkv.weight",
+  "calibration_targets": 512,
+  "evaluation_targets": 2048,
+  "sample_seed": 52016,
+  "starts": [
+    5328,
+    11917,
+    49746,
+    50779,
+    51038,
+    71551,
+    74288,
+    75650,
+    94938,
+    96377,
+    124601,
+    129862,
+    130954,
+    164018,
+    165038,
+    178850,
+    220221,
+    245422,
+    247710,
+    256307
+  ],
+  "polar_candidates": [
+    "adjacent",
+    "split_half",
+    "reverse_half",
+    "stride257"
+  ],
+  "real4_candidates": [
+    0.85,
+    0.95,
+    1.0,
+    1.05
+  ],
+  "selection": "minimum calibration NLL; final NLL on disjoint windows",
+  "budget": "3,170,305 bytes: equal 3,170,304-byte weights/scales plus one candidate-id byte",
+  "scope": "one tensor at a time, frozen BF16 model",
+  "runtime_cap_seconds": 180.0
+}

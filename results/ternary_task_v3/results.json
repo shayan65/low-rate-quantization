@@ -1,0 +1,260 @@
+{
+  "plan": {
+    "model": "../models/Qwen3.5-0.8B-Base",
+    "layers": [
+      0,
+      1,
+      2,
+      4,
+      5,
+      6,
+      8,
+      9,
+      10,
+      12,
+      13,
+      14,
+      16,
+      17,
+      18,
+      20,
+      21,
+      22
+    ],
+    "targets": 261284,
+    "protocol": "weights decoded from packed bytes; bits/weight measured; token-weighted NLL over the complete stream"
+  },
+  "bf16": {
+    "nll": 3.4367098761642176,
+    "target_tokens": 261284
+  },
+  "arms": {
+    "scalar_ternary_g128": {
+      "nll": 3.8782344248196976,
+      "delta_nll": 0.44152454865547996,
+      "delta_ci": [
+        0.43601780872401474,
+        0.4470917456498269
+      ],
+      "bits_per_weight": 1.7250014411078558,
+      "stored_bytes": 24418734,
+      "codebook_bytes": 6,
+      "decode_exact": true,
+      "weight_mse": 7.64231785501541e-05,
+      "quantize_seconds": 28.203596033039503
+    },
+    "scalar_ternary_g128_rot": {
+      "nll": 3.793308684020754,
+      "delta_nll": 0.3565988078565363,
+      "delta_ci": [
+        0.35202771838259117,
+        0.3612864997671653
+      ],
+      "bits_per_weight": 1.7250014411078558,
+      "stored_bytes": 24418734,
+      "codebook_bytes": 6,
+      "decode_exact": true,
+      "weight_mse": 7.184486747100742e-05,
+      "quantize_seconds": 28.216888114926405
+    },
+    "scalar_ternary_g64_rot": {
+      "nll": 3.790474400568723,
+      "delta_nll": 0.35376452440450556,
+      "delta_ci": [
+        0.348936346320414,
+        0.3585609057987475
+      ],
+      "bits_per_weight": 1.8500014411078558,
+      "stored_bytes": 26188206,
+      "codebook_bytes": 6,
+      "decode_exact": true,
+      "weight_mse": 7.143058093555509e-05,
+      "quantize_seconds": 28.361093219951726
+    },
+    "vq_dim4_g128_rot": {
+      "nll": 3.694866013106077,
+      "delta_nll": 0.25815613694185924,
+      "delta_ci": [
+        0.25428294647322397,
+        0.26201998832235135
+      ],
+      "bits_per_weight": 1.7250518798828125,
+      "stored_bytes": 24419448,
+      "codebook_bytes": 648,
+      "decode_exact": true,
+      "weight_mse": 6.183315120806349e-05,
+      "quantize_seconds": 28.0007205120055
+    },
+    "vq_dim8_g128_rot": {
+      "nll": 3.676889554428727,
+      "delta_nll": 0.24017967826450937,
+      "delta_ci": [
+        0.23636678446751974,
+        0.2439034545291564
+      ],
+      "bits_per_weight": 1.732421875,
+      "stored_bytes": 24523776,
+      "codebook_bytes": 104976,
+      "decode_exact": true,
+      "weight_mse": 5.7164771463820056e-05,
+      "quantize_seconds": 35.0328640290536
+    },
+    "vq_dim8_g128_norot": {
+      "nll": 3.6832853234830205,
+      "delta_nll": 0.24657544731880288,
+      "delta_ci": [
+        0.24289694166295162,
+        0.25022672226095327
+      ],
+      "bits_per_weight": 1.732421875,
+      "stored_bytes": 24523776,
+      "codebook_bytes": 104976,
+      "decode_exact": true,
+      "weight_mse": 5.830486519688277e-05,
+      "quantize_seconds": 34.923751547932625
+    },
+    "vq_dim4_g128_rot_w": {
+      "nll": 3.7006806004381545,
+      "delta_nll": 0.26397072427393686,
+      "delta_ci": [
+        0.2599853761370104,
+        0.2680046359866509
+      ],
+      "bits_per_weight": 1.7250518798828125,
+      "stored_bytes": 24419448,
+      "codebook_bytes": 648,
+      "decode_exact": true,
+      "weight_mse": 6.183954740744339e-05,
+      "quantize_seconds": 28.131311849108897
+    },
+    "vq_dim8_g128_rot_w": {
+      "nll": 3.698379035216563,
+      "delta_nll": 0.26166915905234545,
+      "delta_ci": [
+        0.257760291143546,
+        0.26570862807135726
+      ],
+      "bits_per_weight": 1.732421875,
+      "stored_bytes": 24523776,
+      "codebook_bytes": 104976,
+      "decode_exact": true,
+      "weight_mse": 5.729437047665182e-05,
+      "quantize_seconds": 35.04379937099293
+    }
+  },
+  "comparisons": {
+    "scalar_ternary_g128_vs_scalar_ternary_g128_rot": {
+      "delta": 0.08492574079894366,
+      "ci": [
+        0.08051826344268423,
+        0.0894116763102196
+      ],
+      "byte_ratio": 1.0
+    },
+    "scalar_ternary_g128_vs_scalar_ternary_g64_rot": {
+      "delta": 0.0877600242509744,
+      "ci": [
+        0.08321878743918094,
+        0.09231408606780497
+      ],
+      "byte_ratio": 0.9324324850659873
+    },
+    "scalar_ternary_g128_rot_vs_scalar_ternary_g64_rot": {
+      "delta": 0.002834283452030739,
+      "ci": [
+        0.0006303262698897138,
+        0.00501311902850321
+      ],
+      "byte_ratio": 0.9324324850659873
+    },
+    "scalar_ternary_g64_rot_vs_scalar_ternary_g128_rot": {
+      "delta": -0.002834283452030739,
+      "ci": [
+        -0.00501311902850321,
+        -0.0006303262698897139
+      ],
+      "byte_ratio": 1.0724637075779604
+    },
+    "vq_dim4_g128_rot_vs_scalar_ternary_g128_rot": {
+      "delta": -0.09844267091467707,
+      "ci": [
+        -0.10217143145410837,
+        -0.09470686990145685
+      ],
+      "byte_ratio": 1.0000292398451123
+    },
+    "vq_dim4_g128_rot_vs_scalar_ternary_g64_rot": {
+      "delta": -0.09560838746264633,
+      "ci": [
+        -0.09944295689147234,
+        -0.09195533315673408
+      ],
+      "byte_ratio": 0.9324597492474284
+    },
+    "vq_dim8_g128_rot_vs_scalar_ternary_g128_rot": {
+      "delta": -0.11641912959202694,
+      "ci": [
+        -0.1202057565723878,
+        -0.11258787065452483
+      ],
+      "byte_ratio": 1.0043016972132954
+    },
+    "vq_dim8_g128_rot_vs_scalar_ternary_g64_rot": {
+      "delta": -0.1135848461399962,
+      "ci": [
+        -0.11753872305909355,
+        -0.10964488120317196
+      ],
+      "byte_ratio": 0.9364435272885817
+    },
+    "vq_dim8_g128_norot_vs_scalar_ternary_g128_rot": {
+      "delta": -0.11002336053773343,
+      "ci": [
+        -0.11399482063547314,
+        -0.1061879337013714
+      ],
+      "byte_ratio": 1.0043016972132954
+    },
+    "vq_dim8_g128_norot_vs_scalar_ternary_g64_rot": {
+      "delta": -0.10718907708570269,
+      "ci": [
+        -0.11128601562604479,
+        -0.10320992976036084
+      ],
+      "byte_ratio": 0.9364435272885817
+    },
+    "vq_dim4_g128_rot_w_vs_scalar_ternary_g128_rot": {
+      "delta": -0.09262808358259944,
+      "ci": [
+        -0.0964565179694761,
+        -0.08878976033670316
+      ],
+      "byte_ratio": 1.0000292398451123
+    },
+    "vq_dim4_g128_rot_w_vs_scalar_ternary_g64_rot": {
+      "delta": -0.0897938001305687,
+      "ci": [
+        -0.09374041758123756,
+        -0.08586286466899615
+      ],
+      "byte_ratio": 0.9324597492474284
+    },
+    "vq_dim8_g128_rot_w_vs_scalar_ternary_g128_rot": {
+      "delta": -0.09492964880419086,
+      "ci": [
+        -0.09862797580567696,
+        -0.09115282005564622
+      ],
+      "byte_ratio": 1.0043016972132954
+    },
+    "vq_dim8_g128_rot_w_vs_scalar_ternary_g64_rot": {
+      "delta": -0.09209536535216012,
+      "ci": [
+        -0.09592392294694171,
+        -0.08825930340207866
+      ],
+      "byte_ratio": 0.9364435272885817
+    }
+  },
+  "seconds": 276.5
+}

@@ -1,0 +1,17 @@
+{
+  "method": "real_fp32",
+  "seed": 1,
+  "parameters": 623296,
+  "best_step": 2000,
+  "initial_validation_nll": 9.020962238311768,
+  "validation": {
+    "nll": 6.297082751989365,
+    "perplexity": 542.9855737977362,
+    "sample_target_tokens": 16384
+  },
+  "train_targets_presented": 4096000,
+  "seconds": 8.421222460980061,
+  "deployment_tensor_bytes": 2493184,
+  "peak_cuda_bytes": 281796608,
+  "exact_coefficient_and_logit_roundtrip": true
+}

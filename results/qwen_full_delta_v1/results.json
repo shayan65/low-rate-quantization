@@ -1,0 +1,46 @@
+[
+  {
+    "method": "bf16",
+    "validation": {
+      "nll": 3.4366213335022717,
+      "perplexity": 31.08176564287865,
+      "target_tokens": 261284
+    },
+    "delta_nll_vs_bf16": null,
+    "payload_bytes": 0,
+    "layers_quantized": 0
+  },
+  {
+    "method": "cumulative_task_real4",
+    "validation": {
+      "nll": 3.4585658777559622,
+      "perplexity": 31.771379784367493,
+      "target_tokens": 261284
+    },
+    "delta_nll_vs_bf16": 0.021944544253690523,
+    "payload_bytes": 57065490,
+    "layers_quantized": 18
+  },
+  {
+    "method": "cumulative_task_polar3_5",
+    "validation": {
+      "nll": 3.4459541841605272,
+      "perplexity": 31.37320498433154,
+      "target_tokens": 261284
+    },
+    "delta_nll_vs_bf16": 0.00933285065825551,
+    "payload_bytes": 57065490,
+    "layers_quantized": 18
+  },
+  {
+    "method": "cumulative_adjacent_polar3_5",
+    "validation": {
+      "nll": 3.4520481354487185,
+      "perplexity": 31.564975493862985,
+      "target_tokens": 261284
+    },
+    "delta_nll_vs_bf16": 0.015426801946446744,
+    "payload_bytes": 57065490,
+    "layers_quantized": 18
+  }
+]

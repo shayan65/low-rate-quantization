@@ -1,0 +1,38 @@
+[
+  {
+    "layer": 0,
+    "rotated_pairing": "split_half",
+    "offset_id": 2,
+    "activation_weighted_mse": 6.629808922298253e-06,
+    "rotated_delta_nll": 0.004985004663467407,
+    "standard_pairing": "split_half",
+    "standard_delta_nll": 0.004456683993339539,
+    "rotated_minus_standard": 0.0005283206701278687,
+    "payload_bytes": 3170306,
+    "sha256": "5d007765f5062657e302aa23aef133d48f9abfa691289f0f204fa92de27bcf63"
+  },
+  {
+    "layer": 8,
+    "rotated_pairing": "adjacent",
+    "offset_id": 9,
+    "activation_weighted_mse": 8.49513708089944e-06,
+    "rotated_delta_nll": 0.0010954290628433228,
+    "standard_pairing": "adjacent",
+    "standard_delta_nll": 0.0026069432497024536,
+    "rotated_minus_standard": -0.0015115141868591309,
+    "payload_bytes": 3170306,
+    "sha256": "51b1ce28c2ed647b44171c2a07bc54c4c226cc9dc8fddc3227013a5f94eadfbc"
+  },
+  {
+    "layer": 16,
+    "rotated_pairing": "stride257",
+    "offset_id": 9,
+    "activation_weighted_mse": 1.6526508261449635e-05,
+    "rotated_delta_nll": 0.0022905170917510986,
+    "standard_pairing": "adjacent",
+    "standard_delta_nll": 0.001038283109664917,
+    "rotated_minus_standard": 0.0012522339820861816,
+    "payload_bytes": 3170306,
+    "sha256": "feb706adb08b5b512bbc69c1e16cbf41e2624baa1e80596721b76db6897b409c"
+  }
+]

@@ -1,0 +1,171 @@
+% Method sections for the revised paper: codebook ceiling + self-consistent
+% quantization. Included from main.tex.
+
+\section{What a Paired 8-Bit Weight Code Can Actually Deliver}
+\label{sec:ceiling}
+
+Our original codec pairs two real weights as $z=w_a+iw_b$ and spends three
+magnitude bits and five phase bits per pair. Before asking whether that code
+helps a language model, we ask a prior question the earlier drafts never posed:
+at eight index bits per pair, how much room is there at all, and is the polar
+arrangement a good way to use it?
+
+\paragraph{A matched-strength control.} Every comparison in the previous draft
+placed the polar code against a real 4-bit control whose codebook was a
+\emph{uniform} 16-level grid on $[-1,1]$. The polar code, by contrast, gets an
+implicitly non-uniform effective codebook, because a product of a radius grid
+and a phase grid is not a square lattice. That asymmetry, not the phase
+representation, can account for a small win. We therefore add a control that
+gives the scalar code the same per-tensor shape adaptation: a 16-level
+Lloyd--Max codebook fitted to the tensor's own normalized weight
+distribution, with the identical per-row FP32 scale. The extra storage is 16
+FP32 per tensor, which is under $10^{-4}$ bits per weight for these matrices.
+
+\paragraph{An upper bound.} We also fit an \emph{unconstrained} 256-point
+two-dimensional codebook to the pairs by $k$-means. Any scheme that pairs two
+real weights and spends eight index bits on the pair -- polar, Cartesian,
+rotated, or otherwise -- is a constrained special case of this code, so its
+distortion lower-bounds the whole family at this budget.
+
+\input{ceiling_table.tex}
+
+Three facts follow from Table~\ref{tab:ceiling}, and they hold on every tensor
+we measured, across two checkpoints.
+
+\begin{enumerate}
+\item The reported polar advantage is an artifact of the control. Polar beats
+the uniform scalar code, but the Lloyd-fitted scalar code beats polar on all
+six tensors.
+\item The polar family is structurally capped. Even after we repair its
+assignment rule, fit its radius grid, and sweep every magnitude/phase bit split
+(Section~\ref{sec:polarfix}), the best polar code remains $6$--$8\%$ above the
+fitted scalar code.
+\item The \emph{pairing} idea is nonetheless sound. A free 2-D codebook sits
+$18$--$24\%$ \emph{below} the fitted scalar code at the same index budget. The
+headroom is real; the polar parameterization simply fails to reach it.
+\end{enumerate}
+
+We therefore retain joint 2-D quantization of weight pairs and discard the
+magnitude/phase parameterization. This also removes the practical obstacle that
+defeated our packed kernels: decoding a polar index requires a sine and a
+cosine per pair, which made decode-plus-GEMM $3$--$4.5\times$ slower than
+resident BF16, whereas decoding a 2-D codebook index is a 256-entry table
+lookup that fits in shared memory.
+
+\subsection{Why repairing the polar assignment rule changes almost nothing}
+\label{sec:polarfix}
+
+The original quantizer rounds magnitude and phase independently. That is not
+nearest-neighbour assignment in the $8\times32$ codebook. For a decoded phase
+ray $\theta_p$ and a source $z=re^{i\theta}$,
+\begin{equation}
+ |z-g_m e^{i\theta_p}|^2 = r^2\sin^2\delta + (g_m - r\cos\delta)^2,
+ \qquad \delta=\theta-\theta_p ,
+\end{equation}
+so the optimal radius level is the one nearest the \emph{projection}
+$r\cos\delta$, not the one nearest $r$. We implemented exact nearest-neighbour
+assignment over all 256 codepoints. It reduced weight MSE by $0.035\%$.
+
+The reason is quantitative and worth stating, because it retrospectively
+explains a long series of null results in this project. With five phase bits
+the nearest-ray error satisfies $|\delta|\le\pi/32$, hence
+$1-\cos\delta \le 4.8\times10^{-3}$. The projection correction is therefore at
+most half a percent of the radius, while one step of the three-bit radius grid
+is about $14\%$ of the row scale. The correction almost never changes which
+radius level wins. Every phase-side refinement we tried across this project --
+learned global phase offsets, activation-weighted phase choice, output-error
+phase selection -- was operating on a quantity bounded to be small. The binding
+constraint is the radius grid, not the phase grid, and the sweep over bit
+splits confirms this: $8\times32$ is optimal, and moving bits toward the phase
+($4\times64$, $2\times128$) is catastrophic.
+
+\section{Self-Consistent Weight Quantization}
+\label{sec:scq}
+
+\subsection{The calibration fixed point}
+
+Activation-aware post-training quantization chooses a code for layer $\ell$ by
+minimizing a metric weighted by that layer's input statistics
+$H_\ell=\mathbb E[x_\ell x_\ell^\top]$ (or its diagonal), estimated on
+calibration data. GPTQ, AWQ, and every activation-weighted variant in this
+project measure those statistics on the \emph{full-precision} model.
+
+Once many layers are actually replaced, this is no longer the right statistic.
+The inputs to layer $\ell$ are produced by layers $1,\dots,\ell-1$, which are
+themselves quantized, so the deployed model presents layer $\ell$ with a
+different distribution from the one its codebook was fitted to. Writing
+$\mathcal Q$ for the per-layer quantizer and $H[\cdot]$ for the calibration
+statistics a given set of weights induces, the conventional procedure computes
+\begin{equation}
+ Q_{\text{one-shot}} = \mathcal Q\bigl(H[W_{\text{BF16}}]\bigr),
+\end{equation}
+whereas the quantity that describes the deployed model is the fixed point
+\begin{equation}
+ Q^\star = \mathcal Q\bigl(H[Q^\star]\bigr).
+ \label{eq:fixedpoint}
+\end{equation}
+The gap between them grows with the number of simultaneously quantized layers.
+This is exactly the setting of our main experiment, which replaces eighteen
+projections at once, and it is a plausible source of the instability that
+defeated our earlier selectors: a rule tuned against one snapshot of
+activations need not remain optimal once the snapshot moves.
+
+\subsection{An SCF loop}
+
+Equation~\eqref{eq:fixedpoint} is structurally the self-consistency condition of
+Kohn--Sham density functional theory, and it admits the same iterative
+treatment. Table~\ref{tab:dft} gives the correspondence.
+
+\begin{table}[ht]
+\centering\small
+\caption{Correspondence between the Kohn--Sham SCF loop and self-consistent
+quantization. The analogy is a numerical-methods one; no physical or quantum
+claim is intended.}
+\label{tab:dft}
+\begin{tabular}{ll}\toprule
+Kohn--Sham DFT & Self-consistent quantization\\\midrule
+Electron density $n(r)$ & Activation statistics $H_\ell$\\
+Effective potential $v_{\rm eff}[n]$ & Weighted per-layer quantizer metric\\
+Solve KS equations $\to n'$ & Re-quantize, re-measure $\to H'$\\
+Total energy $E[n]$ & Calibration NLL of the quantized network\\
+Density mixing (linear, Pulay/DIIS) & Statistics mixing (linear, Anderson)\\
+SCF convergence & Codebook-assignment churn $\to0$\\
+Charge sloshing & Assignment oscillation between codepoints\\\bottomrule
+\end{tabular}
+\end{table}
+
+One iteration is: measure $H^{(n)}_{\rm out}=H[Q^{(n)}]$ with a single forward
+pass over the calibration windows; form the residual
+$R^{(n)}=H^{(n)}_{\rm out}-H^{(n)}$; mix
+\begin{equation}
+ H^{(n+1)} = H^{(n)} + \alpha R^{(n)}
+\end{equation}
+or accelerate with Anderson/Pulay mixing over the last $m$ residuals; and
+re-quantize every layer under $H^{(n+1)}$, warm-starting each codebook from the
+previous iteration. Iteration zero is precisely the conventional one-shot
+calibration, so the loop is a strict extension of current practice.
+
+\subsection{Energy guard}
+
+The analogy is not exact in one important respect. Kohn--Sham SCF iterates a
+map whose fixed points are stationary points of a variational energy
+functional; our assignment step is discrete and carries no such guarantee, so a
+naive iteration can oscillate or converge to a worse code. We therefore treat
+the calibration NLL as the total energy and guard every step: a trial iterate
+is accepted only if it does not increase that energy, and otherwise it is
+rejected and $\alpha$ is halved. Any Anderson history is discarded on a
+rejection, as in a DFT code that restarts DIIS after a bad cycle.
+
+This guard has a useful consequence. Because iteration zero \emph{is} the
+one-shot solution and no accepted step increases the calibration energy, the
+loop cannot terminate worse than conventional calibration on the calibration
+set. The method is therefore a safe drop-in on top of any codec, which is how
+we evaluate it: we apply the identical loop to the scalar, polar, and 2-D
+codecs and report the improvement each one gains.
+
+\paragraph{Cost.} An iteration costs one forward pass over the calibration
+windows plus one re-quantization, and no backward pass. Our runs converge or
+stall within a handful of iterations, so the total calibration cost stays in
+the minutes for a 0.8B model. The deployed model is unchanged in size, format,
+and decode cost: self-consistency moves only \emph{which} codepoints the
+indices name, never how many bits they take.

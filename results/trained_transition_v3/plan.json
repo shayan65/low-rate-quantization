@@ -1,0 +1,30 @@
+{
+  "dataset_revision": "b08601e04326c79dfdd32d625aee71d232d685c3",
+  "dataset_manifest_sha256": "717c0a503d44017062611706852cb2914d00d25a8325a60843e8f2ad38d402d4",
+  "checkpoint_root": "results/coordinate_diagnostic_v1",
+  "checkpoints": [
+    "complex_fp32_seed0/best.pt",
+    "complex_fp32_seed1/best.pt",
+    "complex_fp32_seed2/best.pt"
+  ],
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "methods": [
+    "phase_nearest",
+    "phase_weight_offset",
+    "phase_memory_offset",
+    "cartesian_nearest",
+    "cartesian_memory_offset"
+  ],
+  "budget": "4 index bits per trained complex recurrent mode; FP32 learned decay unchanged, one FP32 shared offset for fitted controls; zero-offset nearest controls have same 4-byte offset field set to zero. Cartesian uses all 16 distinct complex grid points, scaled by 1/sqrt(2), with its pole radius varying by code.",
+  "train_windows": "4 windows of 128 original training BPE tokens per seed, sampled with fixed seed 700+model seed",
+  "validation_windows": "8 windows each at 128 and 512 from original held-out validation BPE tokens, distinct fixed seed 900+model seed",
+  "metric": "relative isolated-layer output MSE against frozen trained FP32 transition; lower better; real text embeddings; no generated corpus",
+  "training": "no new model training: frozen trained Cartesian complex_fp32 checkpoints",
+  "long_window_note": "512-position isolated recurrence cycles learned 128-position embedding; extrapolation diagnostic, not language-model long-context accuracy",
+  "runtime_cap_seconds": 120.0,
+  "source_sha256": "40b4569cb4e5e0732a5556a65d7b1aeeccf9781f6886c3a7930c0d4a73c162d2"
+}

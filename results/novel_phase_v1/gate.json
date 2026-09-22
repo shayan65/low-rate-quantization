@@ -1,0 +1,8 @@
+{
+  "complete": true,
+  "jobs": 12,
+  "seconds": 2.2399733829661272,
+  "winner": "uniform_response",
+  "novel_method_beats_uniform_all_seeds": false,
+  "action": "No Qwen or long training is automatically launched."
+}

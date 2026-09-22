@@ -1,0 +1,53 @@
+{
+  "model": "Qwen/Qwen3.8-27B",
+  "layers": [
+    7,
+    11,
+    15
+  ],
+  "tensor": "self_attn.q_proj.weight",
+  "train_calibration_windows": 16,
+  "train_starts": [
+    151528,
+    260509,
+    512687,
+    636028,
+    784887,
+    878349,
+    1077589,
+    1093868,
+    1140917,
+    1209696,
+    1431670,
+    1464765,
+    1951024,
+    2109339,
+    2316790,
+    2477193
+  ],
+  "heldout": "WikiText-2 validation blocks 160\u2013223, 8,192 targets, disjoint from earlier screens",
+  "selection": "diagonal activation-weighted projection error from train-only captured inputs",
+  "methods": [
+    "bf16",
+    "optimized_row_real4",
+    "polar3_5_selected_pairing",
+    "awq_style_real4"
+  ],
+  "polar_pairings": [
+    "adjacent",
+    "split_half",
+    "reverse_half",
+    "stride257"
+  ],
+  "awq_alphas": [
+    0.0,
+    0.25,
+    0.5,
+    0.75,
+    1.0
+  ],
+  "fairness": "same 4 index bits per real coefficient; AWQ-style adds 5120 FP32 channel scales per tensor, explicitly counted",
+  "scope": "one projection at a time; all other weights BF16; decoded BF16 inference",
+  "warning": "AWQ-style local control, not official AutoAWQ implementation; no packed-speed claim",
+  "wall_cap_seconds": 900
+}

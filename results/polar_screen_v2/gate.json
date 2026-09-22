@@ -1,0 +1,17 @@
+{
+  "completed_jobs": 12,
+  "planned_jobs": 12,
+  "budget_exhausted": false,
+  "this_invocation_wall_seconds": 77.84237461799057,
+  "mean_paired_nll_gaps": {
+    "real8": 0.09223876396814983,
+    "polar_fp32": 0.004913727442423503
+  },
+  "passed": false,
+  "action": "No full-data job is launched by this screen.",
+  "real8_mean_validation_nll": 6.289663364489873,
+  "failed_conditions": [
+    "Magnitude/phase mean NLL exceeds real8 by more than 0.05",
+    "Real8 mean NLL is not below 6.0; short screen is insufficiently trained for promotion"
+  ]
+}

@@ -1,0 +1,19 @@
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+
+# model weights and corpora: fetched, not versioned
+data/
+models/
+*.pt
+*.safetensors
+*.gguf
+
+# raw dumps from retired polar runs (3 MB each, regenerable)
+results/**/*.bin
+
+# generated documents and scratch
+tmp/
+output/
+*.log

@@ -1,0 +1,28 @@
+{
+  "args": {
+    "verify": false,
+    "epochs": 3,
+    "seeds": [
+      0
+    ],
+    "dataset": "mnist",
+    "data": "data",
+    "out": "results/phase_mnist_pilot_20260912"
+  },
+  "torch": "2.11.0+cu128",
+  "torchvision": "0.26.0+cu128",
+  "python": "3.13.13",
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "split_seed": 2026,
+  "train": 55000,
+  "validation": 5000,
+  "test": 10000,
+  "code_sha256": "5349967ff2c38233c9b90735a858c4aaeea586a7ff29fb7d04eaf17634acc852",
+  "shared_magnitude_per_layer": true,
+  "complex_activation": "split ReLU; magnitude-selected maxpool",
+  "readout": "real part of final complex linear output",
+  "optimizer": "Adam lr=0.001",
+  "batch_size": 256,
+  "quantum_hardware": false,
+  "packed_storage": false
+}

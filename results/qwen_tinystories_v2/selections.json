@@ -1,0 +1,218 @@
+[
+  {
+    "layer": 0,
+    "candidate_id": 2,
+    "pairing": "reverse_half",
+    "calibration_nlls": [
+      2.2557900696992874,
+      2.2555737793445587,
+      2.251606270670891,
+      2.2543311566114426
+    ],
+    "bf16_calibration_nll": 2.24924735724926
+  },
+  {
+    "layer": 1,
+    "candidate_id": 0,
+    "pairing": "adjacent",
+    "calibration_nlls": [
+      2.2501271665096283,
+      2.2517397552728653,
+      2.2512444853782654,
+      2.2529574930667877
+    ],
+    "bf16_calibration_nll": 2.24924735724926
+  },
+  {
+    "layer": 2,
+    "candidate_id": 2,
+    "pairing": "reverse_half",
+    "calibration_nlls": [
+      2.2541855424642563,
+      2.253996416926384,
+      2.252749890089035,
+      2.254399925470352
+    ],
+    "bf16_calibration_nll": 2.24924735724926
+  },
+  {
+    "layer": 4,
+    "candidate_id": 3,
+    "pairing": "stride257",
+    "calibration_nlls": [
+      2.2527711391448975,
+      2.2481675297021866,
+      2.2548176050186157,
+      2.2476752400398254
+    ],
+    "bf16_calibration_nll": 2.24924735724926
+  },
+  {
+    "layer": 5,
+    "candidate_id": 0,
+    "pairing": "adjacent",
+    "calibration_nlls": [
+      2.246919557452202,
+      2.2502488046884537,
+      2.249902158975601,
+      2.2500713765621185
+    ],
+    "bf16_calibration_nll": 2.24924735724926
+  },
+  {
+    "layer": 6,
+    "candidate_id": 1,
+    "pairing": "split_half",
+    "calibration_nlls": [
+      2.251106321811676,
+      2.2501001805067062,
+      2.2522168308496475,
+      2.251166269183159
+    ],
+    "bf16_calibration_nll": 2.24924735724926
+  },
+  {
+    "layer": 8,
+    "candidate_id": 3,
+    "pairing": "stride257",
+    "calibration_nlls": [
+      2.2537974268198013,
+      2.250961869955063,
+      2.2513275295495987,
+      2.250409960746765
+    ],
+    "bf16_calibration_nll": 2.24924735724926
+  },
+  {
+    "layer": 9,
+    "candidate_id": 2,
+    "pairing": "reverse_half",
+    "calibration_nlls": [
+      2.2485766112804413,
+      2.252240478992462,
+      2.247423619031906,
+      2.2530804127454758
+    ],
+    "bf16_calibration_nll": 2.24924735724926
+  },
+  {
+    "layer": 10,
+    "candidate_id": 3,
+    "pairing": "stride257",
+    "calibration_nlls": [
+      2.2520906776189804,
+      2.248958632349968,
+      2.2519514858722687,
+      2.2485530376434326
+    ],
+    "bf16_calibration_nll": 2.24924735724926
+  },
+  {
+    "layer": 12,
+    "candidate_id": 0,
+    "pairing": "adjacent",
+    "calibration_nlls": [
+      2.2490638345479965,
+      2.2537576258182526,
+      2.2512501031160355,
+      2.251619875431061
+    ],
+    "bf16_calibration_nll": 2.24924735724926
+  },
+  {
+    "layer": 13,
+    "candidate_id": 1,
+    "pairing": "split_half",
+    "calibration_nlls": [
+      2.253086194396019,
+      2.2519752979278564,
+      2.254027709364891,
+      2.2520079016685486
+    ],
+    "bf16_calibration_nll": 2.24924735724926
+  },
+  {
+    "layer": 14,
+    "candidate_id": 3,
+    "pairing": "stride257",
+    "calibration_nlls": [
+      2.2505482882261276,
+      2.249886691570282,
+      2.2489370107650757,
+      2.2484138011932373
+    ],
+    "bf16_calibration_nll": 2.24924735724926
+  },
+  {
+    "layer": 16,
+    "candidate_id": 3,
+    "pairing": "stride257",
+    "calibration_nlls": [
+      2.2509059011936188,
+      2.2485947757959366,
+      2.248959258198738,
+      2.247917115688324
+    ],
+    "bf16_calibration_nll": 2.24924735724926
+  },
+  {
+    "layer": 17,
+    "candidate_id": 0,
+    "pairing": "adjacent",
+    "calibration_nlls": [
+      2.248438224196434,
+      2.2509081959724426,
+      2.248540848493576,
+      2.250364989042282
+    ],
+    "bf16_calibration_nll": 2.24924735724926
+  },
+  {
+    "layer": 18,
+    "candidate_id": 0,
+    "pairing": "adjacent",
+    "calibration_nlls": [
+      2.248005747795105,
+      2.2507174015045166,
+      2.250583440065384,
+      2.2510775178670883
+    ],
+    "bf16_calibration_nll": 2.24924735724926
+  },
+  {
+    "layer": 20,
+    "candidate_id": 0,
+    "pairing": "adjacent",
+    "calibration_nlls": [
+      2.249883770942688,
+      2.251280829310417,
+      2.2509788125753403,
+      2.2501536905765533
+    ],
+    "bf16_calibration_nll": 2.24924735724926
+  },
+  {
+    "layer": 21,
+    "candidate_id": 0,
+    "pairing": "adjacent",
+    "calibration_nlls": [
+      2.248635247349739,
+      2.250159367918968,
+      2.2494640201330185,
+      2.2499764263629913
+    ],
+    "bf16_calibration_nll": 2.24924735724926
+  },
+  {
+    "layer": 22,
+    "candidate_id": 0,
+    "pairing": "adjacent",
+    "calibration_nlls": [
+      2.2506065368652344,
+      2.251743793487549,
+      2.25185190141201,
+      2.250894322991371
+    ],
+    "bf16_calibration_nll": 2.24924735724926
+  }
+]

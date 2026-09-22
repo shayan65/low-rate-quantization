@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\caption{MNIST weight-only QAT pilot: one seed, three epochs. All activations are FP32; these are preliminary results, not a comparison with published IBM accuracy.}
+\label{tab:mnist-pilot}
+\begin{tabular}{lrrr}
+\hline
+Method & Val. (\%) & Test (\%) & Nominal weight bits \\
+\hline
+FP32 & 97.70 & 98.29 & 32 \\
+Uniform 2-bit & 97.86 & 98.21 & 2 \\
+SAWB 2-bit & 97.70 & 98.08 & 2 \\
+Bloch-angle 2-bit & 97.48 & 98.00 & 2 \\
+Bloch-nearest 2-bit & 97.56 & 98.06 & 2 \\
+Binary 1-bit & 96.72 & 97.27 & 1 \\
+\hline
+\end{tabular}
+\end{table}

@@ -1,0 +1,33 @@
+{
+  "model": "Qwen/Qwen3.5-0.8B-Base",
+  "parameters": 752393024,
+  "tensor": "model.layers.0.linear_attn.in_proj_qkv.weight",
+  "shape": [
+    6144,
+    1024
+  ],
+  "dataset": "local real WikiText-2 validation parquet",
+  "sample_starts": [
+    38703,
+    85520,
+    85856,
+    86699,
+    131270,
+    160382,
+    172652,
+    188749
+  ],
+  "sequences": 8,
+  "sequence_tokens": 129,
+  "target_tokens": 1024,
+  "methods": [
+    "bf16",
+    "real4_row",
+    "polar_mag4_phase4_row",
+    "polar_mag3_phase5_row",
+    "polar_mag5_phase3_row"
+  ],
+  "equal_index_bits_per_real_pair": 8,
+  "note": "Frozen post-training quantization of one projection only; screening metric, not full-dataset perplexity",
+  "runtime_cap_seconds": 180.0
+}

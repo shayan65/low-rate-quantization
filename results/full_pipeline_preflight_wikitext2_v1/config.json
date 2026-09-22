@@ -1,0 +1,92 @@
+{
+  "prepare": false,
+  "verify": false,
+  "data": "data/wikitext2_bpe1k_full_preflight",
+  "subset": "wikitext-2-raw-v1",
+  "vocab": 1024,
+  "out": "results/full_pipeline_preflight_wikitext2_v1",
+  "method": "phase8",
+  "architecture": "hybrid",
+  "seed": 0,
+  "epochs": 1,
+  "width": 24,
+  "depth": 2,
+  "heads": 4,
+  "context": 128,
+  "batch": 32,
+  "eval_batch": 32,
+  "lr": 0.0003,
+  "log_every": 250,
+  "save_every": 500,
+  "dataset_manifest_sha256": "e1e3550473b858ae2296295c98c98082f6b51efb03fb1f188f15119337918766",
+  "source_sha256": "6fdd91f591d2cd778ff5c5dfb3f928bd49500808ba401bd06a481ccccbeecedb",
+  "dataset": {
+    "dataset": "Salesforce/wikitext",
+    "subset": "wikitext-2-raw-v1",
+    "revision": "b08601e04326c79dfdd32d625aee71d232d685c3",
+    "requested_vocab": 1024,
+    "actual_vocab": 1024,
+    "tokenizer": "ByteLevel BPE; trained on train only; each source row followed by newline",
+    "tokenizer_sha256": "259c86bb2140dd939c781be66bb69443d39093c4f919da44149058d3369cc32e",
+    "pad_id": 0,
+    "dtype": "little-endian uint16",
+    "splits": {
+      "train": {
+        "rows": 36718,
+        "utf8_bytes_with_newlines": 10951563,
+        "tokens": 4256726,
+        "target_tokens_per_pass": 4256725,
+        "normalized_text_sha256": "0ca7d3e74dbe44564ea5942b85232f1bbcb525c9cd481cd5d28a87ee90e7e9b4",
+        "token_sha256": "7544625cb62150ad81b9248dd2382e085b7fbf62741b479851ebde00c8eb8d96",
+        "source_files": [
+          {
+            "name": "wikitext-2-raw-v1/train-00000-of-00001.parquet",
+            "bytes": 6357543,
+            "sha256": "e83889baabc497075506f91975be5fac0d45c5290b6b20582c8cd1e853d0c9f7",
+            "rows": 36718
+          }
+        ]
+      },
+      "validation": {
+        "rows": 3760,
+        "utf8_bytes_with_newlines": 1148008,
+        "tokens": 445728,
+        "target_tokens_per_pass": 445727,
+        "normalized_text_sha256": "a42356f6a8ff1d25daf25ec9db49e10a537c265581b61c74604bb63231dee719",
+        "token_sha256": "d8d7de08e16854afa8a4b5fcc9da20065efaa51d860923a6d6ff005c64bb86fa",
+        "source_files": [
+          {
+            "name": "wikitext-2-raw-v1/validation-00000-of-00001.parquet",
+            "bytes": 657209,
+            "sha256": "204929b7ff9d6184953f867dedb860e40aa69c078fc1e54b3baaa8fb28511c4c",
+            "rows": 3760
+          }
+        ]
+      },
+      "test": {
+        "rows": 4358,
+        "utf8_bytes_with_newlines": 1292014,
+        "tokens": 504897,
+        "target_tokens_per_pass": 504896,
+        "normalized_text_sha256": "bfe9eb16ab9987fb88bde4ea9a30a00f2a45db01dfc14bad78d05325789c4f12",
+        "token_sha256": "e211e08dc4def785534b30f9e532a18ae4a0767a199b26d4070b01dbb6909875",
+        "source_files": [
+          {
+            "name": "wikitext-2-raw-v1/test-00000-of-00001.parquet",
+            "bytes": 732610,
+            "sha256": "5f1bea067869d04849c0f975a2b29c4ff47d867f484f5010ea5e861eab246d91",
+            "rows": 4358
+          }
+        ]
+      }
+    }
+  },
+  "precision": "BF16 autocast matmuls; FP32 latent weights/optimizer/FFT",
+  "quantized_scope": "Projection layers only; attention/embeddings/norms/radii/frequencies remain FP32",
+  "full_train_passes": 1,
+  "evaluation": "all N-1 next-token targets in each split; fixed contiguous blocks",
+  "optimizer": "AdamW betas=(0.9,0.95), weight_decay=0.1, gradient clipping=1",
+  "hardware": "NVIDIA GeForce RTX 3090",
+  "torch": "2.11.0+cu128",
+  "note": "Real-data custom LM; no synthetic metrics; no Qwen or IBM SAWB replication; quantizers trained with STE"
+}

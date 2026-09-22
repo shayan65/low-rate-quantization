@@ -1,0 +1,465 @@
+# Proposal: Shared low-rate vector quantization under measured storage budgets
+
+**Revised:** 2026-09-21, following implementation review.
+**Status:** historical rate hypothesis failed its gate. A corrected, bounded
+Qwen3.5-0.8B feasibility experiment is authorized; 27B deployment remains gated.
+**Previous draft:** `ternary_proposal_pre_review_20260921.md` is retained as a
+historical record, including claims withdrawn below.
+
+## 1. Question and scope
+
+Can one shared eight-dimensional weight codebook improve language-model loss
+relative to a learned scalar code while using no more serialized bytes, on the
+18 Gated DeltaNet input projections of Qwen3.5-0.8B-Base?
+
+This is classical post-training vector quantization (VQ). A vector codebook
+with 3^8 = 6,561 entries has an ideal index rate of log2(3) per weight, but its
+reconstructed components are arbitrary codebook values. It is **not literal
+ternary weights**, and it does not implement a qubit or quantum computation.
+Literal ternary weights, reconstructed as {-s, 0, +s}, are a separate control.
+No model parameters are trained with language-model gradients in this study.
+
+The first checkpoint has 24 layers: 18 Gated DeltaNet and six full-attention
+blocks. Quantizing only the 18 QKV input projections does not produce an
+entire 0.8B model at the reported target-tensor bit rate. Untouched parameters
+remain BF16 and must be charged when estimating whole-model storage.
+
+## 2. What the earlier experiments establish
+
+The historical four-bit experiment measured +0.008393 NLL relative to a
+3.436670 baseline in this small-model projection subset. That is about 0.24%
+of baseline NLL, or exp(0.008393)-1 = 0.84% relative perplexity. It does not
+establish that every four-bit method, every layer, or every 27B model is an
+easy regime. Weak controls and failed mechanisms also contributed to the
+previous negative results.
+
+The first rate sweep is retained in `results/rate_sweep_v1/`. Its fitted
+codebooks and group scales were evaluated at FP32 precision and its nominal
+rates excluded codebook and packing overhead. These are **equal-cardinality
+reconstruction comparisons**, not matched-byte deployment measurements.
+
+A review found that aggregation used tensor names without model identity.
+The layer-0 names collide across the two checkpoints. Corrected analysis uses
+(model, tensor) throughout, validates full coverage, and writes a separate
+`results/rate_sweep_v1_reanalysis/` without changing the original measurements.
+Across all six distinct tensors, the mean post-rotation MSE reductions are:
+
+| Ideal index bits/weight | Dimension 2 | Dimension 4 | Dimension 8 |
+|---:|---:|---:|---:|
+| log2(3) | 4.80% | 13.91% | 23.19% |
+| 2 | 8.55% | 18.57% | not measured |
+| 3 | 13.38% | 24.16% | not measured |
+| 4 | 11.69% | not measured | not measured |
+
+At the three-level rate, dimension-8 gains average 20.65% on the three 27B
+tensors and 25.73% on the three 0.8B tensors. The original requirement of a
+15% gain and at least twice the four-bit gain on every tested tensor fails.
+That decision stays **STOP for the original rate mechanism**. It is not a
+proof that VQ cannot work at low rates.
+
+These fits are best observed results under a specific optimizer, sample,
+initialization and dimension cap, not an information-theoretic ceiling.
+K-means may converge to a local minimum. Product-grid containment guarantees
+an optimum no worse than the product grid only for the same objective and
+precision; it does not guarantee a random fit finds that optimum. A randomized
+Hadamard transform is orthogonal but is not generally a whitening transform.
+Rotation and VQ may be complementary. Classical asymptotic shaping gains do
+not supply a universal finite-rate ceiling for these learned quantizers.
+
+## 3. Preliminary language-model results, with limitations
+
+A newer legacy run exists at `results/ternary_task_v1/`. Preserve it rather
+than relabeling it as an execution of the corrected protocol:
+
+| Legacy arm | NLL | Change versus BF16 |
+|---|---:|---:|
+| BF16 | 3.436670 | 0 |
+| Learned scalar, g128, rotated | 3.795474 | +0.358803 |
+| Learned scalar, g64, rotated | 3.790168 | +0.353497 |
+| Shared dimension-8 VQ, g128, rotated | 3.658186 | +0.221516 |
+| Per-tensor dimension-8 VQ, g128, rotated | 3.645873 | +0.209203 |
+
+The shared arm's observed difference versus the g64 scalar arm is -0.131981
+NLL. This is encouraging preliminary evidence. However, the legacy run used
+FP32 quantizer metadata, reported ideal rates rather than actual files,
+omitted the final 36 validation targets (261,248 rather than 261,284), and did
+not retain the per-block losses needed to recompute its paired intervals.
+Its `quantize_seconds` also includes evaluation. Withdraw the prior claims of
+byte matching, a complete validation stream, a Bonsai reproduction, and
+"Step 3 justified." Do not claim the corrected implementation reproduces
+these numbers until its separate run finishes.
+
+## 4. Corrected codec and storage contract
+
+All arms use the same fixed block-1024 randomized Hadamard transform along
+input columns. Sign information needed for decoding is included in the
+artifact. Group scales and learned codebooks are rounded to FP16 before
+assignment and reconstruction; the stored precision is the evaluated precision.
+Files include codec version, tensor shape, group size, dimension, index format,
+rotation information, and byte counts. A shared book is stored and charged
+once per arm. Evaluation reloads the artifacts from disk.
+
+| Arm | Representation | Group size | Payload and scale cost, before other metadata |
+|---|---|---:|---:|
+| Genuine ternary | {-s, 0, +s}; five trits per byte | 128 | 26 index bytes + 2 scale bytes per group = 1.750 bpw |
+| Learned scalar3 | three arbitrary FP16 levels; five trits per byte | 128 | 1.750 bpw, plus codebooks |
+| Learned scalar3, stronger storage control | same, with finer scales | 64 | 13 index bytes + 2 scale bytes per group = 1.875 bpw, plus codebooks |
+| Shared VQ8 | K=6,561 FP16 vectors; 13-bit indices | 128 | 1.625 index bpw + 0.125 scale bpw = 1.750 bpw, plus shared book |
+
+The shared VQ8 book costs 6,561 x 8 x 2 = 104,976 bytes, about 0.007416 bpw
+when amortized over 18 tensors of 6144 x 1024 weights. The exact reported rate
+is 8 times all codec artifact bytes divided by all encoded weights, including
+headers, sign storage, and alignment. No ideal-logarithm rate is called an
+actual size. The primary comparison is a **storage/quality dominance test**
+against scalar g64, not a claim of equal bytes. The g128 scalar remains a
+useful neighboring point on the storage-quality curve.
+
+For learned codes, fit normalized vectors with each vector weighted by its
+FP16 group scale squared, so the objective matches original-weight MSE.
+Use a bounded sample, deterministic seeds, product initialization/fallback
+and limited restarts. Score candidate books at their stored precision. Record
+fit settings. Memory for nearest-neighbor distances must be bounded as a
+function of codebook size, with deadline checks inside fitting loops.
+
+## 5. Corrected experiment and decision rule
+
+**Model:** cached Qwen3.5-0.8B-Base, frozen, text path, all 18 DeltaNet QKV
+projections. Check architecture and tensor shapes rather than assuming them.
+**Arms:** BF16, genuine ternary g128, learned scalar3 g128, learned scalar3
+g64, shared VQ8 g128; all compressed arms rotated identically.
+**Data:** WikiText-2. Fit codebooks on model weights; use a small training-text
+slice only for the nonreportable implementation smoke test. The quality run
+uses every token target in the validation stream, including the final partial
+block, under the established 128-target context-reset protocol. Test remains
+untouched. Record split hash, token stream hash, checkpoint provenance,
+software versions and exact run configuration.
+
+Retain each block's loss sum and target count. Compute token-weighted NLL and
+perplexity, and paired block-bootstrap intervals with the same target-count
+weighting. These intervals describe variation over this corpus and do not
+establish robustness to calibration seeds, domains, or other checkpoints.
+
+Freeze one primary comparison before the corrected run: shared VQ8 minus
+learned scalar3 g64. A feasibility pass requires all of:
+
+1. VQ uses no more **actual serialized target-tensor bytes** than scalar g64.
+2. VQ improves NLL by at least 0.005 nats per target.
+3. The upper endpoint of the paired 95% interval is below zero.
+4. It recovers at least 10% of scalar g64's positive NLL damage versus BF16.
+
+The numerical thresholds are engineering choices for this revised study,
+informed by the preliminary run. This remains exploratory, not a fresh
+confirmatory test. Secondary comparisons are descriptive. A passed small-model
+gate permits planning independent seed/domain/model checks; it does not
+automatically authorize a multi-day 27B run or establish publishable novelty.
+
+**Execution:** unit and serialization checks first; then a training-only smoke
+with a short hard cap; then one full small-model run only if smoke succeeds.
+A process lock prevents overlapping runs, and a hard wall-clock deadline
+bounds compute. Refuse nonempty output directories to prevent accidental
+mixing of runs. Preserve partial status on failure. Separate quantization,
+decode and evaluation timing and measure peak allocated/reserved GPU memory.
+Do not interpret BF16 evaluation throughput as packed-kernel speed.
+
+## 5b. Corrected experiment: results (2026-09-21)
+
+Raw: `results/ternary_task_v3/`. The corrected protocol of section 4 has now
+been executed. Every arm asserts `decode(encode(w))` is bit-exact, bits/weight
+is computed from `len(bytes)`, and the evaluation covers the complete
+**261,284-target** stream, token-weighted so the ragged 36-target block cannot
+count as a full one.
+
+| Arm | bits/wt | stored MB | weight MSE | ΔNLL vs BF16 | 95% CI |
+|---|---:|---:|---:|---:|:--|
+| learned scalar3 g128 | 1.7250 | 24.42 | 7.642e-05 | +0.441525 | [+0.437, +0.446] |
+| learned scalar3 g128, rotated | 1.7250 | 24.42 | 7.185e-05 | +0.356599 | [+0.352, +0.361] |
+| learned scalar3 g64, rotated | 1.8500 | 26.19 | 7.143e-05 | +0.353765 | [+0.349, +0.359] |
+| **dim-4 VQ g128, rotated** | **1.7251** | **24.42** | 6.183e-05 | **+0.258156** | [+0.254, +0.262] |
+| **dim-8 VQ g128, rotated** | **1.7324** | **24.52** | 5.717e-05 | **+0.240180** | [+0.237, +0.244] |
+| dim-8 VQ g128, unrotated | 1.7324 | 24.52 | 5.831e-05 | +0.246575 | [+0.243, +0.250] |
+| dim-4 VQ, scale²-weighted fit | 1.7251 | 24.42 | 6.184e-05 | +0.263971 | [+0.260, +0.268] |
+| dim-8 VQ, scale²-weighted fit | 1.7324 | 24.52 | 5.729e-05 | +0.261669 | [+0.258, +0.266] |
+
+**Storage/quality dominance is established.** Against `scalar3 g64` — a control
+that stores **6.4% more** bytes than the dim-8 VQ arm — dim-8 VQ is $-0.113585$
+NLL, CI $[-0.117539,-0.109645]$. It wins while storing strictly less.
+
+**At exact byte parity**, dim-4 VQ (ratio 1.0000 against scalar3 g128) is
+$-0.098443$, CI $[-0.102171,-0.094707]$: **27.6% less damage for identical
+bytes.** dim-8 VQ reaches 32.6% at +0.43% bytes.
+
+### Packing: two improvements over the section-4 contract
+
+Section 4 assumes per-group padding (26 bytes per 128-weight group) and 13-bit
+VQ indices, putting both formats at 1.750 bpw. Packing across the tensor rather
+than per group, and packing $K$-ary codes $c$ at a time where $K^c<2^{64}$,
+reaches **exactly 1.600 bpw of index for both formats**:
+
+| | scheme | index bpw |
+|---|---|---:|
+| ternary | 5 trits/byte, tensor-wide | 1.60000 |
+| dim-8 VQ (K=6561) | 5 codes/uint64 | 1.60001 |
+| dim-4 VQ (K=81) | 10 codes/uint64 | 1.60001 |
+
+Measured index bytes differ by 4 out of 1,258,292 per tensor. Fixing the
+codes-per-word at 5 would have inflated dim-4 to 3.2 bpw, so the word packing
+must adapt to $K$.
+
+### The scale²-weighted fit does not work, on its own objective
+
+Section 4 prescribes weighting each normalized vector by its FP16 group scale
+squared so the fit matches original-weight MSE. Implemented and measured, it
+**fails to improve even weight MSE** (+0.0% at dim-4, +0.2% at dim-8) while
+costing $+0.0058$ and $+0.0215$ NLL respectively.
+
+The likely mechanism is that per-group normalization has already removed most
+of the scale variation the weighting is meant to correct, so the reweighting
+buys nothing while collapsing the effective sample size of the fit — which
+matters far more for a 6561-point codebook than an 81-point one, exactly the
+observed pattern. We recommend dropping it from the contract.
+
+### Weight MSE is predictive at ternary rate, unlike at 4 bits
+
+> **Narrowed by §5c.** What follows holds *within* the stripped recipe only.
+> Under GPTQ error compensation the relationship inverts: weight MSE rises 38%
+> while NLL damage falls 68%. Read this section as scoped to a fixed recipe.
+
+Across the six main arms the weight-MSE ordering matches the NLL ordering
+exactly (7.642 > 7.185 > 7.143 > 6.183 > 5.831 > 5.717 against 0.4415 > 0.3566
+> 0.3538 > 0.2582 > 0.2466 > 0.2402). At 4 bits this project repeatedly found
+weight error failing to predict task damage; at ternary rate, where damage is
+an order of magnitude larger, it tracks. The exception is the scale²-weighted
+pair, which has near-identical weight MSE but materially worse NLL — so the
+metric is predictive *across codec families* but not *across fitting
+procedures*.
+
+### Rotation: confirms Step 0, and retracts a claim made from the flawed run
+
+| | value of rotation |
+|---|---:|
+| on learned scalar3 | $-0.084926$ NLL |
+| on dim-8 VQ | $-0.006395$ NLL |
+
+Rotation is worth 13x more to the scalar code than to the dim-8 code, which is
+what Step 0's weight-MSE analysis predicted (rotation closes 62.5% of the dim-2
+gap but only 13.2% of the dim-8 gap). An earlier claim, made from the flawed
+run, that weight MSE *understated* rotation and that rotation and VQ were
+complementary, is **withdrawn**: it was an artifact of FP32 scale metadata.
+
+### What the corrections cost the earlier headline
+
+The legacy run claimed 38.3% for dim-8; corrected, it is 32.6%. The difference
+is FP16 scale storage, which cost the dim-8 arm $+0.019$ NLL while leaving the
+scalar arm unchanged at $+0.0001$ — a 6561-point codebook fitted in normalized
+space is far more sensitive to scale quantization than a 3-point one. That
+sensitivity is invisible unless the evaluated weights are decoded from stored
+bytes, which is the case for doing it that way.
+
+## 6. Deployment and 27B gate
+
+The implementation produces reloadable compressed projection artifacts and
+installs their decoded BF16 weights in the existing model for evaluation.
+It does not yet provide resident packed inference, a compressed KV cache, or
+a fully quantized 27B checkpoint. Actual total model storage must include every
+untouched tensor; target-tensor bpw alone cannot predict it.
+
+A fully decoded 27B model cannot fit in 24 GiB. Before any larger conversion,
+choose either measured tensor/layer streaming with explicit offload costs or
+a packed execution implementation. Prototype the **dimension-8, 6,561-entry**
+decode path that produced the gain; a dimension-2 nine-entry kernel measures
+a different method. Establish peak memory and end-to-end latency before a
+speed or 3090-residency claim. Quantization must stream input shards and write
+output incrementally. Broader coverage also needs explicit policies for
+attention, MLP, embeddings, heads and sensitive recurrent parameters.
+
+## 7. External baseline and related work
+
+The [Bonsai model card](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf)
+reports custom ternary artifacts derived from Qwen3.8-27B, Hadamard transforms,
+and a benchmark-score retention figure. Its compressed file sizes do not
+predict our decoded runtime footprint. Its formats require the supported
+[PrismML runtime fork](https://github.com/PrismML-Eng/llama.cpp); stock compatibility
+must not be assumed. Reproducing perplexity would evaluate a different axis
+from its reported thinking-task average. Our learned scalar control is not
+its released ternary model. Use BF16 as the primary reference; label Q8
+separately if used, since it introduces its own quantization error.
+
+The basic combination is not new:
+
+- [QuIP#](https://arxiv.org/abs/2402.04396) combines randomized Hadamard
+  incoherence processing and eight-dimensional lattice vector quantization.
+- [GPTVQ](https://arxiv.org/abs/2402.15319) studies dimensionality, compression,
+  accuracy and efficient VQ reconstruction with Hessian-aware quantization.
+- [AQLM](https://arxiv.org/abs/2401.06118) uses additive codebooks for extreme
+  compression. An explicit unstructured 16^8-entry book is not the only way
+  to represent eight-dimensional vectors at four bits per weight.
+
+A potential contribution is a controlled measurement of shared-codebook
+storage/quality/runtime tradeoffs across recurrent and attention projections
+in hybrid models, compared with credible published methods. Neither a new
+checkpoint nor a rate sweep alone establishes novelty. A stronger paper
+needs independent replications and a mechanism or practical advantage beyond
+these precedents. Retain negative results without turning them into universal
+claims about all scalar or vector quantizers.
+
+## 5c. A real recipe: activation weighting and error compensation (2026-09-21)
+
+Sections 5/5b compared codecs under a deliberately stripped recipe: nearest
+neighbour assignment against a codebook fitted to the weights alone, using no
+calibration activations. That is a fair codec comparison but not a competitive
+pipeline, and it leaves open the objection that vector quantization only buys
+back error that error compensation would have removed anyway. `run_ternary_task_v4.py`
+tests that objection directly by adding the two things every serious low-rate
+pipeline has and §5b had neither of.
+
+**Activation weighting.** Per target tensor, accumulate $H=\mathbb{E}[xx^{\mathsf T}]$
+over 65,536 calibration tokens from the wikitext2 *train* split (evaluation
+remains the full validation stream, so no activation statistic is fitted on the
+evaluation data). Use $h=\operatorname{diag}H$ to weight both the codebook fit
+and the assignment.
+
+**GPTQ-style error compensation.** Quantize in column order and push each
+block's residual onto the not-yet-quantized columns through the inverse
+Cholesky factor of $H$.
+
+### The vector generalization of GPTQ, and its test
+
+Extending GPTQ to a codec that quantizes $d$ columns jointly is the one piece
+that is not standard. For a block of columns $J$, the cost charged by the GPTQ
+derivation and the compensation applied to the remainder are
+
+$$\|(W_J-Q_J)\,U_{JJ}^{-1}\|_F^2,\qquad W_{\text{rest}}\;{-}{=}\;(W_J-Q_J)\,U_{JJ}^{-1}U_{J,\text{rest}},$$
+
+with $U$ the upper Cholesky factor of $H^{-1}$. So the within-block decision is
+a *metric* nearest-neighbour search with $M=U_{JJ}^{-1}$: transform the points
+and the codebook by $M$ and search as usual. At $d=1$ this must collapse to
+plain nearest-level with the error divided by $U_{jj}$ — ordinary scalar GPTQ.
+
+`test_gptq_v4.py` checks that collapse against an independently written
+textbook implementation and finds it **bit-exact** (max $|\Delta|=0$), checks
+the transformed search against brute-force metric nearest-neighbour, checks
+that the rotated Hessian equals the Hessian of rotated activations (relative
+error $2.5\times10^{-7}$), and checks that `decode(encode(w))` stays bit-exact
+under compensation at $d\in\{1,4,8\}$. The uncompensated path reproduces the
+§5b quantizer exactly, and the `scalar3_rot` and `vq8_rot` arms reproduce the
+§5b numbers to all printed digits — so v4 is a superset of v3, not a
+replacement for it.
+
+Storage is untouched by both additions: they change *which* codes are chosen,
+never the format. Bits/weight is therefore identical to §5b by construction and
+the comparison stays byte-for-byte.
+
+### Results
+
+| Arm | bits/wt | weight MSE | act-weighted err | ΔNLL vs BF16 | 95% CI |
+|---|---:|---:|---:|---:|:--|
+| scalar3_rot | 1.7250 | 7.184e-05 | 2.3293e-04 | $+0.356599$ | $[+0.352028, +0.361286]$ |
+| scalar3_rot_actw | 1.7250 | 7.185e-05 | 2.3292e-04 | $+0.361084$ | $[+0.356485, +0.365764]$ |
+| scalar3_rot_gptq | 1.7250 | 9.889e-05 | 6.4700e-05 | $+0.113179$ | $[+0.109919, +0.116351]$ |
+| scalar3_g64_rot_gptq | 1.8500 | 9.863e-05 | 6.4136e-05 | $+0.111363$ | $[+0.108285, +0.114369]$ |
+| vq8_rot | 1.7324 | 5.717e-05 | 1.7333e-04 | $+0.240180$ | $[+0.236367, +0.243903]$ |
+| vq8_rot_actw | 1.7324 | 5.866e-05 | 1.5524e-04 | $+0.227827$ | $[+0.224049, +0.231700]$ |
+| vq4_rot_gptq | 1.7251 | 8.537e-05 | 5.4554e-05 | $+0.088512$ | $[+0.085730, +0.091370]$ |
+| **vq8_rot_gptq** | **1.7324** | 7.919e-05 | 4.9996e-05 | $\mathbf{+0.077061}$ | $[+0.074362, +0.079868]$ |
+| vq8_rot_gptq_actwfit | 1.7324 | 7.931e-05 | 5.0085e-05 | $+0.077267$ | $[+0.074642, +0.079910]$ |
+| **vq8_rot_gptq_seq** | **1.7324** | 7.971e-05 | 4.8564e-05 | $\mathbf{+0.075171}$ | $[+0.072454, +0.077936]$ |
+
+### Error compensation matters far more than the codec
+
+GPTQ removes $-0.243420$ $[-0.247197,-0.239658]$ from scalar ternary — **68.3%
+of the damage**, at identical bytes. That is more than twice what the entire
+§5b vector-quantization result bought. Stated plainly: the largest single
+improvement in this arc comes from a 2022 method the earlier runs simply did
+not have, not from anything novel here.
+
+### The vector-quantization margin survives, at nearly the same relative size
+
+| | scalar3 | vq8 | margin | relative |
+|---|---:|---:|---:|---:|
+| stripped recipe (§5b) | $+0.356599$ | $+0.240180$ | $-0.116419$ | 32.6% |
+| with GPTQ | $+0.113179$ | $+0.077061$ | $-0.036118$ | 31.9% |
+
+The paired interval for the compensated comparison is
+$[-0.038414,-0.033768]$, excluding zero. The absolute margin shrinks roughly
+threefold because everything shrinks threefold; **the relative margin is
+essentially unchanged**. So the two mechanisms are close to independent, and
+the objection that VQ was only recovering what compensation recovers is
+answered: it is not.
+
+At exact byte parity (ratio $1.0000$), `vq4_rot_gptq` beats `scalar3_rot_gptq`
+by $-0.024667$ $[-0.027041,-0.022348]$, or 21.8% less damage — down from 27.6%
+in the stripped recipe, so dimension-4 does lose some ground to compensation
+even though dimension-8 does not.
+
+### The storage/quality argument gets sharper, not weaker
+
+Under GPTQ, spending 6.4% more bytes on finer scalar groups buys **nothing
+measurable**: `scalar3_g64_rot_gptq` vs `scalar3_rot_gptq` is $-0.001815$
+$[-0.003794,+0.000172]$, an interval that **includes zero**. The same budget
+spent on codebook dimension instead — an extra 0.43% of bytes — buys
+$-0.036118$. The dominance claim therefore holds in its strongest form:
+`vq8_rot_gptq` beats a control that stores 6.4% *more* by $-0.034303$
+$[-0.036660,-0.031971]$.
+
+### Diagonal activation weighting is not where the value is
+
+On scalar ternary it is actively harmful: $+0.004485$ $[+0.003883,+0.005107]$.
+This is mechanically clear — at $d=1$ a positive scalar metric cannot change an
+argmin, so `actw` only perturbs the codebook fit, moving it off the unweighted
+Lloyd optimum in exchange for a metric that never gets used. On dimension-8 VQ,
+where it changes the assignment too, it helps by $-0.012353$. But once GPTQ is
+present the weighted fit adds nothing ($+0.000206$, a tie), because the block
+metric $U_{JJ}^{-1}$ already carries the diagonal and the cross terms besides.
+
+Together with §5b's scale²-weighted result, that is two independent weighting
+schemes that looked principled and delivered nothing. The value in $H$ is in
+the off-diagonal structure, which only compensation exploits.
+
+### Weight MSE inverts under a real recipe — §5b's claim is narrowed
+
+§5b reported that weight-MSE ordering matched NLL ordering exactly at ternary
+rate. That holds *within* the stripped recipe and **fails across recipes**:
+GPTQ *raises* weight MSE by 38% ($7.18\to9.89\times10^{-5}$) while cutting NLL
+damage by 68%. Ranked by weight MSE, the best arm in this table looks like one
+of the worst. The §5b claim should be read as scoped to a fixed recipe, not as
+a statement about the metric.
+
+The activation-weighted error $\operatorname{tr}(\Delta W\,H\,\Delta W^{\mathsf T})/n$
+does track: across all ten arms its ordering matches the NLL ordering with a
+single adjacent inversion, and that inversion is between two arms whose values
+differ by 0.004%. The caveat is that this quantity is in-sample for the GPTQ
+arms — it is the objective they optimize — so it is a diagnostic, not an
+independent predictor. Its rank agreement *across* recipe families is
+nonetheless the first proxy in this project to survive a setting where plain
+weight error reverses.
+
+### Sequential statistics
+
+Statistics are captured once from the BF16 model rather than re-captured after
+each layer is quantized. Rather than assume the difference is negligible, it is
+measured: `vq8_rot_gptq_seq` re-captures $H$ for each target against already
+quantized earlier layers, at 3.5x the quantization cost.
+
+Paired against the static arm on a rerun of both (`results/ternary_task_v4_seq`),
+sequential capture is worth $-0.001890$ $[-0.003421,-0.000315]$ — a real effect,
+excluding zero, but 2.5% of the remaining damage for 3.5x the quantization time.
+This is the retired SCF question appearing once more in a setting where the
+statistics genuinely do feed back: the forward-only dependency is real, it is
+resolved by a single ordered pass, and its magnitude is small. Static capture is
+the right default; the sequential variant is available and cheap enough to
+enable at 27B if the budget allows.
+
+### Where this leaves the 27B gate
+
+| | NLL | perplexity | vs BF16 |
+|---|---:|---:|---:|
+| BF16 | 3.436710 | 31.09 | — |
+| §5b best (`vq8_rot`) | 3.676890 | 39.52 | $+27.2\%$ |
+| §5c best (`vq8_rot_gptq_seq`) | 3.511881 | 33.51 | $+7.8\%$ |
+
+The recipe improvement is 68.7% of the remaining damage. A ternary conversion
+that costs 7.8% perplexity on the target tensors is a materially more credible
+thing to scale than one that costs 27.2%, and the §6 gate should be read
+against the new number. The §6 engineering conditions are unchanged: none of
+this provides resident packed inference, a compressed KV cache, or measured
+peak memory and latency at 27B.

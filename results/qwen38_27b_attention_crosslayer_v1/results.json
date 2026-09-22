@@ -1,0 +1,89 @@
+[
+  {
+    "tensor": "none",
+    "method": "bf16",
+    "nll": 2.160728633403778,
+    "perplexity": 8.67745804135159,
+    "target_tokens": 4096,
+    "seconds": 22.85686739801895,
+    "gpu_peak_bytes": 21602626048
+  },
+  {
+    "tensor": "attention_q_l7",
+    "method": "real4",
+    "pairing": null,
+    "delta_nll_vs_bf16": 5.188584327697754e-05,
+    "weight_mse": 3.7501090446312446e-06,
+    "payload_bytes": 31506433,
+    "nll": 2.160780519247055,
+    "perplexity": 8.677908290260238,
+    "target_tokens": 4096,
+    "seconds": 22.538675427087583,
+    "gpu_peak_bytes": 21602626048
+  },
+  {
+    "tensor": "attention_q_l7",
+    "method": "polar3_5",
+    "pairing": "adjacent",
+    "delta_nll_vs_bf16": 0.0002124309539794922,
+    "weight_mse": 3.518065796015435e-06,
+    "payload_bytes": 31506433,
+    "nll": 2.1609410643577576,
+    "perplexity": 8.679301597848731,
+    "target_tokens": 4096,
+    "seconds": 22.494956086971797,
+    "gpu_peak_bytes": 21602626048
+  },
+  {
+    "tensor": "attention_q_l11",
+    "method": "real4",
+    "pairing": null,
+    "delta_nll_vs_bf16": -0.0010144710540771484,
+    "weight_mse": 3.750739097085898e-06,
+    "payload_bytes": 31506433,
+    "nll": 2.159714162349701,
+    "perplexity": 8.668659475045676,
+    "target_tokens": 4096,
+    "seconds": 22.460900683072396,
+    "gpu_peak_bytes": 21602626048
+  },
+  {
+    "tensor": "attention_q_l11",
+    "method": "polar3_5",
+    "pairing": "adjacent",
+    "delta_nll_vs_bf16": -0.0014348626136779785,
+    "weight_mse": 3.506578423184692e-06,
+    "payload_bytes": 31506433,
+    "nll": 2.1592937707901,
+    "perplexity": 8.665016009664019,
+    "target_tokens": 4096,
+    "seconds": 22.48288003599737,
+    "gpu_peak_bytes": 21602626048
+  },
+  {
+    "tensor": "attention_q_l15",
+    "method": "real4",
+    "pairing": null,
+    "delta_nll_vs_bf16": 0.0001608133316040039,
+    "weight_mse": 3.4934703307953896e-06,
+    "payload_bytes": 31506433,
+    "nll": 2.160889446735382,
+    "perplexity": 8.678853604498645,
+    "target_tokens": 4096,
+    "seconds": 22.528232394019142,
+    "gpu_peak_bytes": 21602626048
+  },
+  {
+    "tensor": "attention_q_l15",
+    "method": "polar3_5",
+    "pairing": "adjacent",
+    "delta_nll_vs_bf16": -0.00032269954681396484,
+    "weight_mse": 3.2739453672547825e-06,
+    "payload_bytes": 31506433,
+    "nll": 2.160405933856964,
+    "perplexity": 8.674658281339088,
+    "target_tokens": 4096,
+    "seconds": 22.55483527702745,
+    "gpu_peak_bytes": 21602626048
+  }
+]

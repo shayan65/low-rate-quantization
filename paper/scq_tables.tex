@@ -1,0 +1,42 @@
+\begin{table}[ht]
+\centering\small
+\caption{Frozen Qwen3.5-0.8B with all 18 DeltaNet input projections quantized
+simultaneously, evaluated on all 2041 contiguous 128-target
+WikiText-2 validation blocks. Every codec spends four index bits per real weight
+and one FP32 row scale. Intervals are paired block bootstraps against BF16
+(5{,}000 replicates). Lower is better.
+$^{a}$the earlier draft's control; $^{b}$the matched control;
+$^{c}$the earlier draft's method.}
+\label{tab:main}
+\begin{tabular}{lrrrl}\toprule
+Method & NLL & Perplexity & $\Delta$NLL & 95\% CI\\\midrule
+BF16 reference & 3.436670 & 31.083 & --- & ---\\
+\midrule
+real-4, uniform codebook$^{a}$ & 3.458469 & 31.768 & +0.021798 & $[+0.020841,\,+0.022752]$\\
+real-4, Lloyd codebook$^{b}$ & 3.451102 & 31.535 & +0.014431 & $[+0.013626,\,+0.015235]$\\
+\quad + sequential calibration & 3.451124 & 31.536 & +0.014454 & $[+0.013641,\,+0.015255]$\\
+polar 3+5, decoupled rounding$^{c}$ & 3.456446 & 31.704 & +0.019776 & $[+0.018821,\,+0.020732]$\\
+\quad + sequential calibration & 3.456446 & 31.704 & +0.019776 & $[+0.018821,\,+0.020732]$\\
+polar 3+5, exact NN + fitted radii & 3.452258 & 31.572 & +0.015588 & $[+0.014736,\,+0.016421]$\\
+\quad + sequential calibration & 3.451662 & 31.553 & +0.014992 & $[+0.014156,\,+0.015820]$\\
+paired 2-D codebook (256 points) & 3.445063 & 31.345 & +0.008393 & $[+0.007720,\,+0.009069]$\\
+\quad + sequential calibration & 3.445670 & 31.364 & +0.009000 & $[+0.008321,\,+0.009679]$\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[ht]
+\centering\small
+\caption{Paired head-to-head differences on the same validation blocks.
+A negative value favours the first-named method.}
+\label{tab:head}
+\begin{tabular}{lrll}\toprule
+Comparison & $\Delta$NLL & 95\% CI & Interval\\\midrule
+polar (earlier) $-$ real-4 Lloyd & +0.005345 & $[+0.004282,\,+0.006407]$ & excludes 0\\
+polar (repaired) $-$ real-4 Lloyd & +0.001156 & $[+0.000156,\,+0.002166]$ & excludes 0\\
+paired 2-D $-$ real-4 Lloyd & -0.006038 & $[-0.006952,\,-0.005104]$ & excludes 0\\
+paired 2-D $-$ polar (earlier) & -0.011383 & $[-0.012410,\,-0.010380]$ & excludes 0\\
+\bottomrule
+\end{tabular}
+\end{table}
+

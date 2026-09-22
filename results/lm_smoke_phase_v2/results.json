@@ -1,0 +1,34 @@
+[
+  {
+    "method": "continuous",
+    "parameters": 215298,
+    "validation_nll": 2.6272985488176346,
+    "validation_bits_per_byte": 3.7903905873139716,
+    "seconds": 25.74145793914795,
+    "peak_cuda_bytes": 35870208
+  },
+  {
+    "method": "restricted180",
+    "parameters": 215298,
+    "validation_nll": 2.624701976776123,
+    "validation_bits_per_byte": 3.786644525706372,
+    "seconds": 26.01244282722473,
+    "peak_cuda_bytes": 36001280
+  },
+  {
+    "method": "full180",
+    "parameters": 215298,
+    "validation_nll": 2.6228427290916443,
+    "validation_bits_per_byte": 3.78396219829219,
+    "seconds": 26.096920013427734,
+    "peak_cuda_bytes": 36001280
+  },
+  {
+    "method": "full256",
+    "parameters": 215298,
+    "validation_nll": 2.62975712120533,
+    "validation_bits_per_byte": 3.7939375575053664,
+    "seconds": 26.202085971832275,
+    "peak_cuda_bytes": 36001280
+  }
+]

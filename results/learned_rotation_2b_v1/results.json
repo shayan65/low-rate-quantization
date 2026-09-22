@@ -1,0 +1,38 @@
+[
+  {
+    "layer": 0,
+    "rotated_pairing": "split_half",
+    "offset_id": 12,
+    "activation_weighted_mse": 4.690160494646989e-06,
+    "rotated_delta_nll": 0.0009481906890869141,
+    "standard_pairing": "split_half",
+    "standard_delta_nll": -0.0019986629486083984,
+    "rotated_minus_standard": 0.0029468536376953125,
+    "payload_bytes": 6316034,
+    "sha256": "207963add0a940f3f3d44325529a5a4f9b3f3d59ee7e32b8caf1fba1c2f78038"
+  },
+  {
+    "layer": 8,
+    "rotated_pairing": "reverse_half",
+    "offset_id": 10,
+    "activation_weighted_mse": 1.1195310435141437e-05,
+    "rotated_delta_nll": 0.0012477487325668335,
+    "standard_pairing": "adjacent",
+    "standard_delta_nll": 0.0013556182384490967,
+    "rotated_minus_standard": -0.00010786950588226318,
+    "payload_bytes": 6316034,
+    "sha256": "de374a88bcf88ec7d1b4f6b258238fc5d89e27bd506aa54225d9c4e525ee2c45"
+  },
+  {
+    "layer": 16,
+    "rotated_pairing": "split_half",
+    "offset_id": 3,
+    "activation_weighted_mse": 1.2469576176954433e-05,
+    "rotated_delta_nll": 0.0019969046115875244,
+    "standard_pairing": "adjacent",
+    "standard_delta_nll": 0.0012820959091186523,
+    "rotated_minus_standard": 0.0007148087024688721,
+    "payload_bytes": 6316034,
+    "sha256": "662c879e024bfe56de736c7768550ed06c8986c500af56ebeeb830e7b0e37959"
+  }
+]

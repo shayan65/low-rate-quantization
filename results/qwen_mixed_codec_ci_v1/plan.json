@@ -1,0 +1,15 @@
+{
+  "model": "Qwen/Qwen3.5-0.8B-Base",
+  "dataset": "TinyStories matched 261,284-target protocol",
+  "selection": "per layer, choose task-selected polar or block-GPTQ by train-only calibration NLL",
+  "codec_metadata": "one byte per tensor encodes codec and pairing; counted",
+  "methods": [
+    "bf16",
+    "task_real4",
+    "task_polar3_5",
+    "block_gptq_real4",
+    "mixed_polar_gptq"
+  ],
+  "uncertainty": "5,000 paired bootstrap replicates over contiguous 128-target blocks",
+  "runtime_cap_seconds": 1800.0
+}

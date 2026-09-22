@@ -1,0 +1,155 @@
+\section{Part I: Paired Weight Codes}
+\label{sec:part1}
+
+\subsection{The hypothesis and the control}
+
+The codec pairs two real weights as $z=w_a+iw_b$ and stores a three-bit
+magnitude index and a five-bit phase index per pair -- the same eight index bits
+two real 4-bit weights would take. An earlier draft of this work reported that
+the code preserved frozen Qwen3.5-0.8B validation loss better than an
+equal-byte real 4-bit control across all eighteen DeltaNet input projections,
+with $\Delta$NLL $+0.009333$ against the control's $+0.021945$.
+
+That comparison used a real 4-bit control whose codebook is a \emph{uniform}
+16-level grid on $[-1,1]$. The polar code's effective codebook is not uniform: a
+radius grid crossed with a phase grid produces annular sectors, so the polar
+code was receiving a shape adaptation the control was denied. The asymmetry is
+in the tuning, not in the representation.
+
+We therefore add a matched control: the same scalar code with a per-tensor
+16-level Lloyd--Max codebook fitted to that tensor's own normalized weight
+distribution, and the identical per-row FP32 scale. The extra storage is 16 FP32
+per tensor, under $10^{-4}$ bits per weight for these matrices.
+
+\subsection{A ceiling for the whole family}
+\label{sec:ceiling}
+
+Before asking whether polar helps, we ask how much room exists at eight index
+bits per pair, and whether the polar arrangement uses it well. We fit an
+\emph{unconstrained} 256-point two-dimensional codebook to the pairs by
+$k$-means. Any scheme that pairs two real weights and spends eight index bits on
+the pair -- polar, Cartesian, rotated, or otherwise -- is a constrained special
+case, so its distortion lower-bounds the entire family at this budget.
+
+\input{ceiling_table.tex}
+
+Three facts follow from Table~\ref{tab:ceiling}, on every tensor measured across
+two checkpoints.
+
+\begin{enumerate}
+\item \textbf{The reported advantage is an artifact of the control.} Polar beats
+the uniform scalar code, as reported, but the Lloyd-fitted scalar code beats
+polar on all six tensors.
+\item \textbf{The polar family is structurally capped.} Even after we repair its
+assignment rule, fit its radius grid, and sweep every magnitude/phase bit split
+(Section~\ref{sec:polarfix}), the best polar code remains $6$--$8\%$ above the
+fitted scalar code.
+\item \textbf{The pairing idea is sound.} A free 2-D codebook sits $18$--$24\%$
+\emph{below} the fitted scalar code at the same index budget. The headroom is
+real; the polar parameterization fails to reach it.
+\end{enumerate}
+
+\subsection{Why repairing the polar assignment rule changes almost nothing}
+\label{sec:polarfix}
+
+The original quantizer rounds magnitude and phase independently, which is not
+nearest-neighbour assignment in the $8\times32$ codebook. For a decoded phase
+ray $\theta_p$ and a source $z=re^{i\theta}$,
+\begin{equation}
+ |z-g_m e^{i\theta_p}|^2 = r^2\sin^2\delta + (g_m - r\cos\delta)^2,
+ \qquad \delta=\theta-\theta_p ,
+\end{equation}
+so the optimal radius level is the one nearest the \emph{projection}
+$r\cos\delta$, not the one nearest $r$. We implemented exact nearest-neighbour
+assignment over all 256 codepoints, verified in float64 against brute force
+(maximum relative slack $2.9\times10^{-7}$, zero of 16{,}384 pairs suboptimal).
+It reduced weight MSE by $0.035\%$.
+
+The reason is quantitative and retrospectively explains a long series of null
+results. With five phase bits the nearest-ray error satisfies
+$|\delta|\le\pi/32$, hence $1-\cos\delta\le4.8\times10^{-3}$. The projection
+correction is at most half a percent of the radius, while one step of the
+three-bit radius grid is about $14\%$ of the row scale, so the correction almost
+never changes which radius level wins.
+
+Every phase-side refinement attempted across this project -- learned global
+phase offsets, activation-weighted phase choice, output-error phase selection --
+was operating on a quantity bounded to be small, which is why each produced
+sub-noise, sign-unstable effects across layers and corpora. \textbf{The binding
+constraint is the radius grid, not the phase grid.} The bit-split sweep confirms
+it: $8\times32$ is optimal on every tensor, and moving bits toward the phase is
+catastrophic ($4\times64$ roughly $3\times$ worse, $2\times128$ roughly
+$14\times$ worse).
+
+\subsection{Held-out loss, across three selection protocols}
+
+Weight reconstruction does not settle the question; this project has repeatedly
+found that weight-error rankings fail to predict task rankings. We therefore
+replaced all eighteen projections simultaneously and evaluated the complete
+WikiText-2 validation stream. Because the earlier draft selected each layer's
+pairing by calibration NLL rather than by weighted error, and because that is a
+stronger rule, we report both, plus a reproduction of the earlier draft's exact
+calibration size.
+
+\input{scq_tables.tex}
+\input{fairness_table.tex}
+
+The ranking is stable wherever the protocol can discriminate:
+
+\begin{center}\small
+\begin{tabular}{lrrl}\toprule
+Protocol & polar & real-4 Lloyd & Discriminates?\\\midrule
+Weighted-error selection, 16 windows & $+0.019776$ & $+0.014717$ & yes, Lloyd\\
+NLL selection, 16 windows & $+0.015902$ & $+0.008539$ & yes, Lloyd\\
+NLL selection, 4 windows, 3 seeds & $0.010945\pm0.000422$ & $0.010554\pm0.003349$ & \textbf{no}\\\bottomrule
+\end{tabular}
+\end{center}
+
+The third row is the earlier draft's own calibration size, and we report that it
+does \emph{not} decide the question. Over three seeds the two codecs are
+statistically tied and on one seed polar wins outright. The matched control's
+seed-to-seed spread is eight times larger, because its clip-factor search is a
+finer decision than polar's four-way pairing choice and 512 calibration tokens
+cannot resolve it. That is a narrow but genuine point in polar's favour: coarser
+decisions are more stable when calibration data is scarce.
+
+What the small-calibration sweep does establish is that all three of our polar
+reproductions fall in $[+0.010515,+0.011358]$, so the earlier draft's published
+$+0.009333$ lies outside the spread we could reproduce and is best read as a
+fortunate draw from a high-variance selector.
+
+\subsection{What survives: parity, not superiority}
+
+Under a single protocol in which every codec receives per-layer NLL selection
+and the codecs that can use activation statistics receive the identical
+statistic, the activation-weighted 2-D codebook gives the best point estimate of
+anything we tested. Two of its three comparisons are conclusive and one is not:
+
+\begin{itemize}
+\item It beats polar decisively, $+0.008210$ $[+0.007205,+0.009186]$.
+\item Activation weighting is what makes the difference: the unweighted 2-D
+ codebook is worse by $+0.001452$ $[+0.000556,+0.002327]$.
+\item Against the matched scalar control the paired difference is $+0.000846$
+ with interval $[-0.000169,+0.001822]$, which \emph{includes zero}.
+\end{itemize}
+
+We therefore claim parity, not superiority: the 2-D codec reaches the
+well-tuned scalar code's regime and may exceed it, while the polar code is
+significantly behind both. Replacing the polar grid with a learned codebook also
+removes the obstacle that defeated our packed kernels -- decoding a polar index
+requires a sine and a cosine per pair, which made decode-plus-GEMM
+$3$--$4.5\times$ slower than resident BF16, whereas decoding a 2-D codebook
+index is a 256-entry lookup that fits in shared memory. We have not written or
+benchmarked that kernel, so this removes a known blocker rather than
+demonstrating a speedup.
+
+\subsection{Summary of Part I}
+
+Polar magnitude--phase weight coding loses to a real 4-bit code once the scalar
+code receives the same per-tensor codebook fitting, and it is structurally
+capped several percent above that control regardless of how its assignment rule,
+radius grid, and bit split are tuned. The measurement that establishes this also
+locates the headroom: an unconstrained 2-D codebook over the same pairs sits far
+below the scalar code at an identical index budget. The pairing idea was right
+and the polar parameterization was wrong -- but the resulting codec reaches
+parity with a well-tuned scalar code rather than beating it.

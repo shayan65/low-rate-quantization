@@ -1,0 +1,45 @@
+{
+  "args": {
+    "verify": false,
+    "index_bits": 4,
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "modes": 64,
+    "inputs": 4,
+    "outputs": 4,
+    "calibration_horizon": 128,
+    "horizons": [
+      64,
+      128,
+      256,
+      512
+    ],
+    "steps": 200,
+    "sweeps": 5,
+    "out": "results/memory_quantization_v2_b4"
+  },
+  "device": "cuda",
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "torch": "2.11.0+cu128",
+  "numpy": "2.4.4",
+  "python": "3.13.13",
+  "source_sha256": "1c9c566526e1c01df2cbf66a1d332f04698f7d55de3e330daf2bc147bb4fa2d8",
+  "methods": [
+    "fp32",
+    "cartesian_nearest",
+    "cartesian_weight",
+    "cartesian_memory",
+    "cartesian_normalized_memory",
+    "phase_nearest",
+    "phase_weight",
+    "phase_memory"
+  ],
+  "scope": "sampled linear recurrent systems; trained quantizers; no trained task model, LLM, attention or QPU",
+  "precision": "float64/complex128 optimization; decoded FP32 parameters for evaluation",
+  "selection": "minimum own calibration objective; no test selection",
+  "index_budget_bits_per_mode": 4,
+  "raw_cartesian_fit_constraint": "start and remain at scale <= 1/sqrt(2); nearest control is unconstrained"
+}

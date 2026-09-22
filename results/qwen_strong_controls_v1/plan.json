@@ -1,0 +1,23 @@
+{
+  "model": "Qwen/Qwen3.5-0.8B-Base",
+  "scope": "all 18 linear_attn.in_proj_qkv weights cumulatively",
+  "calibration_targets": 1024,
+  "calibration_starts": [
+    646491,
+    682489,
+    809554,
+    947170,
+    1242301,
+    1674783,
+    2002246,
+    2064037
+  ],
+  "evaluation_targets": 261284,
+  "test_split_touched": false,
+  "controls": {
+    "awq_style": "search alpha in {0,.25,.5,.75,1}; scale input channels by activation RMS^alpha; rowwise real4; choose by diagonal activation-weighted reconstruction; retain channel scales explicitly",
+    "block_gptq": "128-column groups; activation Hessian with 1% damping; sequential error propagation inside each group; real4 row/group scales"
+  },
+  "warning": "Local transparent implementations for unsupported custom projections; not official AutoAWQ or GPTQModel backend outputs",
+  "runtime_cap_seconds": 3600.0
+}

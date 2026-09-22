@@ -1,0 +1,7 @@
+{
+  "complete": true,
+  "seconds": 870.0528143109987,
+  "polar_beats_block_gptq": true,
+  "polar_beats_task_real4": true,
+  "action": "If polar still loses GPTQ, revise to a layer-wise mixed codec."
+}

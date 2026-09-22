@@ -1,0 +1,14 @@
+{
+  "model": "models/Qwen3.5-0.8B-Base",
+  "method": "for each pairing, choose one of 16 global phase-lattice offsets by activation-weighted reconstruction MSE; choose pairing by train-only NLL",
+  "layers": [
+    0,
+    8,
+    16
+  ],
+  "calibration_targets": 512,
+  "evaluation_targets": 2048,
+  "metadata": "one pairing byte plus one offset byte per tensor",
+  "promotion": "rotated polar beats standard polar on all layers and wins at least two layers against recorded real4/GPTQ controls",
+  "test_split_touched": false
+}

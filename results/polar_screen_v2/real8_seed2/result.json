@@ -1,0 +1,19 @@
+{
+  "method": "real8",
+  "seed": 2,
+  "parameters": 623302,
+  "best_step": 2000,
+  "initial_validation_nll": 9.03661024570465,
+  "validation": {
+    "nll": 6.287839353084564,
+    "perplexity": 537.9896666916922,
+    "sample_target_tokens": 16384
+  },
+  "train_targets_presented": 4096000,
+  "seconds": 11.53497809599503,
+  "recovered_completed_training": false,
+  "recovery_export_seconds": null,
+  "deployment_tensor_bytes": 2272024,
+  "peak_cuda_bytes": 282398720,
+  "exact_coefficient_and_logit_roundtrip": true
+}

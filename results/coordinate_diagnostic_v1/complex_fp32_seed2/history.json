@@ -1,0 +1,110 @@
+[
+  {
+    "step": 100,
+    "train_batch_nll": 8.055404663085938,
+    "validation": {
+      "nll": 8.013343036174774,
+      "perplexity": 3020.9995613148885,
+      "sample_target_tokens": 16384
+    }
+  },
+  {
+    "step": 200,
+    "train_batch_nll": 7.356236457824707,
+    "validation": {
+      "nll": 7.276541829109192,
+      "perplexity": 1445.9789267141941,
+      "sample_target_tokens": 16384
+    }
+  },
+  {
+    "step": 300,
+    "train_batch_nll": 6.954771518707275,
+    "validation": {
+      "nll": 7.040724277496338,
+      "perplexity": 1142.21458743269,
+      "sample_target_tokens": 16384
+    }
+  },
+  {
+    "step": 400,
+    "train_batch_nll": 6.868869781494141,
+    "validation": {
+      "nll": 6.864463269710541,
+      "perplexity": 957.6317118960602,
+      "sample_target_tokens": 16384
+    }
+  },
+  {
+    "step": 500,
+    "train_batch_nll": 6.7421770095825195,
+    "validation": {
+      "nll": 6.7391281723976135,
+      "perplexity": 844.823873916987,
+      "sample_target_tokens": 16384
+    }
+  },
+  {
+    "step": 600,
+    "train_batch_nll": 6.655875205993652,
+    "validation": {
+      "nll": 6.661632537841797,
+      "perplexity": 781.8262567896722,
+      "sample_target_tokens": 16384
+    }
+  },
+  {
+    "step": 700,
+    "train_batch_nll": 6.587061882019043,
+    "validation": {
+      "nll": 6.610271573066711,
+      "perplexity": 742.6846844892536,
+      "sample_target_tokens": 16384
+    }
+  },
+  {
+    "step": 800,
+    "train_batch_nll": 6.418473720550537,
+    "validation": {
+      "nll": 6.572217643260956,
+      "perplexity": 714.9535984111026,
+      "sample_target_tokens": 16384
+    }
+  },
+  {
+    "step": 900,
+    "train_batch_nll": 6.532622337341309,
+    "validation": {
+      "nll": 6.548482298851013,
+      "perplexity": 698.1837350479835,
+      "sample_target_tokens": 16384
+    }
+  },
+  {
+    "step": 1000,
+    "train_batch_nll": 6.4608964920043945,
+    "validation": {
+      "nll": 6.533378630876541,
+      "perplexity": 687.7178354218271,
+      "sample_target_tokens": 16384
+    }
+  },
+  {
+    "step": 1100,
+    "train_batch_nll": 6.417350769042969,
+    "validation": {
+      "nll": 6.52155402302742,
+      "perplexity": 679.6337315799622,
+      "sample_target_tokens": 16384
+    }
+  },
+  {
+    "step": 1200,
+    "train_batch_nll": 6.3797430992126465,
+    "validation": {
+      "nll": 6.51483890414238,
+      "perplexity": 675.0851993336788,
+      "sample_target_tokens": 16384
+    }
+  }
+]

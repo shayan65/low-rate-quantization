@@ -1,0 +1,20 @@
+{
+  "status": "exploratory after independent selector failed on WikiText-2",
+  "selection": "ascending-layer greedy cumulative NLL on four fixed training windows",
+  "gate": "four disjoint fixed training windows; full validation only if greedy NLL < uniform polar NLL",
+  "select_starts": [
+    59959,
+    131396,
+    1638120,
+    2226031
+  ],
+  "gate_starts": [
+    310007,
+    744211,
+    1193033,
+    2017009
+  ],
+  "validation_targets": 261284,
+  "test_split_touched": false,
+  "runtime_cap_seconds": 1500.0
+}

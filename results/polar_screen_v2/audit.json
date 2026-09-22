@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "completed_jobs": 12,
+  "all_export_checks_exact": true,
+  "all_model_and_helper_definitions_ast_identical_except_export": true,
+  "encoder_reproducer": {
+    "checkpoint": "real8_seed1/best.pt",
+    "scalar_vs_tensor_bin_indices_differ": 1,
+    "repaired_coefficients_exact": true
+  },
+  "note": "One checkpoint recovered without retraining; validation sample only; test untouched"
+}

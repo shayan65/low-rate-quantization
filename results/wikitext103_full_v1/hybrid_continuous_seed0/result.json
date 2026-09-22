@@ -1,0 +1,83 @@
+{
+  "method": "continuous",
+  "architecture": "hybrid",
+  "seed": 0,
+  "parameters": 13086738,
+  "best_epoch": 2,
+  "validation": {
+    "nll": 3.8621551435809613,
+    "perplexity": 47.56775632523017,
+    "target_tokens": 282591,
+    "coverage": 1.0,
+    "context": 512,
+    "reset": "each contiguous context block"
+  },
+  "test": {
+    "nll": 3.833487532928701,
+    "perplexity": 46.223463305719406,
+    "target_tokens": 322999,
+    "coverage": 1.0,
+    "context": 512,
+    "reset": "each contiguous context block"
+  },
+  "completed_epochs": [
+    {
+      "epoch": 1,
+      "train_target_tokens": 135350274,
+      "train_coverage": 1.0,
+      "train_nll": 4.353373291731968,
+      "validation": {
+        "nll": 3.8896899651904167,
+        "perplexity": 48.89572479679496,
+        "target_tokens": 282591,
+        "coverage": 1.0,
+        "context": 512,
+        "reset": "each contiguous context block"
+      },
+      "step": 16523
+    },
+    {
+      "epoch": 2,
+      "train_target_tokens": 135350274,
+      "train_coverage": 1.0,
+      "train_nll": 3.875914327547063,
+      "validation": {
+        "nll": 3.8621551435809613,
+        "perplexity": 47.56775632523017,
+        "target_tokens": 282591,
+        "coverage": 1.0,
+        "context": 512,
+        "reset": "each contiguous context block"
+      },
+      "step": 33046
+    },
+    {
+      "epoch": 3,
+      "train_target_tokens": 135350274,
+      "train_coverage": 1.0,
+      "train_nll": 3.8863826943640087,
+      "validation": {
+        "nll": 3.866778474538954,
+        "perplexity": 47.78818697492885,
+        "target_tokens": 282591,
+        "coverage": 1.0,
+        "context": 512,
+        "reset": "each contiguous context block"
+      },
+      "step": 49569
+    }
+  ],
+  "deployment": {
+    "projections": [],
+    "remaining_fp32_payload_bytes": 52346952,
+    "deployment_tensor_payload_bytes": 52346952,
+    "note": "No optimizer or latent quantized weights; metadata/file overhead counted separately",
+    "actual_directory_bytes": 52370879
+  },
+  "fp32_parameter_payload_bytes": 52346952,
+  "elapsed_seconds": 2306.22185921669,
+  "peak_cuda_bytes": 2497719296,
+  "test_model": "decoded packed deployment export",
+  "source_sha256": "6fdd91f591d2cd778ff5c5dfb3f928bd49500808ba401bd06a481ccccbeecedb",
+  "dataset_manifest_sha256": "717c0a503d44017062611706852cb2914d00d25a8325a60843e8f2ad38d402d4"
+}

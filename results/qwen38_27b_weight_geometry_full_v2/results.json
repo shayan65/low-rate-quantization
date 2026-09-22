@@ -1,0 +1,515 @@
+[
+  {
+    "tensor": "model.language_model.layers.0.linear_attn.in_proj_qkv.weight",
+    "source_shape": [
+      10240,
+      5120
+    ],
+    "sampled_rows": "all",
+    "sample_shape": [
+      10240,
+      5120
+    ],
+    "reference_bf16_bytes": 104857600,
+    "real4_payload_bytes": 26255361,
+    "polar_payload_bytes": 26255361,
+    "weight_rms": 0.015690119937062263,
+    "weight_abs_quantiles": [
+      0.010009765625,
+      0.0252685546875,
+      0.04296875,
+      0.06689453125
+    ],
+    "real4": {
+      "mse": 3.0410026283789193e-06,
+      "relative_mse": 0.012352767110065452,
+      "max_abs_error": 0.19599609076976776,
+      "mean_abs_error": 0.0013610789319500327
+    },
+    "polar": [
+      {
+        "pairing": "adjacent",
+        "mse": 2.9914331207692157e-06,
+        "relative_mse": 0.012151412274805182,
+        "max_abs_error": 0.19563491642475128,
+        "mean_abs_error": 0.0013199698878452182,
+        "polar_better_than_real4_mse": true,
+        "phase_magnitude_bins": [
+          {
+            "quartile": 1,
+            "count": 6555227,
+            "mean_pair_squared_error": 3.65583446182427e-06,
+            "mean_angle_error_degrees": 2.8130569521257103
+          },
+          {
+            "quartile": 2,
+            "count": 6554625,
+            "mean_pair_squared_error": 3.793866198975593e-06,
+            "mean_angle_error_degrees": 2.812520568832453
+          },
+          {
+            "quartile": 3,
+            "count": 6562708,
+            "mean_pair_squared_error": 4.988771706848638e-06,
+            "mean_angle_error_degrees": 2.811984612426018
+          },
+          {
+            "quartile": 4,
+            "count": 6541780,
+            "mean_pair_squared_error": 1.1505308066261932e-05,
+            "mean_angle_error_degrees": 2.811864230341897
+          }
+        ],
+        "zero_magnitude_index_fraction": 0.022097893059253693
+      },
+      {
+        "pairing": "split_half",
+        "mse": 2.9777449981338577e-06,
+        "relative_mse": 0.012095810155454589,
+        "max_abs_error": 0.19509363174438477,
+        "mean_abs_error": 0.0013177469372749329,
+        "polar_better_than_real4_mse": true,
+        "phase_magnitude_bins": [
+          {
+            "quartile": 1,
+            "count": 6530802,
+            "mean_pair_squared_error": 3.6473120417213067e-06,
+            "mean_angle_error_degrees": 2.811172673688433
+          },
+          {
+            "quartile": 2,
+            "count": 6552103,
+            "mean_pair_squared_error": 3.7824606806680094e-06,
+            "mean_angle_error_degrees": 2.812260594757169
+          },
+          {
+            "quartile": 3,
+            "count": 6569576,
+            "mean_pair_squared_error": 4.963421361026121e-06,
+            "mean_angle_error_degrees": 2.8146564970519625
+          },
+          {
+            "quartile": 4,
+            "count": 6561888,
+            "mean_pair_squared_error": 1.141578013630351e-05,
+            "mean_angle_error_degrees": 2.81252569147433
+          }
+        ],
+        "zero_magnitude_index_fraction": 0.02193954400718212
+      },
+      {
+        "pairing": "reverse_half",
+        "mse": 2.9932234610896558e-06,
+        "relative_mse": 0.012158684763431063,
+        "max_abs_error": 0.19516202807426453,
+        "mean_abs_error": 0.0013201957335695624,
+        "polar_better_than_real4_mse": true,
+        "phase_magnitude_bins": [
+          {
+            "quartile": 1,
+            "count": 6547438,
+            "mean_pair_squared_error": 3.6553951758833136e-06,
+            "mean_angle_error_degrees": 2.8119649756321548
+          },
+          {
+            "quartile": 2,
+            "count": 6555296,
+            "mean_pair_squared_error": 3.795050815824652e-06,
+            "mean_angle_error_degrees": 2.8120597445068887
+          },
+          {
+            "quartile": 3,
+            "count": 6544638,
+            "mean_pair_squared_error": 4.9797940846474376e-06,
+            "mean_angle_error_degrees": 2.8137160653806164
+          },
+          {
+            "quartile": 4,
+            "count": 6567020,
+            "mean_pair_squared_error": 1.1501262633828446e-05,
+            "mean_angle_error_degrees": 2.813885966336221
+          }
+        ],
+        "zero_magnitude_index_fraction": 0.02212039940059185
+      },
+      {
+        "pairing": "stride257",
+        "mse": 2.9777449981338577e-06,
+        "relative_mse": 0.012095810155454589,
+        "max_abs_error": 0.19509363174438477,
+        "mean_abs_error": 0.0013177469372749329,
+        "polar_better_than_real4_mse": true,
+        "phase_magnitude_bins": [
+          {
+            "quartile": 1,
+            "count": 6536144,
+            "mean_pair_squared_error": 3.6480798826232785e-06,
+            "mean_angle_error_degrees": 2.8113681878534247
+          },
+          {
+            "quartile": 2,
+            "count": 6534971,
+            "mean_pair_squared_error": 3.778815653276979e-06,
+            "mean_angle_error_degrees": 2.8125054143502317
+          },
+          {
+            "quartile": 3,
+            "count": 6557671,
+            "mean_pair_squared_error": 4.9586651584832e-06,
+            "mean_angle_error_degrees": 2.8136571549990252
+          },
+          {
+            "quartile": 4,
+            "count": 6585601,
+            "mean_pair_squared_error": 1.1392125088605098e-05,
+            "mean_angle_error_degrees": 2.813088968637445
+          }
+        ],
+        "zero_magnitude_index_fraction": 0.02193954400718212
+      }
+    ],
+    "best_polar_pairing_by_mse": "split_half"
+  },
+  {
+    "tensor": "model.language_model.layers.3.self_attn.q_proj.weight",
+    "source_shape": [
+      12288,
+      5120
+    ],
+    "sampled_rows": "all",
+    "sample_shape": [
+      12288,
+      5120
+    ],
+    "reference_bf16_bytes": 125829120,
+    "real4_payload_bytes": 31506433,
+    "polar_payload_bytes": 31506433,
+    "weight_rms": 0.017247825860977173,
+    "weight_abs_quantiles": [
+      0.010986328125,
+      0.028076171875,
+      0.047607421875,
+      0.06591796875
+    ],
+    "real4": {
+      "mse": 4.036290192743763e-06,
+      "relative_mse": 0.013567931632574297,
+      "max_abs_error": 0.14414061605930328,
+      "mean_abs_error": 0.0015767544973641634
+    },
+    "polar": [
+      {
+        "pairing": "adjacent",
+        "mse": 3.826313786703395e-06,
+        "relative_mse": 0.012862098953167084,
+        "max_abs_error": 0.14409685134887695,
+        "mean_abs_error": 0.001492785755544901,
+        "polar_better_than_real4_mse": true,
+        "phase_magnitude_bins": [
+          {
+            "quartile": 1,
+            "count": 7858860,
+            "mean_pair_squared_error": 4.5247902562550735e-06,
+            "mean_angle_error_degrees": 2.8118164190177066
+          },
+          {
+            "quartile": 2,
+            "count": 7871172,
+            "mean_pair_squared_error": 5.05307070852723e-06,
+            "mean_angle_error_degrees": 2.812944680891228
+          },
+          {
+            "quartile": 3,
+            "count": 7853027,
+            "mean_pair_squared_error": 6.565160219906829e-06,
+            "mean_angle_error_degrees": 2.8114565534258116
+          },
+          {
+            "quartile": 4,
+            "count": 7874172,
+            "mean_pair_squared_error": 1.4413390090339817e-05,
+            "mean_angle_error_degrees": 2.8126003966683775
+          }
+        ],
+        "zero_magnitude_index_fraction": 0.024633346125483513
+      },
+      {
+        "pairing": "split_half",
+        "mse": 3.8281691558950115e-06,
+        "relative_mse": 0.012868335750112531,
+        "max_abs_error": 0.14411963522434235,
+        "mean_abs_error": 0.0014930451288819313,
+        "polar_better_than_real4_mse": true,
+        "phase_magnitude_bins": [
+          {
+            "quartile": 1,
+            "count": 7870024,
+            "mean_pair_squared_error": 4.527261808107141e-06,
+            "mean_angle_error_degrees": 2.8127713648410393
+          },
+          {
+            "quartile": 2,
+            "count": 7860028,
+            "mean_pair_squared_error": 5.056851932749851e-06,
+            "mean_angle_error_degrees": 2.8126420181336322
+          },
+          {
+            "quartile": 3,
+            "count": 7851187,
+            "mean_pair_squared_error": 6.562134785781382e-06,
+            "mean_angle_error_degrees": 2.812912450936082
+          },
+          {
+            "quartile": 4,
+            "count": 7875862,
+            "mean_pair_squared_error": 1.439986408513505e-05,
+            "mean_angle_error_degrees": 2.8120870652635683
+          }
+        ],
+        "zero_magnitude_index_fraction": 0.024651942774653435
+      },
+      {
+        "pairing": "reverse_half",
+        "mse": 3.830849891528487e-06,
+        "relative_mse": 0.01287734700452268,
+        "max_abs_error": 0.1439758837223053,
+        "mean_abs_error": 0.0014933932106941938,
+        "polar_better_than_real4_mse": true,
+        "phase_magnitude_bins": [
+          {
+            "quartile": 1,
+            "count": 7875705,
+            "mean_pair_squared_error": 4.528273620962864e-06,
+            "mean_angle_error_degrees": 2.8118527043976727
+          },
+          {
+            "quartile": 2,
+            "count": 7851883,
+            "mean_pair_squared_error": 5.057806447439361e-06,
+            "mean_angle_error_degrees": 2.8123873801436376
+          },
+          {
+            "quartile": 3,
+            "count": 7843891,
+            "mean_pair_squared_error": 6.565978310391074e-06,
+            "mean_angle_error_degrees": 2.812690683231468
+          },
+          {
+            "quartile": 4,
+            "count": 7885719,
+            "mean_pair_squared_error": 1.4399398423847742e-05,
+            "mean_angle_error_degrees": 2.811664020421851
+          }
+        ],
+        "zero_magnitude_index_fraction": 0.02466777339577675
+      },
+      {
+        "pairing": "stride257",
+        "mse": 3.8281691558950115e-06,
+        "relative_mse": 0.012868335750112531,
+        "max_abs_error": 0.14411963522434235,
+        "mean_abs_error": 0.0014930451288819313,
+        "polar_better_than_real4_mse": true,
+        "phase_magnitude_bins": [
+          {
+            "quartile": 1,
+            "count": 7874022,
+            "mean_pair_squared_error": 4.5276979108166415e-06,
+            "mean_angle_error_degrees": 2.8127077587043936
+          },
+          {
+            "quartile": 2,
+            "count": 7856640,
+            "mean_pair_squared_error": 5.056567260908196e-06,
+            "mean_angle_error_degrees": 2.8125583483162995
+          },
+          {
+            "quartile": 3,
+            "count": 7869393,
+            "mean_pair_squared_error": 6.563439910678426e-06,
+            "mean_angle_error_degrees": 2.8123574980660186
+          },
+          {
+            "quartile": 4,
+            "count": 7857140,
+            "mean_pair_squared_error": 1.4430080227612052e-05,
+            "mean_angle_error_degrees": 2.812783317672087
+          }
+        ],
+        "zero_magnitude_index_fraction": 0.024651942774653435
+      }
+    ],
+    "best_polar_pairing_by_mse": "adjacent"
+  },
+  {
+    "tensor": "model.language_model.layers.3.mlp.up_proj.weight",
+    "source_shape": [
+      17408,
+      5120
+    ],
+    "sampled_rows": "all",
+    "sample_shape": [
+      17408,
+      5120
+    ],
+    "reference_bf16_bytes": 178257920,
+    "real4_payload_bytes": 44634113,
+    "polar_payload_bytes": 44634113,
+    "weight_rms": 0.010804993100464344,
+    "weight_abs_quantiles": [
+      0.007232666015625,
+      0.017822265625,
+      0.028076171875,
+      0.035888671875
+    ],
+    "real4": {
+      "mse": 1.382018240292382e-06,
+      "relative_mse": 0.011837629879755377,
+      "max_abs_error": 0.07822265475988388,
+      "mean_abs_error": 0.0009460984147153795
+    },
+    "polar": [
+      {
+        "pairing": "adjacent",
+        "mse": 1.3757198757957667e-06,
+        "relative_mse": 0.01178368145448499,
+        "max_abs_error": 0.0779942125082016,
+        "mean_abs_error": 0.0009209175477735698,
+        "polar_better_than_real4_mse": true,
+        "phase_magnitude_bins": [
+          {
+            "quartile": 1,
+            "count": 11181014,
+            "mean_pair_squared_error": 2.0128802589169936e-06,
+            "mean_angle_error_degrees": 2.812976697402963
+          },
+          {
+            "quartile": 2,
+            "count": 11141721,
+            "mean_pair_squared_error": 1.989479869735078e-06,
+            "mean_angle_error_degrees": 2.8130774426932206
+          },
+          {
+            "quartile": 3,
+            "count": 11150122,
+            "mean_pair_squared_error": 2.20996412281238e-06,
+            "mean_angle_error_degrees": 2.812224949707438
+          },
+          {
+            "quartile": 4,
+            "count": 11091536,
+            "mean_pair_squared_error": 4.800529950443888e-06,
+            "mean_angle_error_degrees": 2.8125466089286633
+          }
+        ],
+        "zero_magnitude_index_fraction": 0.021432338282465935
+      },
+      {
+        "pairing": "split_half",
+        "mse": 1.3753266330240876e-06,
+        "relative_mse": 0.011780313146999382,
+        "max_abs_error": 0.07810555398464203,
+        "mean_abs_error": 0.0009209105628542602,
+        "polar_better_than_real4_mse": true,
+        "phase_magnitude_bins": [
+          {
+            "quartile": 1,
+            "count": 11210705,
+            "mean_pair_squared_error": 2.0123538888583425e-06,
+            "mean_angle_error_degrees": 2.8126567457290297
+          },
+          {
+            "quartile": 2,
+            "count": 11125408,
+            "mean_pair_squared_error": 1.992260195038398e-06,
+            "mean_angle_error_degrees": 2.8124746784989667
+          },
+          {
+            "quartile": 3,
+            "count": 11137546,
+            "mean_pair_squared_error": 2.210727416240843e-06,
+            "mean_angle_error_degrees": 2.8126016773288467
+          },
+          {
+            "quartile": 4,
+            "count": 11090785,
+            "mean_pair_squared_error": 4.796532721229596e-06,
+            "mean_angle_error_degrees": 2.8125890841675645
+          }
+        ],
+        "zero_magnitude_index_fraction": 0.021431732922792435
+      },
+      {
+        "pairing": "reverse_half",
+        "mse": 1.3761360833086655e-06,
+        "relative_mse": 0.011787246465674589,
+        "max_abs_error": 0.07822082936763763,
+        "mean_abs_error": 0.0009211216820403934,
+        "polar_better_than_real4_mse": true,
+        "phase_magnitude_bins": [
+          {
+            "quartile": 1,
+            "count": 11138313,
+            "mean_pair_squared_error": 2.020537749558571e-06,
+            "mean_angle_error_degrees": 2.8124053093902086
+          },
+          {
+            "quartile": 2,
+            "count": 11139183,
+            "mean_pair_squared_error": 1.990056034628651e-06,
+            "mean_angle_error_degrees": 2.8129113837190243
+          },
+          {
+            "quartile": 3,
+            "count": 11157373,
+            "mean_pair_squared_error": 2.207785428254283e-06,
+            "mean_angle_error_degrees": 2.811547266875726
+          },
+          {
+            "quartile": 4,
+            "count": 11129560,
+            "mean_pair_squared_error": 4.7880675992928445e-06,
+            "mean_angle_error_degrees": 2.8130471337287783
+          }
+        ],
+        "zero_magnitude_index_fraction": 0.02145414985716343
+      },
+      {
+        "pairing": "stride257",
+        "mse": 1.3753266330240876e-06,
+        "relative_mse": 0.011780313146999382,
+        "max_abs_error": 0.07810555398464203,
+        "mean_abs_error": 0.0009209105628542602,
+        "polar_better_than_real4_mse": true,
+        "phase_magnitude_bins": [
+          {
+            "quartile": 1,
+            "count": 11142225,
+            "mean_pair_squared_error": 2.018899294853327e-06,
+            "mean_angle_error_degrees": 2.8131346455275192
+          },
+          {
+            "quartile": 2,
+            "count": 11181841,
+            "mean_pair_squared_error": 1.9868043636961374e-06,
+            "mean_angle_error_degrees": 2.81298182004484
+          },
+          {
+            "quartile": 3,
+            "count": 11153352,
+            "mean_pair_squared_error": 2.2093968254921492e-06,
+            "mean_angle_error_degrees": 2.8117538800981188
+          },
+          {
+            "quartile": 4,
+            "count": 11086980,
+            "mean_pair_squared_error": 4.791397259396035e-06,
+            "mean_angle_error_degrees": 2.812452693827576
+          }
+        ],
+        "zero_magnitude_index_fraction": 0.021431732922792435
+      }
+    ],
+    "best_polar_pairing_by_mse": "split_half"
+  }
+]

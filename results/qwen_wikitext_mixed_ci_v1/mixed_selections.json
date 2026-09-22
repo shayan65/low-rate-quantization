@@ -1,0 +1,146 @@
+[
+  {
+    "layer": 0,
+    "codec": "gptq",
+    "polar_calibration_nll": 3.2717780470848083,
+    "gptq_calibration_nll": 3.2665956020355225,
+    "polar_pairing": "reverse_half",
+    "polar_id": 2
+  },
+  {
+    "layer": 1,
+    "codec": "gptq",
+    "polar_calibration_nll": 3.2670178413391113,
+    "gptq_calibration_nll": 3.26680588722229,
+    "polar_pairing": "adjacent",
+    "polar_id": 0
+  },
+  {
+    "layer": 2,
+    "codec": "polar",
+    "polar_calibration_nll": 3.264621317386627,
+    "gptq_calibration_nll": 3.267958879470825,
+    "polar_pairing": "stride257",
+    "polar_id": 3
+  },
+  {
+    "layer": 4,
+    "codec": "polar",
+    "polar_calibration_nll": 3.262588381767273,
+    "gptq_calibration_nll": 3.2635965943336487,
+    "polar_pairing": "split_half",
+    "polar_id": 1
+  },
+  {
+    "layer": 5,
+    "codec": "polar",
+    "polar_calibration_nll": 3.2638933658599854,
+    "gptq_calibration_nll": 3.2661187648773193,
+    "polar_pairing": "reverse_half",
+    "polar_id": 2
+  },
+  {
+    "layer": 6,
+    "codec": "polar",
+    "polar_calibration_nll": 3.2661214470863342,
+    "gptq_calibration_nll": 3.2700048685073853,
+    "polar_pairing": "adjacent",
+    "polar_id": 0
+  },
+  {
+    "layer": 8,
+    "codec": "gptq",
+    "polar_calibration_nll": 3.26522696018219,
+    "gptq_calibration_nll": 3.264372408390045,
+    "polar_pairing": "reverse_half",
+    "polar_id": 2
+  },
+  {
+    "layer": 9,
+    "codec": "gptq",
+    "polar_calibration_nll": 3.263310194015503,
+    "gptq_calibration_nll": 3.2629436254501343,
+    "polar_pairing": "stride257",
+    "polar_id": 3
+  },
+  {
+    "layer": 10,
+    "codec": "polar",
+    "polar_calibration_nll": 3.262319326400757,
+    "gptq_calibration_nll": 3.266789436340332,
+    "polar_pairing": "adjacent",
+    "polar_id": 0
+  },
+  {
+    "layer": 12,
+    "codec": "polar",
+    "polar_calibration_nll": 3.265118718147278,
+    "gptq_calibration_nll": 3.267170250415802,
+    "polar_pairing": "stride257",
+    "polar_id": 3
+  },
+  {
+    "layer": 13,
+    "codec": "polar",
+    "polar_calibration_nll": 3.264292538166046,
+    "gptq_calibration_nll": 3.2680134177207947,
+    "polar_pairing": "split_half",
+    "polar_id": 1
+  },
+  {
+    "layer": 14,
+    "codec": "polar",
+    "polar_calibration_nll": 3.264525890350342,
+    "gptq_calibration_nll": 3.2650092244148254,
+    "polar_pairing": "reverse_half",
+    "polar_id": 2
+  },
+  {
+    "layer": 16,
+    "codec": "polar",
+    "polar_calibration_nll": 3.2649827003479004,
+    "gptq_calibration_nll": 3.265470564365387,
+    "polar_pairing": "adjacent",
+    "polar_id": 0
+  },
+  {
+    "layer": 17,
+    "codec": "polar",
+    "polar_calibration_nll": 3.266841769218445,
+    "gptq_calibration_nll": 3.2676695585250854,
+    "polar_pairing": "adjacent",
+    "polar_id": 0
+  },
+  {
+    "layer": 18,
+    "codec": "polar",
+    "polar_calibration_nll": 3.2638952136039734,
+    "gptq_calibration_nll": 3.264051377773285,
+    "polar_pairing": "split_half",
+    "polar_id": 1
+  },
+  {
+    "layer": 20,
+    "codec": "polar",
+    "polar_calibration_nll": 3.266518712043762,
+    "gptq_calibration_nll": 3.2676804065704346,
+    "polar_pairing": "reverse_half",
+    "polar_id": 2
+  },
+  {
+    "layer": 21,
+    "codec": "polar",
+    "polar_calibration_nll": 3.265416741371155,
+    "gptq_calibration_nll": 3.266998529434204,
+    "polar_pairing": "stride257",
+    "polar_id": 3
+  },
+  {
+    "layer": 22,
+    "codec": "gptq",
+    "polar_calibration_nll": 3.2664278149604797,
+    "gptq_calibration_nll": 3.2658180594444275,
+    "polar_pairing": "reverse_half",
+    "polar_id": 2
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "completed_jobs": 9,
+  "planned_jobs": 9,
+  "budget_exhausted": false,
+  "this_invocation_wall_seconds": 58.59712695796043,
+  "mean_paired_nll_gaps": {
+    "real_fp32": 0.10625152786572774,
+    "complex_fp32": 0.13649741808573404
+  },
+  "passed": false,
+  "action": "No full-data job is launched by this screen."
+}

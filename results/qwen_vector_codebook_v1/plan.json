@@ -1,0 +1,9 @@
+{
+  "model": "Qwen/Qwen3.5-0.8B-Base",
+  "scope": "all 18 DeltaNet in_proj_qkv projections cumulatively",
+  "pairing": "reuse training-calibrated polar pairing per layer; no validation selection",
+  "codebook": "two learned 16-level scalar codebooks for real and imaginary coordinates after per-row complex-magnitude scaling; 4+4 index bits per pair",
+  "evaluation_targets": 261284,
+  "test_split_touched": false,
+  "runtime_cap_seconds": 1800.0
+}

@@ -1,0 +1,36 @@
+\begin{table}[ht]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\caption{One protocol for every codec: per-layer candidate selection by calibration NLL
+against an otherwise-BF16 model, 16 training windows, then cumulative application.
+Codecs that can use activation statistics receive the identical BF16-measured statistic.
+Complete WikiText-2 validation stream; paired block bootstraps against BF16.}
+\label{tab:fair}
+\begin{tabular}{lrrl}\toprule
+Method & NLL & $\Delta$NLL & 95\% CI\\\midrule
+real-4, uniform codebook (earlier draft's control) & 3.460834 & +0.024164 & $[+0.023088,\,+0.025239]$\\
+polar 3+5 (earlier draft's method) & 3.452573 & +0.015902 & $[+0.015006,\,+0.016825]$\\
+real-4, Lloyd codebook (matched control) & 3.445209 & +0.008539 & $[+0.007662,\,+0.009403]$\\
+paired 2-D codebook & 3.445815 & +0.009145 & $[+0.008325,\,+0.009950]$\\
+\textbf{paired 2-D codebook, activation-weighted} & 3.444363 & +0.007693 & $[+0.007029,\,+0.008398]$\\
+\midrule
+\multicolumn{4}{l}{\footnotesize Earlier draft's published polar figure: $+0.009333$.}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[ht]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\caption{Paired differences under the single protocol of Table~\ref{tab:fair}.
+A negative value favours the first-named method.}
+\label{tab:fairhead}
+\begin{tabular}{lrll}\toprule
+Comparison & $\Delta$NLL & 95\% CI & Interval\\\midrule
+polar $-$ matched scalar control & +0.007364 & $[+0.006332,\,+0.008376]$ & excludes 0\\
+polar $-$ paired 2-D (act.-weighted) & +0.008210 & $[+0.007205,\,+0.009186]$ & excludes 0\\
+paired 2-D $-$ same, act.-weighted & +0.001452 & $[+0.000556,\,+0.002327]$ & excludes 0\\
+matched scalar $-$ paired 2-D (act.-weighted) & +0.000846 & $[-0.000169,\,+0.001822]$ & \textbf{includes 0}\\
+\bottomrule
+\end{tabular}
+\end{table}

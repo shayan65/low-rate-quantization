@@ -1,0 +1,19 @@
+\begin{table}[ht]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\caption{Weight reconstruction at eight index bits per pair, relative to the Lloyd-fitted
+real-4 control (values below $1.000$ beat it). \texttt{vq2d} is an unconstrained 256-point
+2-D codebook and lower-bounds distortion for every paired code at this budget.
+Every entry uses the best of four pairings and a per-row FP32 scale.}
+\label{tab:ceiling}
+\begin{tabular}{llrrrrr}\toprule
+Checkpoint & Tensor & real4-Lloyd MSE & real4-unif. & polar-legacy & polar-fitted & vq2d\\\midrule
+Qwen3.5-0.8B & DeltaNet QKV L0 & 3.252e-06 & 1.308 & 1.194 & 1.065 & \textbf{0.759}\\
+Qwen3.5-0.8B & DeltaNet QKV L8 & 3.135e-06 & 1.214 & 1.156 & 1.064 & \textbf{0.793}\\
+Qwen3.5-0.8B & DeltaNet QKV L16 & 5.039e-06 & 1.240 & 1.165 & 1.059 & \textbf{0.795}\\
+Qwen3.8-27B & DeltaNet QKV L0 & 2.563e-06 & 1.186 & 1.162 & 1.073 & \textbf{0.818}\\
+Qwen3.8-27B & Attention Q L3 & 3.317e-06 & 1.217 & 1.154 & 1.060 & \textbf{0.791}\\
+Qwen3.8-27B & MLP up L3 & 1.182e-06 & 1.169 & 1.163 & 1.081 & \textbf{0.817}\\
+\bottomrule
+\end{tabular}
+\end{table}

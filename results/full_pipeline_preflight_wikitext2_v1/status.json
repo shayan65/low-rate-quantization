@@ -1,0 +1,139 @@
+{
+  "event": "complete",
+  "method": "phase8",
+  "architecture": "hybrid",
+  "seed": 0,
+  "parameters": 40614,
+  "best_epoch": 1,
+  "validation": {
+    "nll": 5.681155742998237,
+    "perplexity": 293.2881999028282,
+    "target_tokens": 445727,
+    "coverage": 1.0,
+    "context": 128,
+    "reset": "each contiguous context block"
+  },
+  "test": {
+    "nll": 5.685946649857718,
+    "perplexity": 294.6966876242316,
+    "target_tokens": 504896,
+    "coverage": 1.0,
+    "context": 128,
+    "reset": "each contiguous context block"
+  },
+  "completed_epochs": [
+    {
+      "epoch": 1,
+      "train_target_tokens": 4256725,
+      "train_coverage": 1.0,
+      "train_nll": 5.99408613019485,
+      "validation": {
+        "nll": 5.681155742998237,
+        "perplexity": 293.2881999028282,
+        "target_tokens": 445727,
+        "coverage": 1.0,
+        "context": 128,
+        "reset": "each contiguous context block"
+      },
+      "step": 1040
+    }
+  ],
+  "deployment": {
+    "projections": [
+      {
+        "kind": "phase",
+        "bits": 3,
+        "scale_bytes": 4,
+        "name": "blocks.0.input",
+        "method": "phase8",
+        "shape": [
+          24,
+          24
+        ],
+        "offset": 0,
+        "bytes": 220,
+        "indices": 576
+      },
+      {
+        "kind": "phase",
+        "bits": 3,
+        "scale_bytes": 4,
+        "name": "blocks.0.output",
+        "method": "phase8",
+        "shape": [
+          24,
+          24
+        ],
+        "offset": 220,
+        "bytes": 220,
+        "indices": 576
+      },
+      {
+        "kind": "phase",
+        "bits": 3,
+        "scale_bytes": 4,
+        "name": "blocks.0.up",
+        "method": "phase8",
+        "shape": [
+          96,
+          24
+        ],
+        "offset": 440,
+        "bytes": 868,
+        "indices": 2304
+      },
+      {
+        "kind": "phase",
+        "bits": 3,
+        "scale_bytes": 4,
+        "name": "blocks.0.down",
+        "method": "phase8",
+        "shape": [
+          24,
+          96
+        ],
+        "offset": 1308,
+        "bytes": 868,
+        "indices": 2304
+      },
+      {
+        "kind": "phase",
+        "bits": 3,
+        "scale_bytes": 4,
+        "name": "blocks.1.up",
+        "method": "phase8",
+        "shape": [
+          96,
+          24
+        ],
+        "offset": 2176,
+        "bytes": 868,
+        "indices": 2304
+      },
+      {
+        "kind": "phase",
+        "bits": 3,
+        "scale_bytes": 4,
+        "name": "blocks.1.down",
+        "method": "phase8",
+        "shape": [
+          24,
+          96
+        ],
+        "offset": 3044,
+        "bytes": 868,
+        "indices": 2304
+      }
+    ],
+    "remaining_fp32_payload_bytes": 120960,
+    "deployment_tensor_payload_bytes": 124872,
+    "note": "No optimizer or latent quantized weights; metadata/file overhead counted separately",
+    "actual_directory_bytes": 133665
+  },
+  "fp32_parameter_payload_bytes": 162456,
+  "elapsed_seconds": 17.713815927505493,
+  "peak_cuda_bytes": 90714112,
+  "test_model": "decoded packed deployment export",
+  "source_sha256": "6fdd91f591d2cd778ff5c5dfb3f928bd49500808ba401bd06a481ccccbeecedb",
+  "dataset_manifest_sha256": "e1e3550473b858ae2296295c98c98082f6b51efb03fb1f188f15119337918766"
+}

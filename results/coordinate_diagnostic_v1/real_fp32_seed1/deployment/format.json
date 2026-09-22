@@ -1,0 +1,6 @@
+{
+  "projections": [],
+  "remaining_fp32_payload_bytes": 2493184,
+  "deployment_tensor_payload_bytes": 2493184,
+  "note": "No optimizer or latent quantized weights; metadata/file overhead counted separately"
+}

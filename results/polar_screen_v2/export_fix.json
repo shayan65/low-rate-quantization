@@ -1,0 +1,6 @@
+{
+  "old_model_source_sha256": "0048e5a30704ba4813f27d78304fab0311f5c997c5bfc051b74080640e763342",
+  "new_model_source_sha256": "bce3be1aec7039a940011024eb7077e92457b6ab351d86e98bc83cf915a34545",
+  "model_classes_ast_identical": true,
+  "change": "Real bin encoder uses the same tensor divisor as training; forward and gradient definitions unchanged"
+}

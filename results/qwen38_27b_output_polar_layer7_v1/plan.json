@@ -1,0 +1,55 @@
+{
+  "model": "Qwen/Qwen3.8-27B",
+  "tensor": "layer 7 self_attn.q_proj.weight",
+  "calibration": "16 fixed WikiText-2 training windows, activation diagonal proxy",
+  "train_starts": [
+    151528,
+    260509,
+    512687,
+    636028,
+    784887,
+    878349,
+    1077589,
+    1093868,
+    1140917,
+    1209696,
+    1431670,
+    1464765,
+    1951024,
+    2109339,
+    2316790,
+    2477193
+  ],
+  "heldout": "WikiText-2 validation blocks 352\u2013415, 8,192 targets",
+  "methods": [
+    "bf16",
+    "optimized_real4",
+    "legacy_polar3_5",
+    "weighted_proxy_polar3_5",
+    "output_selected_polar3_5",
+    "awq_style_real4"
+  ],
+  "weighted_polar": "choose pairing, global phase-grid offset, and FP32 row scale by train-activation-weighted coefficient error; choose each 3-bit magnitude by weighted projection onto its 5-bit phase ray",
+  "pairings": [
+    "adjacent",
+    "reverse_half"
+  ],
+  "offsets_radians": [
+    0.0,
+    0.09817477042468103
+  ],
+  "scale_ratios": [
+    0.55,
+    0.62,
+    0.69,
+    0.76,
+    0.83,
+    0.9,
+    0.97,
+    1.0
+  ],
+  "budget": "4 index bits per real weight; one FP32 row scale; one candidate ID byte for polar; AWQ-style has extra FP32 channel scales",
+  "selection": "compare four polar candidates using actual X times quantization-error output MSE on training activations; also retain diagonal proxy winner",
+  "scope": "one tensor replaced at a time, other weights BF16; no packed kernel or full-model claim",
+  "runtime_cap_seconds": 900
+}

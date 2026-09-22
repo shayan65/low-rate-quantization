@@ -1,0 +1,19 @@
+{
+  "method": "polar_fp32",
+  "seed": 1,
+  "parameters": 697088,
+  "best_step": 1200,
+  "initial_validation_nll": 9.0208939909935,
+  "validation": {
+    "nll": 6.6452580988407135,
+    "perplexity": 769.1285331992034,
+    "sample_target_tokens": 16384
+  },
+  "train_targets_presented": 2457600,
+  "seconds": 7.595231957035139,
+  "recovered_completed_training": false,
+  "recovery_export_seconds": null,
+  "deployment_tensor_bytes": 2788352,
+  "peak_cuda_bytes": 290128384,
+  "exact_coefficient_and_logit_roundtrip": true
+}

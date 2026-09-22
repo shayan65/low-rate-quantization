@@ -1,0 +1,26 @@
+{
+  "model": "Qwen/Qwen3.8-27B",
+  "tensor": "model.language_model.layers.0.linear_attn.in_proj_qkv.weight",
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "torch": "2.11.0+cu128",
+  "disk_to_cpu_seconds": 0.023065684945322573,
+  "shape": [
+    10240,
+    5120
+  ],
+  "tensor_fp32_bytes": 209715200,
+  "cpu_to_gpu_seconds": 0.023486235993914306,
+  "gpu_baseline_bytes": 209715200,
+  "real4_quantize_seconds": 0.16816985397599638,
+  "real4_mse": 3.0410026283789193e-06,
+  "real4_peak_gpu_bytes": 1048791552,
+  "polar_quantize_seconds": 0.07351882092189044,
+  "polar_mse": 2.9777449981338577e-06,
+  "polar_peak_gpu_bytes": 1756621312,
+  "index_pack_seconds": 0.5818685330450535,
+  "packed_bytes": 26255361,
+  "projection_bf16_ms_tokens_1": 0.14456198550760746,
+  "projection_bf16_ms_tokens_16": 0.14195695985108614,
+  "projection_bf16_ms_tokens_128": 0.19420497119426727,
+  "total_probe_seconds": 1.0783522380515933
+}

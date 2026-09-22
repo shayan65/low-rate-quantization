@@ -1,0 +1,9 @@
+\input{memory_table.tex}
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\linewidth]{memory_comparison.png}
+\caption{Stable-control comparisons over evaluation length. Error bars show sample standard deviation over systems. The dashed vertical line marks calibration length 128; the horizontal dotted line is a zero-output predictor.}
+\end{figure}
+The four-bit phase-memory control improves relative to phase-weight calibration, but the stable Cartesian memory control has lower mean error at length 512. Phase-memory relative error exceeds one at that horizon, indicating worse output reconstruction than predicting zero. The pilot therefore does not establish a useful long-context phase advantage. At eight index bits, phase-memory error at length 512 is approximately 0.791, compared with 0.811 for phase-weight calibration and 0.922 for stable Cartesian memory. The extra memory-objective improvement over phase-weight calibration is modest; only three systems are tested. The eight-bit setting is reported separately rather than pooled with the four-bit setting. The observed benefit of the memory objective within a representation must not be conflated with superiority of that representation.
+
+The nearest Cartesian decoder can have radii above one and exhibits catastrophic growth. This diagnostic should not dominate the assessment: fitted Cartesian controls are explicitly stabilized, and the normalized Cartesian control provides a fixed-radius comparison. Reported sample deviations are descriptive over only three systems; no significance claim is justified. Version 1, with unconstrained fitted Cartesian controls and numerically unreliable large-error coordinate comparisons, is retained as a diagnostic. Version 2 uses stable initialization and constraints for fitted raw Cartesian controls and supplies all tabulated results.

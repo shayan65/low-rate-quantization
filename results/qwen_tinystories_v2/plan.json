@@ -1,0 +1,35 @@
+{
+  "dataset": "roneneldan/TinyStories",
+  "calibration": "first 2,048 Qwen tokens from 100 train rows, eight fixed 128-target windows",
+  "validation": "last-token NLL for every nonempty example in complete official validation parquet; at most 128 preceding tokens",
+  "validation_examples": 21990,
+  "test_split_touched": false,
+  "model": "Qwen/Qwen3.5-0.8B-Base",
+  "layers": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    6,
+    8,
+    9,
+    10,
+    12,
+    13,
+    14,
+    16,
+    17,
+    18,
+    20,
+    21,
+    22
+  ],
+  "methods": [
+    "bf16",
+    "task_polar3_5",
+    "block_gptq_real4"
+  ],
+  "runtime_cap_seconds": 3600.0,
+  "warning": "block-GPTQ is transparent local implementation, not official backend"
+}

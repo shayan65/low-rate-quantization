@@ -1,0 +1,9 @@
+{
+  "completed_jobs": 18,
+  "planned_jobs": 18,
+  "complete": true,
+  "seconds": 1.8709593339590356,
+  "phase_equals_circular": true,
+  "promote": true,
+  "action": "No long run launched; this gate only decides whether to build a stronger small task-level QAT experiment."
+}

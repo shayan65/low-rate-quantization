@@ -1,0 +1,212 @@
+[
+  {
+    "seed": 0,
+    "method": "phase_nearest",
+    "model_checkpoint_sha256": "f26cbefa5cd3e557d9a47619faa99d7849851cf6b3c21394bcf2921d0a6b93c7",
+    "offset": 0.0,
+    "index_bits_per_complex_mode": 4,
+    "modes": 64,
+    "transition_index_and_radius_bytes": 292,
+    "export_sha256": "004aaac23f4702612433b2e9753decc5fd88a7ff3ae108416af814365a484eda",
+    "validation_relative_mse": {
+      "128": 0.22281904704868793,
+      "512": 0.25148219242691994
+    }
+  },
+  {
+    "seed": 0,
+    "method": "phase_weight_offset",
+    "model_checkpoint_sha256": "f26cbefa5cd3e557d9a47619faa99d7849851cf6b3c21394bcf2921d0a6b93c7",
+    "offset": 0.11044661700725555,
+    "index_bits_per_complex_mode": 4,
+    "modes": 64,
+    "transition_index_and_radius_bytes": 292,
+    "export_sha256": "acc04105415eaef271312e2318d409fbda3c5d7359a15e41ca085576c9324461",
+    "validation_relative_mse": {
+      "128": 0.17359509877860546,
+      "512": 0.18831432238221169
+    }
+  },
+  {
+    "seed": 0,
+    "method": "phase_memory_offset",
+    "model_checkpoint_sha256": "f26cbefa5cd3e557d9a47619faa99d7849851cf6b3c21394bcf2921d0a6b93c7",
+    "offset": 0.11044661700725555,
+    "index_bits_per_complex_mode": 4,
+    "modes": 64,
+    "transition_index_and_radius_bytes": 292,
+    "export_sha256": "acc04105415eaef271312e2318d409fbda3c5d7359a15e41ca085576c9324461",
+    "validation_relative_mse": {
+      "128": 0.17359509877860546,
+      "512": 0.18831432238221169
+    }
+  },
+  {
+    "seed": 0,
+    "method": "cartesian_nearest",
+    "model_checkpoint_sha256": "f26cbefa5cd3e557d9a47619faa99d7849851cf6b3c21394bcf2921d0a6b93c7",
+    "offset": 0.0,
+    "index_bits_per_complex_mode": 4,
+    "modes": 64,
+    "transition_index_and_radius_bytes": 292,
+    "export_sha256": "98ec8d67a7a253572ede9b21f74762d38d3a2fbbe2971d33da9f22dfdc115c98",
+    "validation_relative_mse": {
+      "128": 0.2569425441324711,
+      "512": 0.2699481286108494
+    }
+  },
+  {
+    "seed": 0,
+    "method": "cartesian_memory_offset",
+    "model_checkpoint_sha256": "f26cbefa5cd3e557d9a47619faa99d7849851cf6b3c21394bcf2921d0a6b93c7",
+    "offset": 0.12271846830844879,
+    "index_bits_per_complex_mode": 4,
+    "modes": 64,
+    "transition_index_and_radius_bytes": 292,
+    "export_sha256": "9451e2b22abec3f3dd3ad1c9444c9fe30a8f53e6cc46e01cb34a94e2dfd00683",
+    "validation_relative_mse": {
+      "128": 0.25308347679674625,
+      "512": 0.26660966500639915
+    }
+  },
+  {
+    "seed": 1,
+    "method": "phase_nearest",
+    "model_checkpoint_sha256": "2db802537647f7a14527565c97b4a8fea5d23062e8d7382e4a5ad529d6d95f31",
+    "offset": 0.0,
+    "index_bits_per_complex_mode": 4,
+    "modes": 64,
+    "transition_index_and_radius_bytes": 292,
+    "export_sha256": "e22e4e7ddf2ea07864d7b6550f00810bfe59a2b003700def34551f84f2c5c76e",
+    "validation_relative_mse": {
+      "128": 0.13265320286154747,
+      "512": 0.14841858111321926
+    }
+  },
+  {
+    "seed": 1,
+    "method": "phase_weight_offset",
+    "model_checkpoint_sha256": "2db802537647f7a14527565c97b4a8fea5d23062e8d7382e4a5ad529d6d95f31",
+    "offset": 0.0,
+    "index_bits_per_complex_mode": 4,
+    "modes": 64,
+    "transition_index_and_radius_bytes": 292,
+    "export_sha256": "e22e4e7ddf2ea07864d7b6550f00810bfe59a2b003700def34551f84f2c5c76e",
+    "validation_relative_mse": {
+      "128": 0.13265320286154747,
+      "512": 0.14841858111321926
+    }
+  },
+  {
+    "seed": 1,
+    "method": "phase_memory_offset",
+    "model_checkpoint_sha256": "2db802537647f7a14527565c97b4a8fea5d23062e8d7382e4a5ad529d6d95f31",
+    "offset": -0.11044661700725555,
+    "index_bits_per_complex_mode": 4,
+    "modes": 64,
+    "transition_index_and_radius_bytes": 292,
+    "export_sha256": "96cff471911128414616265e7630cb775e15abb2badb934ee24470dbe74a90d5",
+    "validation_relative_mse": {
+      "128": 0.12414252385497093,
+      "512": 0.1350786853581667
+    }
+  },
+  {
+    "seed": 1,
+    "method": "cartesian_nearest",
+    "model_checkpoint_sha256": "2db802537647f7a14527565c97b4a8fea5d23062e8d7382e4a5ad529d6d95f31",
+    "offset": 0.0,
+    "index_bits_per_complex_mode": 4,
+    "modes": 64,
+    "transition_index_and_radius_bytes": 292,
+    "export_sha256": "c3f2123ffccd13a986888ec330ddd86a7617b701e92403cf8716467a7297e31d",
+    "validation_relative_mse": {
+      "128": 0.2039146702736616,
+      "512": 0.21697826497256756
+    }
+  },
+  {
+    "seed": 1,
+    "method": "cartesian_memory_offset",
+    "model_checkpoint_sha256": "2db802537647f7a14527565c97b4a8fea5d23062e8d7382e4a5ad529d6d95f31",
+    "offset": 0.04908738657832146,
+    "index_bits_per_complex_mode": 4,
+    "modes": 64,
+    "transition_index_and_radius_bytes": 292,
+    "export_sha256": "0cc1845a7670ef829a711e6261573443cc71ef1f0a9ad38d4efd7b46a79b20e7",
+    "validation_relative_mse": {
+      "128": 0.19542700238525867,
+      "512": 0.2059315014630556
+    }
+  },
+  {
+    "seed": 2,
+    "method": "phase_nearest",
+    "model_checkpoint_sha256": "d633ecaab94c523fcb0ecbc6ba6abde064fed99e5de50ca232f3b19164d03b54",
+    "offset": 0.0,
+    "index_bits_per_complex_mode": 4,
+    "modes": 64,
+    "transition_index_and_radius_bytes": 292,
+    "export_sha256": "1f40664dd26ccc552afa833ffca7dea25f89a6876138d49e781a22944419d14e",
+    "validation_relative_mse": {
+      "128": 0.35393156111240387,
+      "512": 0.40417058393359184
+    }
+  },
+  {
+    "seed": 2,
+    "method": "phase_weight_offset",
+    "model_checkpoint_sha256": "d633ecaab94c523fcb0ecbc6ba6abde064fed99e5de50ca232f3b19164d03b54",
+    "offset": 0.1595340073108673,
+    "index_bits_per_complex_mode": 4,
+    "modes": 64,
+    "transition_index_and_radius_bytes": 292,
+    "export_sha256": "e78a7807a460c4f081aa853ecd89d19bb54c06b6a173ba7ec7c8f6e3fb3b1681",
+    "validation_relative_mse": {
+      "128": 0.34935981407761574,
+      "512": 0.38187384605407715
+    }
+  },
+  {
+    "seed": 2,
+    "method": "phase_memory_offset",
+    "model_checkpoint_sha256": "d633ecaab94c523fcb0ecbc6ba6abde064fed99e5de50ca232f3b19164d03b54",
+    "offset": 0.03681553900241852,
+    "index_bits_per_complex_mode": 4,
+    "modes": 64,
+    "transition_index_and_radius_bytes": 292,
+    "export_sha256": "3e9d3d98eb1ba78c0ae9b3c4cce8901bd3090c4447ef8447c1ccfd5d0481922e",
+    "validation_relative_mse": {
+      "128": 0.29467775858938694,
+      "512": 0.33474716171622276
+    }
+  },
+  {
+    "seed": 2,
+    "method": "cartesian_nearest",
+    "model_checkpoint_sha256": "d633ecaab94c523fcb0ecbc6ba6abde064fed99e5de50ca232f3b19164d03b54",
+    "offset": 0.0,
+    "index_bits_per_complex_mode": 4,
+    "modes": 64,
+    "transition_index_and_radius_bytes": 292,
+    "export_sha256": "67da3d01c03221db4ed790a5dff58e1c1d337e4e54feaa6dd92e02f64c32644e",
+    "validation_relative_mse": {
+      "128": 0.5226957015693188,
+      "512": 0.5405059084296227
+    }
+  },
+  {
+    "seed": 2,
+    "method": "cartesian_memory_offset",
+    "model_checkpoint_sha256": "d633ecaab94c523fcb0ecbc6ba6abde064fed99e5de50ca232f3b19164d03b54",
+    "offset": 0.1595340073108673,
+    "index_bits_per_complex_mode": 4,
+    "modes": 64,
+    "transition_index_and_radius_bytes": 292,
+    "export_sha256": "4e8c1d2cd3a51fb5060d92a6232d95d93c5778db25de6ee0f54a7f3f7f4b4f6d",
+    "validation_relative_mse": {
+      "128": 0.4005272462964058,
+      "512": 0.42962589114904404
+    }
+  }
+]

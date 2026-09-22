@@ -1,0 +1,24 @@
+{
+  "hypotheses": {
+    "warped": "16 phase states theta_k=2pi*k/16+alpha*sin(2pi*k/16); one learned FP32 alpha, no offset",
+    "adaptive": "top half of modes by already-stored decay receive 5-bit phase; bottom half receive 3-bit phase; 256 index bits total; one learned FP32 offset; group is deterministically reconstructed from decay ranks"
+  },
+  "controls": "response-calibrated uniform 4-bit circle with one FP32 offset",
+  "equal_export_bytes": 292,
+  "model": "frozen 697,088-parameter custom hybrid LM",
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "methods": [
+    "fp32",
+    "uniform_response",
+    "warped_response",
+    "adaptive_5_3_response"
+  ],
+  "validation_target_tokens": 16384,
+  "test_split_touched": false,
+  "runtime_cap_seconds": 120.0,
+  "source_sha256": "1205c43a4bf3d28d6f6e90a88dfb78e6d97838cf573e21557f1f439f46c63d42"
+}

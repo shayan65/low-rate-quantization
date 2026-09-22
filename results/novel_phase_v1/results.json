@@ -1,0 +1,158 @@
+[
+  {
+    "seed": 0,
+    "method": "fp32",
+    "validation": {
+      "nll": 6.50635552406311,
+      "perplexity": 669.3824186312567,
+      "sample_target_tokens": 16384
+    },
+    "transition_bytes": 512
+  },
+  {
+    "seed": 0,
+    "method": "uniform_response",
+    "parameter": 0.13499031960964203,
+    "calibration_response_mse": 0.16842902451753616,
+    "export_sha256": "ec42f7d12623e2ae54019cc6f6cd6ea526db19677db4b3c2a8725144a172c13e",
+    "transition_bytes": 292,
+    "validation": {
+      "nll": 6.508080154657364,
+      "perplexity": 670.5378520912423,
+      "sample_target_tokens": 16384
+    },
+    "delta_nll_vs_fp32": 0.00172463059425354
+  },
+  {
+    "seed": 0,
+    "method": "warped_response",
+    "parameter": -0.10000000894069672,
+    "calibration_response_mse": 0.19178791530430317,
+    "export_sha256": "0cbbe52d858cfc6515d9c737b6c9c2a18aa495bd9072741ea44f31f47cd2f964",
+    "transition_bytes": 292,
+    "validation": {
+      "nll": 6.5089855790138245,
+      "perplexity": 671.1452483286331,
+      "sample_target_tokens": 16384
+    },
+    "delta_nll_vs_fp32": 0.0026300549507141113
+  },
+  {
+    "seed": 0,
+    "method": "adaptive_5_3_response",
+    "parameter": -0.14726215600967407,
+    "calibration_response_mse": 0.3220288157463074,
+    "export_sha256": "925b48e22ef5b64878f8269442b6e99d431f1808ab45e1efbaab1f6510dcf4cf",
+    "transition_bytes": 292,
+    "validation": {
+      "nll": 6.510536372661591,
+      "perplexity": 672.186863572868,
+      "sample_target_tokens": 16384
+    },
+    "delta_nll_vs_fp32": 0.004180848598480225
+  },
+  {
+    "seed": 1,
+    "method": "fp32",
+    "validation": {
+      "nll": 6.51173809170723,
+      "perplexity": 672.9951288856921,
+      "sample_target_tokens": 16384
+    },
+    "transition_bytes": 512
+  },
+  {
+    "seed": 1,
+    "method": "uniform_response",
+    "parameter": -0.11044661700725555,
+    "calibration_response_mse": 0.11876712832599878,
+    "export_sha256": "96cff471911128414616265e7630cb775e15abb2badb934ee24470dbe74a90d5",
+    "transition_bytes": 292,
+    "validation": {
+      "nll": 6.514145523309708,
+      "perplexity": 674.6172704412502,
+      "sample_target_tokens": 16384
+    },
+    "delta_nll_vs_fp32": 0.0024074316024780273
+  },
+  {
+    "seed": 1,
+    "method": "warped_response",
+    "parameter": -0.07500001043081284,
+    "calibration_response_mse": 0.10661782044917345,
+    "export_sha256": "1a6d8d4597c09acf15fe8628a80d740d033aeb1b81c6a3464ea2c71aacfbd9f0",
+    "transition_bytes": 292,
+    "validation": {
+      "nll": 6.513731420040131,
+      "perplexity": 674.3379670580607,
+      "sample_target_tokens": 16384
+    },
+    "delta_nll_vs_fp32": 0.001993328332901001
+  },
+  {
+    "seed": 1,
+    "method": "adaptive_5_3_response",
+    "parameter": 0.17180585861206055,
+    "calibration_response_mse": 0.2161682341247797,
+    "export_sha256": "3d8350ace992b9a910d50443f5206c6bc8dc11fec18b13e26c4bdfa30d1952f6",
+    "transition_bytes": 292,
+    "validation": {
+      "nll": 6.5195543467998505,
+      "perplexity": 678.276042085587,
+      "sample_target_tokens": 16384
+    },
+    "delta_nll_vs_fp32": 0.00781625509262085
+  },
+  {
+    "seed": 2,
+    "method": "fp32",
+    "validation": {
+      "nll": 6.51483890414238,
+      "perplexity": 675.0851993336788,
+      "sample_target_tokens": 16384
+    },
+    "transition_bytes": 512
+  },
+  {
+    "seed": 2,
+    "method": "uniform_response",
+    "parameter": 0.04908738657832146,
+    "calibration_response_mse": 0.30137765407562256,
+    "export_sha256": "609b5bc894351c79ae08e32f0f193bee0dd698f8041834d48f4c3bfae05e05ce",
+    "transition_bytes": 292,
+    "validation": {
+      "nll": 6.518847286701202,
+      "perplexity": 677.7966296670282,
+      "sample_target_tokens": 16384
+    },
+    "delta_nll_vs_fp32": 0.004008382558822632
+  },
+  {
+    "seed": 2,
+    "method": "warped_response",
+    "parameter": -0.30000001192092896,
+    "calibration_response_mse": 0.2535331156104803,
+    "export_sha256": "c734d547f2641dc5e71fd8be85306e180213064286b602ee03378bac7348c5a7",
+    "transition_bytes": 292,
+    "validation": {
+      "nll": 6.519139915704727,
+      "perplexity": 677.9950016426413,
+      "sample_target_tokens": 16384
+    },
+    "delta_nll_vs_fp32": 0.004301011562347412
+  },
+  {
+    "seed": 2,
+    "method": "adaptive_5_3_response",
+    "parameter": -0.17180585861206055,
+    "calibration_response_mse": 0.46999408677220345,
+    "export_sha256": "a2a50d545ff7e93acb9c87cc79d8b62e5e3897234d34d3357db87f06d0bcb475",
+    "transition_bytes": 292,
+    "validation": {
+      "nll": 6.519267231225967,
+      "perplexity": 678.0813264247995,
+      "sample_target_tokens": 16384
+    },
+    "delta_nll_vs_fp32": 0.0044283270835876465
+  }
+]

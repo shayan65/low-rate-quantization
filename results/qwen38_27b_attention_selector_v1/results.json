@@ -1,0 +1,275 @@
+[
+  {
+    "layer": 7,
+    "calibration": [
+      {
+        "codec": "real4",
+        "candidate": 0.9,
+        "nll": 2.428584098815918,
+        "weight_mse": 3.9163023757282645e-06,
+        "seconds": 6.753901242045686
+      },
+      {
+        "codec": "real4",
+        "candidate": 1.0,
+        "nll": 2.4285459518432617,
+        "weight_mse": 3.7501090446312446e-06,
+        "seconds": 4.866675192024559
+      },
+      {
+        "codec": "real4",
+        "candidate": 1.1,
+        "nll": 2.430104970932007,
+        "weight_mse": 4.024333975394256e-06,
+        "seconds": 4.872649764991365
+      },
+      {
+        "codec": "polar3_5",
+        "candidate": "adjacent",
+        "nll": 2.4289143085479736,
+        "weight_mse": 3.518065796015435e-06,
+        "seconds": 4.866615490987897
+      },
+      {
+        "codec": "polar3_5",
+        "candidate": "split_half",
+        "nll": 2.432523727416992,
+        "weight_mse": 3.5214404761063633e-06,
+        "seconds": 4.880335113033652
+      },
+      {
+        "codec": "polar3_5",
+        "candidate": "reverse_half",
+        "nll": 2.429744243621826,
+        "weight_mse": 3.5248651784058893e-06,
+        "seconds": 4.861361052026041
+      },
+      {
+        "codec": "polar3_5",
+        "candidate": "stride257",
+        "nll": 2.4327287673950195,
+        "weight_mse": 3.5214404761063633e-06,
+        "seconds": 4.867443524999544
+      }
+    ],
+    "selected": {
+      "real4": {
+        "codec": "real4",
+        "candidate": 1.0,
+        "nll": 2.4285459518432617,
+        "weight_mse": 3.7501090446312446e-06,
+        "seconds": 4.866675192024559
+      },
+      "polar3_5": {
+        "codec": "polar3_5",
+        "candidate": "adjacent",
+        "nll": 2.4289143085479736,
+        "weight_mse": 3.518065796015435e-06,
+        "seconds": 4.866615490987897
+      }
+    },
+    "heldout": [
+      {
+        "codec": "real4",
+        "candidate": 1.0,
+        "nll": 2.6729907393455505,
+        "perplexity": 14.483220020554317,
+        "target_tokens": 4096,
+        "seconds": 20.4891926930286,
+        "gpu_peak_bytes": 21602675200
+      },
+      {
+        "codec": "polar3_5",
+        "candidate": "adjacent",
+        "nll": 2.672646701335907,
+        "perplexity": 14.478238099399475,
+        "target_tokens": 4096,
+        "seconds": 20.499740908970125,
+        "gpu_peak_bytes": 21602675200
+      }
+    ],
+    "polar_minus_real4_nll": -0.0003440380096435547
+  },
+  {
+    "layer": 11,
+    "calibration": [
+      {
+        "codec": "real4",
+        "candidate": 0.9,
+        "nll": 2.4325077533721924,
+        "weight_mse": 3.9046908568707295e-06,
+        "seconds": 4.841279793065041
+      },
+      {
+        "codec": "real4",
+        "candidate": 1.0,
+        "nll": 2.428691864013672,
+        "weight_mse": 3.750739097085898e-06,
+        "seconds": 4.859961364069022
+      },
+      {
+        "codec": "real4",
+        "candidate": 1.1,
+        "nll": 2.4306106567382812,
+        "weight_mse": 4.032421657029772e-06,
+        "seconds": 4.855419815983623
+      },
+      {
+        "codec": "polar3_5",
+        "candidate": "adjacent",
+        "nll": 2.429731845855713,
+        "weight_mse": 3.506578423184692e-06,
+        "seconds": 4.863359542097896
+      },
+      {
+        "codec": "polar3_5",
+        "candidate": "split_half",
+        "nll": 2.4329655170440674,
+        "weight_mse": 3.5071118418272818e-06,
+        "seconds": 4.863220691098832
+      },
+      {
+        "codec": "polar3_5",
+        "candidate": "reverse_half",
+        "nll": 2.431522846221924,
+        "weight_mse": 3.5106743325741263e-06,
+        "seconds": 4.866653884993866
+      },
+      {
+        "codec": "polar3_5",
+        "candidate": "stride257",
+        "nll": 2.43275785446167,
+        "weight_mse": 3.5071118418272818e-06,
+        "seconds": 4.861684232018888
+      }
+    ],
+    "selected": {
+      "real4": {
+        "codec": "real4",
+        "candidate": 1.0,
+        "nll": 2.428691864013672,
+        "weight_mse": 3.750739097085898e-06,
+        "seconds": 4.859961364069022
+      },
+      "polar3_5": {
+        "codec": "polar3_5",
+        "candidate": "adjacent",
+        "nll": 2.429731845855713,
+        "weight_mse": 3.506578423184692e-06,
+        "seconds": 4.863359542097896
+      }
+    },
+    "heldout": [
+      {
+        "codec": "real4",
+        "candidate": 1.0,
+        "nll": 2.672601580619812,
+        "perplexity": 14.477584845666385,
+        "target_tokens": 4096,
+        "seconds": 20.51968096406199,
+        "gpu_peak_bytes": 21602675200
+      },
+      {
+        "codec": "polar3_5",
+        "candidate": "adjacent",
+        "nll": 2.672640025615692,
+        "perplexity": 14.47814144705533,
+        "target_tokens": 4096,
+        "seconds": 20.558699127053842,
+        "gpu_peak_bytes": 21602675200
+      }
+    ],
+    "polar_minus_real4_nll": 3.844499588012695e-05
+  },
+  {
+    "layer": 15,
+    "calibration": [
+      {
+        "codec": "real4",
+        "candidate": 0.9,
+        "nll": 2.4314088821411133,
+        "weight_mse": 3.6375035961100366e-06,
+        "seconds": 4.854689311934635
+      },
+      {
+        "codec": "real4",
+        "candidate": 1.0,
+        "nll": 2.42995548248291,
+        "weight_mse": 3.4934703307953896e-06,
+        "seconds": 4.862356185913086
+      },
+      {
+        "codec": "real4",
+        "candidate": 1.1,
+        "nll": 2.431788921356201,
+        "weight_mse": 3.7609470382449217e-06,
+        "seconds": 4.8622502469224855
+      },
+      {
+        "codec": "polar3_5",
+        "candidate": "adjacent",
+        "nll": 2.4323530197143555,
+        "weight_mse": 3.2739453672547825e-06,
+        "seconds": 4.866436846903525
+      },
+      {
+        "codec": "polar3_5",
+        "candidate": "split_half",
+        "nll": 2.43328857421875,
+        "weight_mse": 3.275266635682783e-06,
+        "seconds": 4.87845070194453
+      },
+      {
+        "codec": "polar3_5",
+        "candidate": "reverse_half",
+        "nll": 2.4327077865600586,
+        "weight_mse": 3.2789127999421908e-06,
+        "seconds": 4.860361695988104
+      },
+      {
+        "codec": "polar3_5",
+        "candidate": "stride257",
+        "nll": 2.4320027828216553,
+        "weight_mse": 3.275266635682783e-06,
+        "seconds": 4.86834597599227
+      }
+    ],
+    "selected": {
+      "real4": {
+        "codec": "real4",
+        "candidate": 1.0,
+        "nll": 2.42995548248291,
+        "weight_mse": 3.4934703307953896e-06,
+        "seconds": 4.862356185913086
+      },
+      "polar3_5": {
+        "codec": "polar3_5",
+        "candidate": "stride257",
+        "nll": 2.4320027828216553,
+        "weight_mse": 3.275266635682783e-06,
+        "seconds": 4.86834597599227
+      }
+    },
+    "heldout": [
+      {
+        "codec": "real4",
+        "candidate": 1.0,
+        "nll": 2.673544406890869,
+        "perplexity": 14.49124112974042,
+        "target_tokens": 4096,
+        "seconds": 20.535842818091623,
+        "gpu_peak_bytes": 21602675200
+      },
+      {
+        "codec": "polar3_5",
+        "candidate": "stride257",
+        "nll": 2.67422878742218,
+        "perplexity": 14.501162047498402,
+        "target_tokens": 4096,
+        "seconds": 20.546388945076615,
+        "gpu_peak_bytes": 21602675200
+      }
+    ],
+    "polar_minus_real4_nll": 0.0006843805313110352
+  }
+]

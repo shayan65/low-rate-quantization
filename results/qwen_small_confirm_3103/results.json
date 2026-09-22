@@ -1,0 +1,59 @@
+[
+  {
+    "method": "bf16",
+    "validation": {
+      "nll": 3.518749326467514,
+      "perplexity": 33.74220158488381,
+      "target_tokens": 2048
+    },
+    "tensor_payload_bytes": 12582912
+  },
+  {
+    "method": "real4_row",
+    "validation": {
+      "nll": 3.529223918914795,
+      "perplexity": 34.09749492274289,
+      "target_tokens": 2048
+    },
+    "delta_nll_vs_bf16": 0.010474592447280884,
+    "tensor_payload_bytes": 3170304,
+    "export_sha256": "2e118f9b7fc167048f5f367026ddd02c0dd40cb20297a351c37e558ecf44fb44",
+    "weight_mse": 7.213024218799546e-06
+  },
+  {
+    "method": "polar_mag4_phase4_row",
+    "validation": {
+      "nll": 3.527206391096115,
+      "perplexity": 34.0287716270804,
+      "target_tokens": 2048
+    },
+    "delta_nll_vs_bf16": 0.008457064628601074,
+    "tensor_payload_bytes": 3170304,
+    "export_sha256": "2709dd6a998121d3efdaca3ea3e20734c21c485187773394d6b0502e542663ad",
+    "weight_mse": 4.533959327090997e-06
+  },
+  {
+    "method": "polar_mag3_phase5_row",
+    "validation": {
+      "nll": 3.5201435536146164,
+      "perplexity": 33.78927868879862,
+      "target_tokens": 2048
+    },
+    "delta_nll_vs_bf16": 0.001394227147102356,
+    "tensor_payload_bytes": 3170304,
+    "export_sha256": "2ea41a32a39889c194d3cb2b8409a79646de0223d241b20d23b5768f1a5c1d4e",
+    "weight_mse": 5.582985522778472e-06
+  },
+  {
+    "method": "polar_mag5_phase3_row",
+    "validation": {
+      "nll": 3.536528155207634,
+      "perplexity": 34.347462883825365,
+      "target_tokens": 2048
+    },
+    "delta_nll_vs_bf16": 0.017778828740119934,
+    "tensor_payload_bytes": 3170304,
+    "export_sha256": "ef8069f0fa483d53aca7d6fa1c0a6c5630723ee9f3fe94b861f69aa23de995d3",
+    "weight_mse": 1.4220217053662054e-05
+  }
+]

@@ -1,0 +1,43 @@
+{
+  "complete": true,
+  "seconds": 293.7462522169808,
+  "polar_candidates": [
+    {
+      "pairing": "adjacent",
+      "phase_offset": 0.0,
+      "weighted_score": 1.6855318487311403e-06,
+      "output_score": 0.008082833141088486
+    },
+    {
+      "pairing": "adjacent",
+      "phase_offset": 0.09817477042468103,
+      "weighted_score": 1.5805648142001397e-06,
+      "output_score": 0.007528994232416153
+    },
+    {
+      "pairing": "reverse_half",
+      "phase_offset": 0.0,
+      "weighted_score": 1.691574601636603e-06,
+      "output_score": 0.008234635926783085
+    },
+    {
+      "pairing": "reverse_half",
+      "phase_offset": 0.09817477042468103,
+      "weighted_score": 1.5875888398871515e-06,
+      "output_score": 0.007668066769838333
+    }
+  ],
+  "weighted_selection": {
+    "pairing": "adjacent",
+    "phase_offset": 0.09817477042468103
+  },
+  "output_selection": {
+    "pairing": "adjacent",
+    "phase_offset": 0.09817477042468103
+  },
+  "awq_alpha": 0.25,
+  "redesigned_beats_legacy": false,
+  "output_beats_weighted": false,
+  "output_beats_awq": false,
+  "note": "One-layer held-out gate; no cumulative/full validation or end-to-end speed claim"
+}

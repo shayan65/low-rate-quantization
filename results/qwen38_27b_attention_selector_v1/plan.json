@@ -1,0 +1,31 @@
+{
+  "model": "Qwen/Qwen3.8-27B",
+  "layers": [
+    7,
+    11,
+    15
+  ],
+  "tensor": "self_attn.q_proj.weight",
+  "calibration": "4 fixed 129-token WikiText-2 train windows",
+  "train_starts": [
+    109563,
+    232705,
+    1305618,
+    2480450
+  ],
+  "heldout": "WikiText-2 validation blocks 128\u2013159, 4,096 targets, disjoint from previous Qwen3.8 screens",
+  "polar_candidates": [
+    "adjacent",
+    "split_half",
+    "reverse_half",
+    "stride257"
+  ],
+  "real4_factors": [
+    0.9,
+    1.0,
+    1.1
+  ],
+  "selection": "minimum train-calibration NLL within each codec family, then compare on held-out validation",
+  "scope": "one tensor at a time; equal 4-bit index payload plus row scales and candidate ID; other weights BF16",
+  "runtime_cap_seconds": 900
+}

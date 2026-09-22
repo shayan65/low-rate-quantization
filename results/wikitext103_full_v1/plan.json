@@ -1,0 +1,325 @@
+{
+  "dataset": "Salesforce/wikitext",
+  "subset": "wikitext-103-raw-v1",
+  "epochs": 3,
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "width": 384,
+  "depth": 6,
+  "context": 512,
+  "batch": 16,
+  "heads": 6,
+  "training_source_sha256": "6fdd91f591d2cd778ff5c5dfb3f928bd49500808ba401bd06a481ccccbeecedb",
+  "scope": "Full real-data language-model quantization comparison; not the temporal-calibration or Qwen experiments",
+  "jobs": [
+    {
+      "id": "hybrid_continuous_seed0",
+      "architecture": "hybrid",
+      "method": "continuous",
+      "seed": 0
+    },
+    {
+      "id": "hybrid_restricted180_seed0",
+      "architecture": "hybrid",
+      "method": "restricted180",
+      "seed": 0
+    },
+    {
+      "id": "hybrid_full180_seed0",
+      "architecture": "hybrid",
+      "method": "full180",
+      "seed": 0
+    },
+    {
+      "id": "hybrid_full256_seed0",
+      "architecture": "hybrid",
+      "method": "full256",
+      "seed": 0
+    },
+    {
+      "id": "hybrid_real_fp32_seed0",
+      "architecture": "hybrid",
+      "method": "real_fp32",
+      "seed": 0
+    },
+    {
+      "id": "hybrid_real2_seed0",
+      "architecture": "hybrid",
+      "method": "real2",
+      "seed": 0
+    },
+    {
+      "id": "hybrid_real4_seed0",
+      "architecture": "hybrid",
+      "method": "real4",
+      "seed": 0
+    },
+    {
+      "id": "hybrid_real8_seed0",
+      "architecture": "hybrid",
+      "method": "real8",
+      "seed": 0
+    },
+    {
+      "id": "hybrid_complex_fp32_seed0",
+      "architecture": "hybrid",
+      "method": "complex_fp32",
+      "seed": 0
+    },
+    {
+      "id": "hybrid_phase4_seed0",
+      "architecture": "hybrid",
+      "method": "phase4",
+      "seed": 0
+    },
+    {
+      "id": "hybrid_phase8_seed0",
+      "architecture": "hybrid",
+      "method": "phase8",
+      "seed": 0
+    },
+    {
+      "id": "hybrid_phase16_seed0",
+      "architecture": "hybrid",
+      "method": "phase16",
+      "seed": 0
+    },
+    {
+      "id": "transformer_real_fp32_seed0",
+      "architecture": "transformer",
+      "method": "real_fp32",
+      "seed": 0
+    },
+    {
+      "id": "transformer_continuous_seed0",
+      "architecture": "transformer",
+      "method": "continuous",
+      "seed": 0
+    },
+    {
+      "id": "transformer_restricted180_seed0",
+      "architecture": "transformer",
+      "method": "restricted180",
+      "seed": 0
+    },
+    {
+      "id": "transformer_full180_seed0",
+      "architecture": "transformer",
+      "method": "full180",
+      "seed": 0
+    },
+    {
+      "id": "transformer_full256_seed0",
+      "architecture": "transformer",
+      "method": "full256",
+      "seed": 0
+    },
+    {
+      "id": "hybrid_continuous_seed1",
+      "architecture": "hybrid",
+      "method": "continuous",
+      "seed": 1
+    },
+    {
+      "id": "hybrid_restricted180_seed1",
+      "architecture": "hybrid",
+      "method": "restricted180",
+      "seed": 1
+    },
+    {
+      "id": "hybrid_full180_seed1",
+      "architecture": "hybrid",
+      "method": "full180",
+      "seed": 1
+    },
+    {
+      "id": "hybrid_full256_seed1",
+      "architecture": "hybrid",
+      "method": "full256",
+      "seed": 1
+    },
+    {
+      "id": "hybrid_real_fp32_seed1",
+      "architecture": "hybrid",
+      "method": "real_fp32",
+      "seed": 1
+    },
+    {
+      "id": "hybrid_real2_seed1",
+      "architecture": "hybrid",
+      "method": "real2",
+      "seed": 1
+    },
+    {
+      "id": "hybrid_real4_seed1",
+      "architecture": "hybrid",
+      "method": "real4",
+      "seed": 1
+    },
+    {
+      "id": "hybrid_real8_seed1",
+      "architecture": "hybrid",
+      "method": "real8",
+      "seed": 1
+    },
+    {
+      "id": "hybrid_complex_fp32_seed1",
+      "architecture": "hybrid",
+      "method": "complex_fp32",
+      "seed": 1
+    },
+    {
+      "id": "hybrid_phase4_seed1",
+      "architecture": "hybrid",
+      "method": "phase4",
+      "seed": 1
+    },
+    {
+      "id": "hybrid_phase8_seed1",
+      "architecture": "hybrid",
+      "method": "phase8",
+      "seed": 1
+    },
+    {
+      "id": "hybrid_phase16_seed1",
+      "architecture": "hybrid",
+      "method": "phase16",
+      "seed": 1
+    },
+    {
+      "id": "transformer_real_fp32_seed1",
+      "architecture": "transformer",
+      "method": "real_fp32",
+      "seed": 1
+    },
+    {
+      "id": "transformer_continuous_seed1",
+      "architecture": "transformer",
+      "method": "continuous",
+      "seed": 1
+    },
+    {
+      "id": "transformer_restricted180_seed1",
+      "architecture": "transformer",
+      "method": "restricted180",
+      "seed": 1
+    },
+    {
+      "id": "transformer_full180_seed1",
+      "architecture": "transformer",
+      "method": "full180",
+      "seed": 1
+    },
+    {
+      "id": "transformer_full256_seed1",
+      "architecture": "transformer",
+      "method": "full256",
+      "seed": 1
+    },
+    {
+      "id": "hybrid_continuous_seed2",
+      "architecture": "hybrid",
+      "method": "continuous",
+      "seed": 2
+    },
+    {
+      "id": "hybrid_restricted180_seed2",
+      "architecture": "hybrid",
+      "method": "restricted180",
+      "seed": 2
+    },
+    {
+      "id": "hybrid_full180_seed2",
+      "architecture": "hybrid",
+      "method": "full180",
+      "seed": 2
+    },
+    {
+      "id": "hybrid_full256_seed2",
+      "architecture": "hybrid",
+      "method": "full256",
+      "seed": 2
+    },
+    {
+      "id": "hybrid_real_fp32_seed2",
+      "architecture": "hybrid",
+      "method": "real_fp32",
+      "seed": 2
+    },
+    {
+      "id": "hybrid_real2_seed2",
+      "architecture": "hybrid",
+      "method": "real2",
+      "seed": 2
+    },
+    {
+      "id": "hybrid_real4_seed2",
+      "architecture": "hybrid",
+      "method": "real4",
+      "seed": 2
+    },
+    {
+      "id": "hybrid_real8_seed2",
+      "architecture": "hybrid",
+      "method": "real8",
+      "seed": 2
+    },
+    {
+      "id": "hybrid_complex_fp32_seed2",
+      "architecture": "hybrid",
+      "method": "complex_fp32",
+      "seed": 2
+    },
+    {
+      "id": "hybrid_phase4_seed2",
+      "architecture": "hybrid",
+      "method": "phase4",
+      "seed": 2
+    },
+    {
+      "id": "hybrid_phase8_seed2",
+      "architecture": "hybrid",
+      "method": "phase8",
+      "seed": 2
+    },
+    {
+      "id": "hybrid_phase16_seed2",
+      "architecture": "hybrid",
+      "method": "phase16",
+      "seed": 2
+    },
+    {
+      "id": "transformer_real_fp32_seed2",
+      "architecture": "transformer",
+      "method": "real_fp32",
+      "seed": 2
+    },
+    {
+      "id": "transformer_continuous_seed2",
+      "architecture": "transformer",
+      "method": "continuous",
+      "seed": 2
+    },
+    {
+      "id": "transformer_restricted180_seed2",
+      "architecture": "transformer",
+      "method": "restricted180",
+      "seed": 2
+    },
+    {
+      "id": "transformer_full180_seed2",
+      "architecture": "transformer",
+      "method": "full180",
+      "seed": 2
+    },
+    {
+      "id": "transformer_full256_seed2",
+      "architecture": "transformer",
+      "method": "full256",
+      "seed": 2
+    }
+  ]
+}

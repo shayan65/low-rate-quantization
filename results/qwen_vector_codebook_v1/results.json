@@ -1,0 +1,12 @@
+[
+  {
+    "method": "learned_cartesian_product_codebook",
+    "validation": {
+      "nll": 3.4564109420081417,
+      "perplexity": 31.70298821849375,
+      "target_tokens": 261284
+    },
+    "delta_nll_vs_bf16": 0.01978960850586997,
+    "payload_bytes": 57067794
+  }
+]

@@ -1,0 +1,32 @@
+{
+  "dataset_revision": "b08601e04326c79dfdd32d625aee71d232d685c3",
+  "dataset_manifest_sha256": "717c0a503d44017062611706852cb2914d00d25a8325a60843e8f2ad38d402d4",
+  "audit_source_sha256": "5b0605b18399e387475a133344a67d7988966114dfb0664bca52293ff756bf13",
+  "splits": {
+    "train": {
+      "verified_source_rows": 1801350,
+      "verified_tokens": 135350275,
+      "verified_utf8_bytes": 541096899,
+      "every_row_lossless_decode": true,
+      "stored_tokens_match_source": true,
+      "source_sha256_verified": true
+    },
+    "validation": {
+      "verified_source_rows": 3760,
+      "verified_tokens": 282592,
+      "verified_utf8_bytes": 1148008,
+      "every_row_lossless_decode": true,
+      "stored_tokens_match_source": true,
+      "source_sha256_verified": true
+    },
+    "test": {
+      "verified_source_rows": 4358,
+      "verified_tokens": 323000,
+      "verified_utf8_bytes": 1292014,
+      "every_row_lossless_decode": true,
+      "stored_tokens_match_source": true,
+      "source_sha256_verified": true
+    }
+  },
+  "passed": true
+}

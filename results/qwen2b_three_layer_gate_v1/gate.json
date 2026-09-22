@@ -1,0 +1,10 @@
+{
+  "complete": true,
+  "seconds": 35.34778849798022,
+  "winners": {
+    "0": "block_gptq_real4",
+    "8": "task_real4",
+    "16": "task_real4"
+  },
+  "promote": false
+}

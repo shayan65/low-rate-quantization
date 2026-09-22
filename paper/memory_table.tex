@@ -1,0 +1,20 @@
+\begin{table}[ht]
+\centering\small
+\caption{Stable-control decoded-operator rollout relative MSE, mean $\pm$ sample SD over three sampled systems. Calibration length is 128; lower is better. A zero-output predictor has error 1. Index bits exclude the stored FP32 radii; all compressed controls use identical bytes at each budget.}
+\label{tab:memory}
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lrrrr}
+\toprule
+& \multicolumn{2}{c}{4 index bits/mode} & \multicolumn{2}{c}{8 index bits/mode} \\
+Method & $L=128$ & $L=512$ & $L=128$ & $L=512$ \\
+\midrule
+FP32 reference & $0.000\pm0.000$ & $0.000\pm0.000$ & $0.000\pm0.000$ & $0.000\pm0.000$ \\
+Stable Cartesian weight & $1.137\pm0.185$ & $1.297\pm0.221$ & $0.841\pm0.022$ & $0.998\pm0.074$ \\
+Stable Cartesian memory & $0.852\pm0.045$ & $0.936\pm0.031$ & $0.789\pm0.026$ & $0.922\pm0.027$ \\
+Normalized Cartesian memory & $1.109\pm0.034$ & $1.308\pm0.070$ & $0.350\pm0.092$ & $0.998\pm0.177$ \\
+Phase nearest & $1.503\pm0.188$ & $1.768\pm0.213$ & $0.117\pm0.024$ & $0.939\pm0.090$ \\
+Phase weight & $1.612\pm0.109$ & $1.778\pm0.206$ & $0.094\pm0.031$ & $0.811\pm0.177$ \\
+Phase memory & $0.967\pm0.074$ & $1.250\pm0.082$ & $0.094\pm0.033$ & $0.791\pm0.198$ \\
+\bottomrule
+\end{tabular}
+\end{table}

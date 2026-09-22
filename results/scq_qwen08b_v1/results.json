@@ -1,0 +1,462 @@
+{
+  "plan": {
+    "model": "../models/Qwen3.5-0.8B-Base",
+    "layers": [
+      0,
+      1,
+      2,
+      4,
+      5,
+      6,
+      8,
+      9,
+      10,
+      12,
+      13,
+      14,
+      16,
+      17,
+      18,
+      20,
+      21,
+      22
+    ],
+    "tensor": "linear_attn.in_proj_qkv.weight",
+    "eval": "2041 contiguous 128-target WikiText-2 validation blocks (261248 targets), context reset per block",
+    "calibration": "16 fixed WikiText-2 training windows (seed 20260921)",
+    "cal_starts": [
+      151528,
+      260509,
+      512687,
+      636028,
+      784887,
+      878349,
+      1077589,
+      1093868,
+      1140917,
+      1209696,
+      1431670,
+      1464765,
+      1951024,
+      2109339,
+      2316790,
+      2477193
+    ],
+    "budget": "4 index bits per real weight + one FP32 row scale per row; per-tensor codebook headers (<=2 KB) counted separately",
+    "index_payload_bytes": 57065472,
+    "bf16_bytes": 226492416,
+    "scf": {
+      "alpha": 0.5,
+      "max_iters": 6,
+      "anderson_m": 0,
+      "guard": "reject any iteration that raises calibration NLL; halve alpha"
+    }
+  },
+  "methods": {
+    "bf16": {
+      "nll": 3.436670363504241,
+      "ppl": 31.0832896192693,
+      "blocks": 2041,
+      "target_tokens": 261248,
+      "seconds": 26.667081890976988
+    },
+    "real4_uniform": {
+      "nll": 3.459241285503991,
+      "ppl": 31.792845668735715,
+      "blocks": 2041,
+      "target_tokens": 261248,
+      "seconds": 26.49394888000097,
+      "delta_nll": 0.022570921999750304,
+      "delta_ci": [
+        0.021615469571073402,
+        0.02351111400104048
+      ],
+      "calibration_seconds": 0.6263700559502468
+    },
+    "real4_lloyd": {
+      "nll": 3.451448195007489,
+      "ppl": 31.54604406796963,
+      "blocks": 2041,
+      "target_tokens": 261248,
+      "seconds": 26.599256907007657,
+      "delta_nll": 0.014777831503248073,
+      "delta_ci": [
+        0.01395130154258302,
+        0.015581681029227714
+      ],
+      "calibration_seconds": 4.57649568002671
+    },
+    "polar_legacy": {
+      "nll": 3.456446435625561,
+      "ppl": 31.704113492198527,
+      "blocks": 2041,
+      "target_tokens": 261248,
+      "seconds": 26.58692085999064,
+      "delta_nll": 0.019776072121320265,
+      "delta_ci": [
+        0.01882067664997768,
+        0.020731734296435645
+      ],
+      "calibration_seconds": 1.0425551009830087
+    },
+    "polar_fitted": {
+      "nll": 3.4526868527102623,
+      "ppl": 31.585143028561763,
+      "blocks": 2041,
+      "target_tokens": 261248,
+      "seconds": 26.516155101940967,
+      "delta_nll": 0.0160164892060215,
+      "delta_ci": [
+        0.015169352373324558,
+        0.016830169845012868
+      ],
+      "calibration_seconds": 66.09859658800997
+    },
+    "vq2d": {
+      "nll": 3.4464595917099423,
+      "ppl": 31.3890652465905,
+      "blocks": 2041,
+      "target_tokens": 261248,
+      "seconds": 26.525400424026884,
+      "delta_nll": 0.009789228205701495,
+      "delta_ci": [
+        0.00912547557742966,
+        0.010448200985358544
+      ],
+      "calibration_seconds": 50.14671225496568
+    },
+    "real4_lloyd+scf": {
+      "nll": 3.4513016432187884,
+      "ppl": 31.54142127753242,
+      "blocks": 2041,
+      "target_tokens": 261248,
+      "seconds": 26.47559445304796,
+      "delta_nll": 0.014631279714547585,
+      "delta_ci": [
+        0.013804490669342539,
+        0.015435726444899947
+      ],
+      "calibration_seconds": 9.907433190965094,
+      "scf": {
+        "iterations": 1,
+        "one_shot_energy": 3.4186171889305115,
+        "final_energy": 3.4182746410369873,
+        "energy_gain": 0.0003425478935241699,
+        "final_churn": 0.0005375544230143229,
+        "final_residual": 0.022169289179745068,
+        "rejected_steps": 0
+      },
+      "scf_history": [
+        {
+          "iter": 0,
+          "energy": 3.4186171889305115,
+          "alpha": 0.5,
+          "churn": null,
+          "residual": null,
+          "accepted": true,
+          "seconds": 4.930813487037085,
+          "note": "one-shot: activations from the BF16 model"
+        },
+        {
+          "iter": 1,
+          "energy": 3.4182746410369873,
+          "best_energy": 3.4182746410369873,
+          "alpha": 0.5,
+          "churn": 0.0005375544230143229,
+          "residual": 0.022169289179745068,
+          "accepted": true,
+          "seconds": 4.952551478985697
+        }
+      ]
+    },
+    "polar_fitted+scf": {
+      "nll": 3.4527385640763466,
+      "ppl": 31.586776381686835,
+      "blocks": 2041,
+      "target_tokens": 261248,
+      "seconds": 26.524126708041877,
+      "delta_nll": 0.016068200572105784,
+      "delta_ci": [
+        0.015219302287818988,
+        0.016903280786939957
+      ],
+      "calibration_seconds": 168.89047369698528,
+      "scf": {
+        "iterations": 6,
+        "one_shot_energy": 3.4229578375816345,
+        "final_energy": 3.421689450740814,
+        "energy_gain": 0.0012683868408203125,
+        "final_churn": 6.748128820348668e-05,
+        "final_residual": 0.00876796273715372,
+        "rejected_steps": 5
+      },
+      "scf_history": [
+        {
+          "iter": 0,
+          "energy": 3.4229578375816345,
+          "alpha": 0.5,
+          "churn": null,
+          "residual": null,
+          "accepted": true,
+          "seconds": 65.94993180397432,
+          "note": "one-shot: activations from the BF16 model"
+        },
+        {
+          "iter": 1,
+          "energy": 3.421689450740814,
+          "best_energy": 3.421689450740814,
+          "alpha": 0.5,
+          "churn": 0.0017832120259602864,
+          "residual": 0.017174168871515284,
+          "accepted": true,
+          "seconds": 17.079034536029212
+        },
+        {
+          "iter": 2,
+          "energy": 3.4227423071861267,
+          "best_energy": 3.421689450740814,
+          "alpha": 0.25,
+          "churn": 0.0009233863265426071,
+          "residual": 0.00876796273715372,
+          "accepted": false,
+          "seconds": 17.13105083501432
+        },
+        {
+          "iter": 3,
+          "energy": 3.4231125116348267,
+          "best_energy": 3.421689450740814,
+          "alpha": 0.125,
+          "churn": 0.000488245928729022,
+          "residual": 0.00876796273715372,
+          "accepted": false,
+          "seconds": 17.16891377803404
+        },
+        {
+          "iter": 4,
+          "energy": 3.4230538606643677,
+          "best_energy": 3.421689450740814,
+          "alpha": 0.0625,
+          "churn": 0.0002605120340983073,
+          "residual": 0.00876796273715372,
+          "accepted": false,
+          "seconds": 17.18996706197504
+        },
+        {
+          "iter": 5,
+          "energy": 3.4221720099449158,
+          "best_energy": 3.421689450740814,
+          "alpha": 0.03125,
+          "churn": 0.00012484303227177374,
+          "residual": 0.00876796273715372,
+          "accepted": false,
+          "seconds": 17.18438176601194
+        },
+        {
+          "iter": 6,
+          "energy": 3.4230642318725586,
+          "best_energy": 3.421689450740814,
+          "alpha": 0.03,
+          "churn": 6.748128820348668e-05,
+          "residual": 0.00876796273715372,
+          "accepted": false,
+          "seconds": 17.162861483055167
+        }
+      ]
+    },
+    "vq2d+scf": {
+      "nll": 3.449179801270402,
+      "ppl": 31.474566319663996,
+      "blocks": 2041,
+      "target_tokens": 261248,
+      "seconds": 26.63899860298261,
+      "delta_nll": 0.012509437766161202,
+      "delta_ci": [
+        0.011852984572087708,
+        0.01315268222196963
+      ],
+      "calibration_seconds": 172.26685562194325,
+      "scf": {
+        "iterations": 6,
+        "one_shot_energy": 3.428394854068756,
+        "final_energy": 3.42484313249588,
+        "energy_gain": 0.0035517215728759766,
+        "final_churn": 0.2805203331841363,
+        "final_residual": 0.008753787824923726,
+        "rejected_steps": 4
+      },
+      "scf_history": [
+        {
+          "iter": 0,
+          "energy": 3.428394854068756,
+          "alpha": 0.5,
+          "churn": null,
+          "residual": null,
+          "accepted": true,
+          "seconds": 50.588871229905635,
+          "note": "one-shot: activations from the BF16 model"
+        },
+        {
+          "iter": 1,
+          "energy": 3.4249950647354126,
+          "best_energy": 3.4249950647354126,
+          "alpha": 0.5,
+          "churn": 0.4670550381695783,
+          "residual": 0.008828081703002132,
+          "accepted": true,
+          "seconds": 20.258918748935685
+        },
+        {
+          "iter": 2,
+          "energy": 3.425922989845276,
+          "best_energy": 3.4249950647354126,
+          "alpha": 0.25,
+          "churn": 0.3394165568881565,
+          "residual": 0.0067350497003849635,
+          "accepted": false,
+          "seconds": 20.300252372049727
+        },
+        {
+          "iter": 3,
+          "energy": 3.429674804210663,
+          "best_energy": 3.4249950647354126,
+          "alpha": 0.125,
+          "churn": 0.3405422457942256,
+          "residual": 0.0067350497003849635,
+          "accepted": false,
+          "seconds": 20.265344146988355
+        },
+        {
+          "iter": 4,
+          "energy": 3.4273259043693542,
+          "best_energy": 3.4249950647354126,
+          "alpha": 0.0625,
+          "churn": 0.34167780699553313,
+          "residual": 0.0067350497003849635,
+          "accepted": false,
+          "seconds": 20.269830996985547
+        },
+        {
+          "iter": 5,
+          "energy": 3.42484313249588,
+          "best_energy": 3.42484313249588,
+          "alpha": 0.0625,
+          "churn": 0.34252147321347837,
+          "residual": 0.0067350497003849635,
+          "accepted": true,
+          "seconds": 20.26512460305821
+        },
+        {
+          "iter": 6,
+          "energy": 3.424887180328369,
+          "best_energy": 3.42484313249588,
+          "alpha": 0.03125,
+          "churn": 0.2805203331841363,
+          "residual": 0.008753787824923726,
+          "accepted": false,
+          "seconds": 20.294156254967675
+        }
+      ]
+    }
+  },
+  "comparisons": {
+    "real4_uniform_minus_real4_lloyd": {
+      "delta": 0.007793090496502455,
+      "ci": [
+        0.006786482831183045,
+        0.008805715298897957
+      ]
+    },
+    "real4_uniform_minus_polar_legacy": {
+      "delta": 0.002794849878429841,
+      "ci": [
+        0.0015771503077015932,
+        0.004023520015490398
+      ]
+    },
+    "real4_lloyd_minus_polar_legacy": {
+      "delta": -0.004998240618072614,
+      "ci": [
+        -0.006090408248214498,
+        -0.003963399102791801
+      ]
+    },
+    "polar_legacy_minus_real4_lloyd": {
+      "delta": 0.004998240618072614,
+      "ci": [
+        0.0039633991027918005,
+        0.006090408248214498
+      ]
+    },
+    "polar_fitted_minus_real4_lloyd": {
+      "delta": 0.001238657702773532,
+      "ci": [
+        0.00025598605084454297,
+        0.0022429793474430075
+      ]
+    },
+    "polar_fitted_minus_polar_legacy": {
+      "delta": -0.0037595829152990826,
+      "ci": [
+        -0.00472011252514934,
+        -0.0027940271153045837
+      ]
+    },
+    "vq2d_minus_real4_lloyd": {
+      "delta": -0.004988603297546177,
+      "ci": [
+        -0.00592710150333668,
+        -0.0040299456327467335
+      ]
+    },
+    "vq2d_minus_polar_legacy": {
+      "delta": -0.009986843915618791,
+      "ci": [
+        -0.01103235526390954,
+        -0.008939377028296122
+      ]
+    },
+    "real4_lloyd+scf_minus_real4_lloyd": {
+      "delta": -0.00014655178870014675,
+      "ci": [
+        -0.0003013632392135688,
+        6.480582901684988e-06
+      ]
+    },
+    "real4_lloyd+scf_minus_polar_legacy": {
+      "delta": -0.005144792406772761,
+      "ci": [
+        -0.006221673450360165,
+        -0.004095181078083781
+      ]
+    },
+    "polar_fitted+scf_minus_real4_lloyd": {
+      "delta": 0.0012903690688578536,
+      "ci": [
+        0.00031140458928434825,
+        0.0023099008332509025
+      ]
+    },
+    "polar_fitted+scf_minus_polar_legacy": {
+      "delta": -0.0037078715492147606,
+      "ci": [
+        -0.004663011114834454,
+        -0.0027428237014048137
+      ]
+    },
+    "vq2d+scf_minus_real4_lloyd": {
+      "delta": -0.002268393737086474,
+      "ci": [
+        -0.0031805330123578957,
+        -0.0013159189210809493
+      ]
+    },
+    "vq2d+scf_minus_polar_legacy": {
+      "delta": -0.007266634355159089,
+      "ci": [
+        -0.008324013500748633,
+        -0.006215071094088671
+      ]
+    }
+  },
+  "seconds": 721.6629134140676
+}

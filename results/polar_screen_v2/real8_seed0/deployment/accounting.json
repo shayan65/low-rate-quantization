@@ -1,0 +1,92 @@
+{
+  "projections": [
+    {
+      "kind": "real",
+      "bits": 8,
+      "scale_bytes": 4,
+      "name": "blocks.0.input",
+      "method": "real8",
+      "shape": [
+        64,
+        64
+      ],
+      "offset": 0,
+      "bytes": 4100,
+      "indices": 4096
+    },
+    {
+      "kind": "real",
+      "bits": 8,
+      "scale_bytes": 4,
+      "name": "blocks.0.output",
+      "method": "real8",
+      "shape": [
+        64,
+        64
+      ],
+      "offset": 4100,
+      "bytes": 4100,
+      "indices": 4096
+    },
+    {
+      "kind": "real",
+      "bits": 8,
+      "scale_bytes": 4,
+      "name": "blocks.0.up",
+      "method": "real8",
+      "shape": [
+        256,
+        64
+      ],
+      "offset": 8200,
+      "bytes": 16388,
+      "indices": 16384
+    },
+    {
+      "kind": "real",
+      "bits": 8,
+      "scale_bytes": 4,
+      "name": "blocks.0.down",
+      "method": "real8",
+      "shape": [
+        64,
+        256
+      ],
+      "offset": 24588,
+      "bytes": 16388,
+      "indices": 16384
+    },
+    {
+      "kind": "real",
+      "bits": 8,
+      "scale_bytes": 4,
+      "name": "blocks.1.up",
+      "method": "real8",
+      "shape": [
+        256,
+        64
+      ],
+      "offset": 40976,
+      "bytes": 16388,
+      "indices": 16384
+    },
+    {
+      "kind": "real",
+      "bits": 8,
+      "scale_bytes": 4,
+      "name": "blocks.1.down",
+      "method": "real8",
+      "shape": [
+        64,
+        256
+      ],
+      "offset": 57364,
+      "bytes": 16388,
+      "indices": 16384
+    }
+  ],
+  "remaining_fp32_payload_bytes": 2198272,
+  "deployment_tensor_payload_bytes": 2272024,
+  "note": "No optimizer or latent quantized weights; metadata/file overhead counted separately",
+  "actual_directory_bytes": 2279234
+}

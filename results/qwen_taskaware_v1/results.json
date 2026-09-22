@@ -1,0 +1,80 @@
+[
+  {
+    "layer": 0,
+    "method": "task_real4",
+    "candidate_id": 1,
+    "candidate": 0.95,
+    "calibration_nll": 3.337950646877289,
+    "calibration_delta": 0.003934621810913086,
+    "evaluation_nll": 3.4302848428487778,
+    "evaluation_delta": 0.008659929037094116,
+    "weight_mse": 4.331838681537192e-06,
+    "payload_bytes": 3170305,
+    "sha256": "b8e869303188f41ce7977b3cc99b707b74dd42a112e4c300d5fa3a391d6d1edb"
+  },
+  {
+    "layer": 0,
+    "method": "task_polar3_5",
+    "candidate_id": 2,
+    "candidate": "reverse_half",
+    "calibration_nll": 3.3323782086372375,
+    "calibration_delta": -0.0016378164291381836,
+    "evaluation_nll": 3.4257078915834427,
+    "evaluation_delta": 0.004082977771759033,
+    "weight_mse": 3.891779670084361e-06,
+    "payload_bytes": 3170305,
+    "sha256": "2c2f1f2002090460fe86ae7a09eb33dd506f73038b5f2b826a55bbc95894f4d9"
+  },
+  {
+    "layer": 8,
+    "method": "task_real4",
+    "candidate_id": 0,
+    "candidate": 0.85,
+    "calibration_nll": 3.329486668109894,
+    "calibration_delta": -0.004529356956481934,
+    "evaluation_nll": 3.4229404479265213,
+    "evaluation_delta": 0.0013155341148376465,
+    "weight_mse": 4.631605861504795e-06,
+    "payload_bytes": 3170305,
+    "sha256": "ec6f266205fde02be0dff82a2788d2d26e52129519280757f5da284e9f92f6c3"
+  },
+  {
+    "layer": 8,
+    "method": "task_polar3_5",
+    "candidate_id": 2,
+    "candidate": "reverse_half",
+    "calibration_nll": 3.328808844089508,
+    "calibration_delta": -0.005207180976867676,
+    "evaluation_nll": 3.421449303627014,
+    "evaluation_delta": -0.00017561018466949463,
+    "weight_mse": 3.6234446270100307e-06,
+    "payload_bytes": 3170305,
+    "sha256": "491444c9682f9422c311c20c5bec88fbde389e09555b8db39d49432d583baa34"
+  },
+  {
+    "layer": 16,
+    "method": "task_real4",
+    "candidate_id": 0,
+    "candidate": 0.85,
+    "calibration_nll": 3.332076668739319,
+    "calibration_delta": -0.0019393563270568848,
+    "evaluation_nll": 3.4264176338911057,
+    "evaluation_delta": 0.004792720079421997,
+    "weight_mse": 7.4879490057355724e-06,
+    "payload_bytes": 3170305,
+    "sha256": "44e9650b06dfecb3ec2abbb98f9c7dc89f51b3f16c12dd79bdf1762dccade57c"
+  },
+  {
+    "layer": 16,
+    "method": "task_polar3_5",
+    "candidate_id": 1,
+    "candidate": "split_half",
+    "calibration_nll": 3.333260238170624,
+    "calibration_delta": -0.0007557868957519531,
+    "evaluation_nll": 3.420921877026558,
+    "evaluation_delta": -0.0007030367851257324,
+    "weight_mse": 5.871815574209904e-06,
+    "payload_bytes": 3170305,
+    "sha256": "83bcedf013b68a517bda54f012cda20a2f93e7374143453407fad3a010828ef7"
+  }
+]

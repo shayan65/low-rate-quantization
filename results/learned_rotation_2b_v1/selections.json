@@ -1,0 +1,17 @@
+[
+  {
+    "layer": 0,
+    "pairing": "split_half",
+    "offset_id": 12
+  },
+  {
+    "layer": 8,
+    "pairing": "reverse_half",
+    "offset_id": 10
+  },
+  {
+    "layer": 16,
+    "pairing": "split_half",
+    "offset_id": 3
+  }
+]

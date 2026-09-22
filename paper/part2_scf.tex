@@ -1,0 +1,217 @@
+\section{Part II: Self-Consistent Calibration}
+\label{sec:part2}
+
+\subsection{The calibration fixed point}
+
+Activation-aware post-training quantization chooses a code for layer $\ell$ by
+minimizing a metric weighted by that layer's input statistics
+$H^{xx}_\ell=\mathbb E[x_\ell x_\ell^\top]$, estimated on calibration data.
+GPTQ and AWQ measure those statistics on the full-precision model
+\cite{gptq,awq}. Once many layers are replaced, the deployed model presents
+layer $\ell$ with a different distribution from the one its codebook was fitted
+to, so the conventional procedure computes
+$Q_{\text{one-shot}}=\mathcal Q(H[W_{\rm BF16}])$ while the quantity describing
+the deployed model is the fixed point
+\begin{equation}
+ Q^\star=\mathcal Q\bigl(H[Q^\star]\bigr).
+ \label{eq:fp}
+\end{equation}
+
+Equation~\eqref{eq:fp} has the form of the Kohn--Sham self-consistency condition
+\cite{kohnsham}, which suggested treating it the same way: statistics in place
+of density, calibration loss in place of total energy, linear or Anderson
+mixing \cite{anderson,pulay} in place of density mixing, and codebook-assignment
+churn in place of density convergence. We implemented that loop, with a guard
+that rejects any iterate raising the calibration loss and halves the mixing
+parameter.
+
+This section reports that the analogy is wrong in the specific way that matters,
+and that the repair we designed for it also fails.
+
+\subsection{Why one pass suffices: acyclicity}
+\label{sec:acyclic}
+
+The statistics $H^{xx}_\ell$ depend only on layers $1,\dots,\ell-1$. Quantizing
+in topological order while propagating the quantized activations forward
+therefore gives every layer exactly the statistics it will see in the deployed
+model. The dependency graph is acyclic, the fixed point of \eqref{eq:fp} is
+reached in \textbf{one sweep}, and there is nothing for an iteration to do.
+
+This is not merely a theoretical point. Two published methods already exploit
+it: GPTAQ's asymmetric calibration \cite{gptaq} and CoreQ's mismatch correction
+\cite{coreq} both target accumulated error from previously quantized layers, and
+both are closed-form and single-pass. We should have derived the acyclicity
+argument before building an iteration, and we state it here because it is the
+reason the iteration cannot be the contribution.
+
+\paragraph{Measured.} Table~\ref{tab:phase0a} compares the one-pass sequential
+arm against our iterative loop on the 2-D codec, the codec most sensitive to the
+statistics. The prediction was redundancy; the measurement is stronger. The
+one-pass arm beats the iteration by $0.004228$ NLL and beats one-shot
+calibration by $0.002778$.
+
+\begin{table}[ht]
+\centering\small
+\caption{Forward-only self-consistency. Qwen3.5-0.8B, 2-D codec, all 18 DeltaNet
+input projections, 32{,}768 WikiText-2 validation targets.}
+\label{tab:phase0a}
+\begin{tabular}{lrrl}\toprule
+Calibration & NLL & $\Delta$NLL & 95\% CI\\\midrule
+BF16 reference & 3.233953 & --- & ---\\
+one-shot (BF16 activations) & 3.245136 & $+0.011184$ & $[+0.009132,+0.013299]$\\
+\textbf{sequential, one pass} & \textbf{3.242358} & $\mathbf{+0.008406}$ & $[+0.006635,+0.010215]$\\
+iterative SCF loop & 3.246586 & $+0.012633$ & $[+0.010697,+0.014610]$\\\bottomrule
+\end{tabular}
+\end{table}
+
+The mechanism is clear in hindsight. Sequential calibration uses statistics that
+are \emph{correct}, not approximate. Our loop mixes a \emph{global} statistics
+vector toward $H[Q]$ with $\alpha<1$; the mixed statistic corresponds to no
+actual model state -- it interpolates between two different networks -- and all
+eighteen layers are refitted against it simultaneously. Damping is what makes
+SCF stable in density functional theory; here it is what makes it wrong, because
+the exact answer is available in one sweep and damping moves away from it.
+
+\paragraph{But solving the forward fixed point correctly does not help much
+either.} Table~\ref{tab:phase0a} is a 32{,}768-target screening slice. Repeating
+the comparison on the complete validation stream removes the advantage:
+sequential calibration changes the Lloyd scalar code by $+0.000022$, leaves
+decoupled polar \emph{bit-identical} (that codec ignores activation statistics
+entirely), improves repaired polar by $-0.000596$, and \emph{worsens} the 2-D
+codec by $+0.000607$ (Table~\ref{tab:main}). The effects are small and change
+sign across codecs. The iterative loop behaves the same way across calibration
+sizes: on the full stream it worsened the 2-D codec by $+0.002720$ with sixteen
+shared calibration windows and improved it by $-0.000585$ with sixty-four
+windows and a disjoint guard set.
+
+The explanation is in the residual itself. We replace one tensor in each of the
+eighteen DeltaNet layers of this 24-layer model -- $15.1\%$ of its parameters --
+and the forward statistics move by only $0.87\%$, so there is very little for any
+forward-only correction to recover. Sequential propagation is the
+\emph{correct} way to solve that fixed point -- the acyclicity argument is
+unaffected -- but at this scope the fixed point is nearly where one-shot
+calibration already sits. We would expect the correction to matter more under
+whole-model quantization, which we did not run.
+
+We also note the methodological point: the screening slice favoured sequential
+calibration by $0.002778$ NLL and the full stream did not reproduce it. Reduced
+evaluation slices in this project have repeatedly produced effects that vanish
+at full scale, and we treat the screening result as superseded.
+
+\subsection{The bidirectional reformulation}
+
+The fixed point becomes non-trivial exactly when the per-layer objective depends
+on layers \emph{downstream}. Expanding the calibration loss to second order in
+each layer's output perturbation $\Delta y_\ell=\Delta W_\ell x_\ell$, with the
+Gauss--Newton/Fisher approximation to the output Hessian,
+\begin{equation}
+ \text{cost}_\ell=\sum_j S_{\ell,j}\,\Delta w_{\ell,j}^\top H^{xx}_\ell \Delta w_{\ell,j},
+ \qquad
+ S_{\ell,j}=\mathbb E\!\left[\left(\frac{\partial\mathcal L}{\partial y_{\ell,j}}\right)^{\!2}\right].
+\end{equation}
+Here $H^{xx}_\ell$ depends on upstream layers and $S_{\ell,j}$ on downstream
+ones, because the gradient at layer $\ell$ is backpropagated through every later
+layer and those are quantized too. The dependency graph is now \textbf{cyclic}:
+no topological order exists, so no single sweep in either direction satisfies
+both conditions. This is the Kohn--Sham situation proper -- the potential
+depends on the density everywhere, not only upstream -- and it is the part that
+\cite{gptaq,coreq} do not address, because a layer-local output-matching target
+assumes all output errors matter equally, which is what $S_\ell$ denies.
+
+\paragraph{The coupling is large.} We measured the relative residual of each
+statistic when the eighteen projections are quantized. The forward residual is
+$0.87\%$ pooled and grows monotonically with depth ($0.336\%$ at layer 1 to
+$1.582\%$ at layer 22), consistent with accumulated upstream error. The backward
+residual is $7.33\%$ pooled, $8.41\times$ larger, and is not monotone in depth.
+Layer 0 is the clean illustration: its forward residual is \emph{identically
+zero}, because its input is upstream of every quantized layer, while its
+backward residual is $6.95\%$ because everything downstream of it is quantized.
+
+So the coupling the reformulation identifies is real and an order of magnitude
+larger than the one the literature corrects. That made the next test worth
+running, and it is where the direction dies.
+
+\subsection{Fisher weighting does not rank layers}
+\label{sec:fisherfail}
+
+If $S$-weighted error is the right local surrogate for end-to-end damage, it
+should predict which layers are costly to quantize. We quantized one layer at a
+time, all others BF16, and correlated four predictors against the measured
+validation damage over the eighteen layers.
+
+\begin{table}[ht]
+\centering\small
+\caption{Predicting single-layer quantization damage. 65{,}536 validation
+targets; 10 of 18 layers have a $\Delta$NLL interval excluding zero.}
+\label{tab:fisher}
+\begin{tabular}{lrrr}\toprule
+Predictor & Spearman & Pearson & Pearson without L0\\\midrule
+Weight MSE & $-0.218$ & $-0.202$ & $+0.072$\\
+Diagonal activation-weighted & $+0.020$ & $-0.061$ & $+0.146$\\
+Exact output error (forward only) & $+0.005$ & $-0.057$ & $+0.145$\\
+Fisher (forward $\times$ backward) & $+0.015$ & $+0.898$ & $+0.181$\\\bottomrule
+\end{tabular}
+\end{table}
+
+The Fisher Pearson coefficient of $0.898$ is an artifact of a single leverage
+point. Excluding layer 0 it collapses to $0.181$, and its Spearman coefficient
+is $-0.169$. The disagreement between a high Pearson and a null Spearman is the
+diagnostic: no predictor, Fisher included, has rank skill across the other
+seventeen layers.
+
+Two limits on this test's power should be stated. Eight of eighteen layers have
+damage intervals covering zero, so the comparison among low-damage layers is
+weak. And three layers have \emph{significantly negative} damage -- quantizing
+them improves validation NLL -- which no unsigned error surrogate can predict at
+all. That caps the achievable correlation independently of the metric.
+
+\subsection{The one real finding, and why it is not exploitable}
+
+Layer 0 is simultaneously the most damaging layer to quantize, the layer Fisher
+ranks highest, and the layer weight MSE ranks \emph{lowest} -- that is, the
+criterion used throughout the earlier phases of this work identifies the single
+most damaging tensor in the model as the safest one. Layer 0 alone accounts for
+$58.2\%$ of the summed single-layer damage. This is a crisp mechanism for the
+observation, recurring throughout this project, that weight MSE fails to predict
+task loss.
+
+It does not convert into a method. Table~\ref{tab:protect} asks which single
+tensor is worth leaving in BF16. Fisher's choice recovers $57.7\%$ of the damage
+and weight MSE's choice recovers $3.1\%$, which looks decisive until the right
+control is added. Leaving one tensor unquantized costs $1.167\times$ the
+all-quantized payload, so the honest comparison is a larger codebook applied
+uniformly at the same budget.
+
+\begin{table}[ht]
+\centering\small
+\caption{Protecting one tensor versus spending the same bytes uniformly.
+Complete validation stream, 261{,}248 targets.}
+\label{tab:protect}
+\begin{tabular}{lrlrr}\toprule
+Arm & $\Delta$NLL & 95\% CI & Recovered & Payload\\\midrule
+All 18 quantized & $+0.008393$ & $[+0.007720,+0.009069]$ & --- & $1.000\times$\\
+Protect L0 (Fisher's pick) & $+0.003716$ & $[+0.003197,+0.004245]$ & $55.7\%$ & $1.167\times$\\
+Protect L20 (weight MSE's pick) & $+0.008061$ & $[+0.007401,+0.008729]$ & $4.0\%$ & $1.167\times$\\
+Protect L10 (arbitrary) & $+0.008382$ & $[+0.007733,+0.009025]$ & $0.1\%$ & $1.167\times$\\
+\textbf{All 18, 4.5-bit codebook} & $+0.004872$ & $[+0.004348,+0.005402]$ & $41.9\%$ & $1.125\times$\\
+\textbf{All 18, 5-bit codebook} & $\mathbf{+0.002950}$ & $[+0.002555,+0.003346]$ & $\mathbf{64.9\%}$ & $1.250\times$\\\bottomrule
+\end{tabular}
+\end{table}
+
+Interpolating the uniform-bits frontier to the same $1.167\times$ payload gives
+$49.6\%$ recovery. Protecting the Fisher-identified layer is therefore worth
+$+6.1$ percentage points, against a confidence half-width of $6.2$ points on the
+protected arm alone, before accounting for the interpolation's own uncertainty.
+\textbf{The advantage is at best marginal and we do not regard it as
+established: outlier protection does not clearly beat spending the same bytes
+uniformly.}
+
+\subsection{Summary of Part II}
+
+The forward-only self-consistency loop is redundant by acyclicity, already
+addressed in closed form by published one-pass methods, and measurably worse
+than the one-pass baseline. The bidirectional reformulation identifies a
+genuinely cyclic coupling that is $8.41\times$ larger than the one the
+literature corrects, but the metric it implies has no rank skill across layers,
+and its single correct call yields no advantage over uniform bit allocation at
+matched bytes. We do not recommend pursuing the direction further.

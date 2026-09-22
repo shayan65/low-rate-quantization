@@ -1,0 +1,45 @@
+Neither hypothesis survived. Three findings did, none of them the thing we set
+out to show. We state each with the evidence that supports it and the limit of
+what it licenses.
+
+\paragraph{1. Uniformly spending a few more bits beat every layer-selective
+scheme we tried.} At $1.25\times$ the four-bit payload, a 1024-point 2-D
+codebook applied to every layer recovers $64.9\%$ of the quantization damage
+(Table~\ref{tab:protect}). No selective scheme we tested -- codec selection per
+layer, mixed polar/GPTQ codecs, greedy cumulative selection, Fisher-guided
+protection -- delivered more per byte. The negative half of this is equally
+useful: it is the control that every layer-selective proposal in this project
+should have been run against, and was not.
+
+\paragraph{2. The most damaging layer to quantize is the one weight MSE calls
+safest.} Layer 0 ranks first of eighteen in measured damage, first by the Fisher
+metric, and \emph{last} by weight MSE -- that is, the criterion used throughout
+the earlier phases of this work identifies the single most damaging tensor in
+the model as the safest one. It alone accounts for $58.2\%$ of summed
+single-layer damage, and protecting it recovers $55.7\%$ of the damage from
+quantizing all eighteen.
+
+This is a concrete mechanism for an observation this project made repeatedly
+without explaining: that weight-error rankings do not predict task-loss
+rankings. It is not a method. As Section~\ref{sec:fisherfail} reports, the
+Fisher metric that gets layer 0 right has no rank skill across the other
+seventeen layers, and exploiting the one correct call does not clearly beat
+finding 1.
+
+\paragraph{3. Paired 2-D vector quantization reaches parity with a well-tuned
+scalar code, and the polar parameterization does not.} At four index bits per
+weight, the activation-weighted 256-point 2-D codebook gives the best point
+estimate of anything we tested. Its advantage over the Lloyd-fitted scalar code
+is $+0.000846$ with interval $[-0.000169,+0.001822]$ -- not significant -- while
+its advantage over the polar code is $+0.008210$ $[+0.007205,+0.009186]$. The
+honest summary is parity with a well-tuned scalar baseline, plus a decode path
+(a 256-entry lookup) that is friendlier to a fused kernel than polar's per-pair
+sine and cosine.
+
+\paragraph{What did not survive.} We had expected to report sequential
+calibration as a free improvement, on the strength of a 32{,}768-target screen
+where it beat one-shot calibration by $0.002778$ NLL. It does not replicate on
+the complete validation stream, where its effect is at most $\pm0.0006$ NLL and
+changes sign across codecs (Section~\ref{sec:acyclic}). We report it here as a
+non-finding rather than omit it, because the screen-to-full-stream reversal is
+itself the kind of result this paper is about.

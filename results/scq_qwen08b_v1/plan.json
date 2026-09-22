@@ -1,0 +1,53 @@
+{
+  "model": "../models/Qwen3.5-0.8B-Base",
+  "layers": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    6,
+    8,
+    9,
+    10,
+    12,
+    13,
+    14,
+    16,
+    17,
+    18,
+    20,
+    21,
+    22
+  ],
+  "tensor": "linear_attn.in_proj_qkv.weight",
+  "eval": "2041 contiguous 128-target WikiText-2 validation blocks (261248 targets), context reset per block",
+  "calibration": "16 fixed WikiText-2 training windows (seed 20260921)",
+  "cal_starts": [
+    151528,
+    260509,
+    512687,
+    636028,
+    784887,
+    878349,
+    1077589,
+    1093868,
+    1140917,
+    1209696,
+    1431670,
+    1464765,
+    1951024,
+    2109339,
+    2316790,
+    2477193
+  ],
+  "budget": "4 index bits per real weight + one FP32 row scale per row; per-tensor codebook headers (<=2 KB) counted separately",
+  "index_payload_bytes": 57065472,
+  "bf16_bytes": 226492416,
+  "scf": {
+    "alpha": 0.5,
+    "max_iters": 6,
+    "anderson_m": 0,
+    "guard": "reject any iteration that raises calibration NLL; halve alpha"
+  }
+}

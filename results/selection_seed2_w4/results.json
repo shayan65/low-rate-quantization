@@ -1,0 +1,229 @@
+{
+  "plan": {
+    "model": "../models/Qwen3.5-0.8B-Base",
+    "layers": [
+      0,
+      1,
+      2,
+      4,
+      5,
+      6,
+      8,
+      9,
+      10,
+      12,
+      13,
+      14,
+      16,
+      17,
+      18,
+      20,
+      21,
+      22
+    ],
+    "protocol": "per-layer candidate selection by calibration NLL with all other weights at BF16, then cumulative application (earlier draft's rule)",
+    "cal_windows": 4,
+    "seed": 2,
+    "cal_starts": [
+      273756,
+      655209,
+      747573,
+      2097711
+    ],
+    "eval_blocks": 2041,
+    "eval_targets": 261248
+  },
+  "bf16": {
+    "nll": 3.436670363504241,
+    "ppl": 31.0832896192693,
+    "blocks": 2041,
+    "target_tokens": 261248,
+    "seconds": 26.535335647989996
+  },
+  "methods": {
+    "polar_legacy_nllsel": {
+      "nll": 3.4476306360764344,
+      "ppl": 31.42584476563815,
+      "blocks": 2041,
+      "target_tokens": 261248,
+      "seconds": 26.647132511017844,
+      "delta_nll": 0.010960272572193563,
+      "delta_ci": [
+        0.010040171142888384,
+        0.011905540012659132
+      ],
+      "choices": {
+        "0": {
+          "candidate": "adjacent",
+          "cal_nll": 3.416476011276245
+        },
+        "1": {
+          "candidate": "split_half",
+          "cal_nll": 3.424467086791992
+        },
+        "2": {
+          "candidate": "reverse_half",
+          "cal_nll": 3.4229302406311035
+        },
+        "4": {
+          "candidate": "split_half",
+          "cal_nll": 3.4204318523406982
+        },
+        "5": {
+          "candidate": "adjacent",
+          "cal_nll": 3.4253897666931152
+        },
+        "6": {
+          "candidate": "reverse_half",
+          "cal_nll": 3.418879508972168
+        },
+        "8": {
+          "candidate": "reverse_half",
+          "cal_nll": 3.424832582473755
+        },
+        "9": {
+          "candidate": "stride257",
+          "cal_nll": 3.4226012229919434
+        },
+        "10": {
+          "candidate": "adjacent",
+          "cal_nll": 3.424853801727295
+        },
+        "12": {
+          "candidate": "reverse_half",
+          "cal_nll": 3.421887159347534
+        },
+        "13": {
+          "candidate": "reverse_half",
+          "cal_nll": 3.421766757965088
+        },
+        "14": {
+          "candidate": "stride257",
+          "cal_nll": 3.4200024604797363
+        },
+        "16": {
+          "candidate": "split_half",
+          "cal_nll": 3.4233367443084717
+        },
+        "17": {
+          "candidate": "reverse_half",
+          "cal_nll": 3.4236598014831543
+        },
+        "18": {
+          "candidate": "split_half",
+          "cal_nll": 3.423680305480957
+        },
+        "20": {
+          "candidate": "adjacent",
+          "cal_nll": 3.423154830932617
+        },
+        "21": {
+          "candidate": "stride257",
+          "cal_nll": 3.4222264289855957
+        },
+        "22": {
+          "candidate": "reverse_half",
+          "cal_nll": 3.421419620513916
+        }
+      },
+      "selection_seconds": 8.312665652949363
+    },
+    "real4_lloyd_nllsel": {
+      "nll": 3.450866823451067,
+      "ppl": 31.527709425367146,
+      "blocks": 2041,
+      "target_tokens": 261248,
+      "seconds": 26.630243220948614,
+      "delta_nll": 0.014196459946826057,
+      "delta_ci": [
+        0.013346514592037548,
+        0.01502624977049671
+      ],
+      "choices": {
+        "0": {
+          "candidate": "clip1.05",
+          "cal_nll": 3.424957513809204
+        },
+        "1": {
+          "candidate": "clip0.95",
+          "cal_nll": 3.4187889099121094
+        },
+        "2": {
+          "candidate": "clip1.0",
+          "cal_nll": 3.4256269931793213
+        },
+        "4": {
+          "candidate": "clip1.0",
+          "cal_nll": 3.421325206756592
+        },
+        "5": {
+          "candidate": "clip0.95",
+          "cal_nll": 3.4193432331085205
+        },
+        "6": {
+          "candidate": "clip1.05",
+          "cal_nll": 3.4231693744659424
+        },
+        "8": {
+          "candidate": "clip1.0",
+          "cal_nll": 3.423450231552124
+        },
+        "9": {
+          "candidate": "clip1.0",
+          "cal_nll": 3.4219460487365723
+        },
+        "10": {
+          "candidate": "clip0.85",
+          "cal_nll": 3.4245054721832275
+        },
+        "12": {
+          "candidate": "clip0.85",
+          "cal_nll": 3.4227120876312256
+        },
+        "13": {
+          "candidate": "clip1.0",
+          "cal_nll": 3.4207677841186523
+        },
+        "14": {
+          "candidate": "clip0.95",
+          "cal_nll": 3.42559814453125
+        },
+        "16": {
+          "candidate": "clip1.0",
+          "cal_nll": 3.4236512184143066
+        },
+        "17": {
+          "candidate": "clip0.95",
+          "cal_nll": 3.423119068145752
+        },
+        "18": {
+          "candidate": "clip1.0",
+          "cal_nll": 3.4239628314971924
+        },
+        "20": {
+          "candidate": "clip1.05",
+          "cal_nll": 3.4211184978485107
+        },
+        "21": {
+          "candidate": "clip1.0",
+          "cal_nll": 3.422051429748535
+        },
+        "22": {
+          "candidate": "clip1.05",
+          "cal_nll": 3.42236590385437
+        }
+      },
+      "selection_seconds": 11.61178763397038
+    }
+  },
+  "comparisons": {
+    "polar_legacy_nllsel_minus_real4_lloyd_nllsel": {
+      "delta": -0.0032361873746327126,
+      "ci": [
+        -0.004271220232212677,
+        -0.002194810921161097
+      ]
+    }
+  },
+  "seconds": 107.92618532397319
+}

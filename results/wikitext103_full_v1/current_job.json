@@ -1,0 +1,35 @@
+{
+  "job": {
+    "id": "hybrid_real8_seed0",
+    "architecture": "hybrid",
+    "method": "real8",
+    "seed": 0
+  },
+  "command": [
+    "/home/shayan/miniconda3/bin/python",
+    "/home/shayan/quantum_quantization/experiments/run_full_lm.py",
+    "--data",
+    "data/wikitext103_bpe8k",
+    "--out",
+    "/home/shayan/quantum_quantization/results/wikitext103_full_v1/hybrid_real8_seed0",
+    "--method",
+    "real8",
+    "--architecture",
+    "hybrid",
+    "--seed",
+    "0",
+    "--epochs",
+    "3",
+    "--width",
+    "384",
+    "--depth",
+    "6",
+    "--heads",
+    "6",
+    "--context",
+    "512",
+    "--batch",
+    "16"
+  ],
+  "started_unix": 1789221942.80126
+}

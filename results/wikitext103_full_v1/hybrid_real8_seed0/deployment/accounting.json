@@ -1,0 +1,260 @@
+{
+  "projections": [
+    {
+      "kind": "real",
+      "bits": 8,
+      "scale_bytes": 4,
+      "name": "blocks.0.input",
+      "method": "real8",
+      "shape": [
+        384,
+        384
+      ],
+      "offset": 0,
+      "bytes": 147460,
+      "indices": 147456
+    },
+    {
+      "kind": "real",
+      "bits": 8,
+      "scale_bytes": 4,
+      "name": "blocks.0.output",
+      "method": "real8",
+      "shape": [
+        384,
+        384
+      ],
+      "offset": 147460,
+      "bytes": 147460,
+      "indices": 147456
+    },
+    {
+      "kind": "real",
+      "bits": 8,
+      "scale_bytes": 4,
+      "name": "blocks.0.up",
+      "method": "real8",
+      "shape": [
+        1536,
+        384
+      ],
+      "offset": 294920,
+      "bytes": 589828,
+      "indices": 589824
+    },
+    {
+      "kind": "real",
+      "bits": 8,
+      "scale_bytes": 4,
+      "name": "blocks.0.down",
+      "method": "real8",
+      "shape": [
+        384,
+        1536
+      ],
+      "offset": 884748,
+      "bytes": 589828,
+      "indices": 589824
+    },
+    {
+      "kind": "real",
+      "bits": 8,
+      "scale_bytes": 4,
+      "name": "blocks.1.up",
+      "method": "real8",
+      "shape": [
+        1536,
+        384
+      ],
+      "offset": 1474576,
+      "bytes": 589828,
+      "indices": 589824
+    },
+    {
+      "kind": "real",
+      "bits": 8,
+      "scale_bytes": 4,
+      "name": "blocks.1.down",
+      "method": "real8",
+      "shape": [
+        384,
+        1536
+      ],
+      "offset": 2064404,
+      "bytes": 589828,
+      "indices": 589824
+    },
+    {
+      "kind": "real",
+      "bits": 8,
+      "scale_bytes": 4,
+      "name": "blocks.2.input",
+      "method": "real8",
+      "shape": [
+        384,
+        384
+      ],
+      "offset": 2654232,
+      "bytes": 147460,
+      "indices": 147456
+    },
+    {
+      "kind": "real",
+      "bits": 8,
+      "scale_bytes": 4,
+      "name": "blocks.2.output",
+      "method": "real8",
+      "shape": [
+        384,
+        384
+      ],
+      "offset": 2801692,
+      "bytes": 147460,
+      "indices": 147456
+    },
+    {
+      "kind": "real",
+      "bits": 8,
+      "scale_bytes": 4,
+      "name": "blocks.2.up",
+      "method": "real8",
+      "shape": [
+        1536,
+        384
+      ],
+      "offset": 2949152,
+      "bytes": 589828,
+      "indices": 589824
+    },
+    {
+      "kind": "real",
+      "bits": 8,
+      "scale_bytes": 4,
+      "name": "blocks.2.down",
+      "method": "real8",
+      "shape": [
+        384,
+        1536
+      ],
+      "offset": 3538980,
+      "bytes": 589828,
+      "indices": 589824
+    },
+    {
+      "kind": "real",
+      "bits": 8,
+      "scale_bytes": 4,
+      "name": "blocks.3.up",
+      "method": "real8",
+      "shape": [
+        1536,
+        384
+      ],
+      "offset": 4128808,
+      "bytes": 589828,
+      "indices": 589824
+    },
+    {
+      "kind": "real",
+      "bits": 8,
+      "scale_bytes": 4,
+      "name": "blocks.3.down",
+      "method": "real8",
+      "shape": [
+        384,
+        1536
+      ],
+      "offset": 4718636,
+      "bytes": 589828,
+      "indices": 589824
+    },
+    {
+      "kind": "real",
+      "bits": 8,
+      "scale_bytes": 4,
+      "name": "blocks.4.input",
+      "method": "real8",
+      "shape": [
+        384,
+        384
+      ],
+      "offset": 5308464,
+      "bytes": 147460,
+      "indices": 147456
+    },
+    {
+      "kind": "real",
+      "bits": 8,
+      "scale_bytes": 4,
+      "name": "blocks.4.output",
+      "method": "real8",
+      "shape": [
+        384,
+        384
+      ],
+      "offset": 5455924,
+      "bytes": 147460,
+      "indices": 147456
+    },
+    {
+      "kind": "real",
+      "bits": 8,
+      "scale_bytes": 4,
+      "name": "blocks.4.up",
+      "method": "real8",
+      "shape": [
+        1536,
+        384
+      ],
+      "offset": 5603384,
+      "bytes": 589828,
+      "indices": 589824
+    },
+    {
+      "kind": "real",
+      "bits": 8,
+      "scale_bytes": 4,
+      "name": "blocks.4.down",
+      "method": "real8",
+      "shape": [
+        384,
+        1536
+      ],
+      "offset": 6193212,
+      "bytes": 589828,
+      "indices": 589824
+    },
+    {
+      "kind": "real",
+      "bits": 8,
+      "scale_bytes": 4,
+      "name": "blocks.5.up",
+      "method": "real8",
+      "shape": [
+        1536,
+        384
+      ],
+      "offset": 6783040,
+      "bytes": 589828,
+      "indices": 589824
+    },
+    {
+      "kind": "real",
+      "bits": 8,
+      "scale_bytes": 4,
+      "name": "blocks.5.down",
+      "method": "real8",
+      "shape": [
+        384,
+        1536
+      ],
+      "offset": 7372868,
+      "bytes": 589828,
+      "indices": 589824
+    }
+  ],
+  "remaining_fp32_payload_bytes": 20491776,
+  "deployment_tensor_payload_bytes": 28454472,
+  "note": "No optimizer or latent quantized weights; metadata/file overhead counted separately",
+  "actual_directory_bytes": 28471149
+}

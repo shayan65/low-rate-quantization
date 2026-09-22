@@ -1,0 +1,72 @@
+[
+  {
+    "method": "bf16",
+    "validation": {
+      "nll": 2.314341128674544,
+      "perplexity": 10.118254094549464,
+      "target_tokens": 261284
+    },
+    "payload_bytes": 0,
+    "delta_nll_vs_bf16": 0.0,
+    "paired_ci95": [
+      0,
+      0
+    ]
+  },
+  {
+    "method": "task_real4",
+    "validation": {
+      "nll": 2.3225630055328548,
+      "perplexity": 10.201788066181049,
+      "target_tokens": 261284
+    },
+    "payload_bytes": 57065490,
+    "delta_nll_vs_bf16": 0.008221876858310662,
+    "paired_ci95": [
+      0.0074279700251071775,
+      0.009029634724285543
+    ]
+  },
+  {
+    "method": "task_polar3_5",
+    "validation": {
+      "nll": 2.3197469665022306,
+      "perplexity": 10.173099845337646,
+      "target_tokens": 261284
+    },
+    "payload_bytes": 57065490,
+    "delta_nll_vs_bf16": 0.005405837827686444,
+    "paired_ci95": [
+      0.0046658871792089,
+      0.006148447216024127
+    ]
+  },
+  {
+    "method": "block_gptq_real4",
+    "validation": {
+      "nll": 2.323978064800093,
+      "perplexity": 10.216234419739134,
+      "target_tokens": 261284
+    },
+    "payload_bytes": 60162066,
+    "delta_nll_vs_bf16": 0.009636936125549056,
+    "paired_ci95": [
+      0.009123438120939123,
+      0.01018132333890735
+    ]
+  },
+  {
+    "method": "mixed_polar_gptq",
+    "validation": {
+      "nll": 2.3152916950413815,
+      "perplexity": 10.127876739339541,
+      "target_tokens": 261284
+    },
+    "payload_bytes": 57925650,
+    "delta_nll_vs_bf16": 0.0009505663668374353,
+    "paired_ci95": [
+      0.00024315229032731344,
+      0.0016579703251213603
+    ]
+  }
+]

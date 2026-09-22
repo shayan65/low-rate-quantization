@@ -1,0 +1,20 @@
+{
+  "model": "Qwen/Qwen3.5-0.8B-Base",
+  "dataset": "complete WikiText-2 validation, 261,284 targets",
+  "calibration_starts": [
+    59959,
+    131396,
+    1638120,
+    2226031
+  ],
+  "selection": "per layer polar versus block-GPTQ on frozen train-only calibration windows",
+  "test_split_touched": false,
+  "methods": [
+    "bf16",
+    "task_polar3_5",
+    "block_gptq_real4",
+    "mixed_polar_gptq"
+  ],
+  "uncertainty": "5,000 paired bootstrap replicates over contiguous 128-target blocks, including direct codec contrasts",
+  "runtime_cap_seconds": 1800.0
+}

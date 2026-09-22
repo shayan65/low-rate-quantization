@@ -1,0 +1,12 @@
+{
+  "complete": true,
+  "jobs": 12,
+  "planned_jobs": 12,
+  "seconds": 21.829371138010174,
+  "polar_wins_vs_optimized_real4_by_layer": {
+    "polar3_5_adjacent_optimized": 2,
+    "polar3_5_split_half_optimized": 0
+  },
+  "promote": false,
+  "action": "No cumulative, all-layer, or training run launched."
+}

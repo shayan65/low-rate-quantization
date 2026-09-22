@@ -1,0 +1,16 @@
+{
+  "model": "Qwen/Qwen3.8-27B",
+  "evaluation": "first 16 contiguous 128-target WikiText-2 validation blocks, context reset each block",
+  "batch_sizes": [
+    1,
+    4,
+    8,
+    16
+  ],
+  "max_memory": {
+    "gpu": "20GiB",
+    "cpu": "40GiB"
+  },
+  "hard_wall_seconds": 1200,
+  "promotion": "no swap growth, no OOM, projected full pass under 2h"
+}

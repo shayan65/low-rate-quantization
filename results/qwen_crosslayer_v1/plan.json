@@ -1,0 +1,43 @@
+{
+  "model": "Qwen/Qwen3.5-0.8B-Base",
+  "layers": [
+    0,
+    8,
+    16
+  ],
+  "tensor": "linear_attn.in_proj_qkv.weight",
+  "methods": [
+    "real4_rtn",
+    "real4_optimized_clip",
+    "polar3_5_adjacent_optimized",
+    "polar3_5_split_half_optimized"
+  ],
+  "sample_seed": 42016,
+  "sample_starts": [
+    18699,
+    19782,
+    66155,
+    72910,
+    103037,
+    111695,
+    112035,
+    131296,
+    181675,
+    189960,
+    194978,
+    210397,
+    223093,
+    224708,
+    235708,
+    247372
+  ],
+  "validation_target_tokens": 2048,
+  "quantization": "one tensor at a time; model otherwise BF16 and frozen",
+  "budget": "8 index bits per pair plus one FP32 scale per output row; 3,170,304 bytes each",
+  "scale_search": "10 fixed ratios from 0.55 to 1.0 selected independently per row by weight MSE; no validation labels",
+  "pairings": {
+    "adjacent": "(w[2j],w[2j+1])",
+    "split_half": "(w[j],w[j+input_dim/2])"
+  },
+  "runtime_cap_seconds": 180.0
+}

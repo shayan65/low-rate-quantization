@@ -1,0 +1,10 @@
+{
+  "complete": true,
+  "seconds": 766.642656453012,
+  "polar_layers": 13,
+  "gptq_layers": 5,
+  "mixed_beats_polar": false,
+  "mixed_beats_gptq": true,
+  "direct_ci_mixed_vs_polar_excludes_zero": true,
+  "direct_ci_mixed_vs_gptq_excludes_zero": true
+}

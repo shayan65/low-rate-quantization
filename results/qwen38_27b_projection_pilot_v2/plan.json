@@ -1,0 +1,36 @@
+{
+  "model": "Qwen/Qwen3.8-27B",
+  "dataset": "16 contiguous WikiText-2 validation windows",
+  "start_block": 16,
+  "target_tokens": 2048,
+  "batch_size": 8,
+  "scope": "one tensor quantized at a time; all other weights BF16",
+  "methods": [
+    "bf16",
+    "optimized_row_real4",
+    "optimized_row_polar3_5"
+  ],
+  "payload": "4 index bits per real weight plus one FP32 scale per output row; polar uses 3 magnitude + 5 phase bits per pair and one pairing ID",
+  "pairing_selection": "fixed before task pilot from weight-only geometry",
+  "runtime_cap_seconds": 600,
+  "targets": [
+    [
+      "deltanet_qkv",
+      0,
+      "linear_attn.in_proj_qkv",
+      "split_half"
+    ],
+    [
+      "attention_q",
+      3,
+      "self_attn.q_proj",
+      "adjacent"
+    ],
+    [
+      "attention_mlp_up",
+      3,
+      "mlp.up_proj",
+      "split_half"
+    ]
+  ]
+}

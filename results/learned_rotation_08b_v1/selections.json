@@ -1,0 +1,17 @@
+[
+  {
+    "layer": 0,
+    "pairing": "split_half",
+    "offset_id": 2
+  },
+  {
+    "layer": 8,
+    "pairing": "adjacent",
+    "offset_id": 9
+  },
+  {
+    "layer": 16,
+    "pairing": "stride257",
+    "offset_id": 9
+  }
+]

@@ -1,0 +1,38 @@
+{
+  "task_real4": {
+    "mean_delta": 0.008221876858310785,
+    "ci95": [
+      0.0074279700251071775,
+      0.009029634724285543
+    ],
+    "bootstrap_reps": 5000,
+    "unit": "128-target contiguous block"
+  },
+  "task_polar3_5": {
+    "mean_delta": 0.005405837827686496,
+    "ci95": [
+      0.0046658871792089,
+      0.006148447216024127
+    ],
+    "bootstrap_reps": 5000,
+    "unit": "128-target contiguous block"
+  },
+  "block_gptq_real4": {
+    "mean_delta": 0.009636936125548941,
+    "ci95": [
+      0.009123438120939123,
+      0.01018132333890735
+    ],
+    "bootstrap_reps": 5000,
+    "unit": "128-target contiguous block"
+  },
+  "mixed_polar_gptq": {
+    "mean_delta": 0.0009505663668375157,
+    "ci95": [
+      0.00024315229032731344,
+      0.0016579703251213603
+    ],
+    "bootstrap_reps": 5000,
+    "unit": "128-target contiguous block"
+  }
+}

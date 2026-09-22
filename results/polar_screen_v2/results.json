@@ -1,0 +1,220 @@
+[
+  {
+    "method": "real_fp32",
+    "seed": 0,
+    "parameters": 623296,
+    "best_step": 2000,
+    "initial_validation_nll": 9.022867739200592,
+    "validation": {
+      "nll": 6.28139528632164,
+      "perplexity": 534.533971684859,
+      "sample_target_tokens": 16384
+    },
+    "train_targets_presented": 4096000,
+    "seconds": 8.65891819697572,
+    "deployment_tensor_bytes": 2493184,
+    "peak_cuda_bytes": 273274880,
+    "exact_coefficient_and_logit_roundtrip": true
+  },
+  {
+    "method": "real8",
+    "seed": 0,
+    "parameters": 623302,
+    "best_step": 2000,
+    "initial_validation_nll": 9.02264267206192,
+    "validation": {
+      "nll": 6.282954663038254,
+      "perplexity": 535.3681617537902,
+      "sample_target_tokens": 16384
+    },
+    "train_targets_presented": 4096000,
+    "seconds": 11.591462978016352,
+    "deployment_tensor_bytes": 2272024,
+    "peak_cuda_bytes": 282267648,
+    "exact_coefficient_and_logit_roundtrip": true
+  },
+  {
+    "method": "polar_fp32",
+    "seed": 0,
+    "parameters": 697088,
+    "best_step": 2000,
+    "initial_validation_nll": 9.011478245258331,
+    "validation": {
+      "nll": 6.387179464101791,
+      "perplexity": 594.1783127335289,
+      "sample_target_tokens": 16384
+    },
+    "train_targets_presented": 4096000,
+    "seconds": 12.545090833998984,
+    "deployment_tensor_bytes": 2788352,
+    "peak_cuda_bytes": 289931776,
+    "exact_coefficient_and_logit_roundtrip": true
+  },
+  {
+    "method": "mag4phase4",
+    "seed": 0,
+    "parameters": 697094,
+    "best_step": 2000,
+    "initial_validation_nll": 9.012218415737152,
+    "validation": {
+      "nll": 6.386895656585693,
+      "perplexity": 594.009704389762,
+      "sample_target_tokens": 16384
+    },
+    "train_targets_presented": 4096000,
+    "seconds": 16.266600645001745,
+    "deployment_tensor_bytes": 2272280,
+    "peak_cuda_bytes": 291651072,
+    "exact_coefficient_and_logit_roundtrip": true
+  },
+  {
+    "method": "real_fp32",
+    "seed": 1,
+    "parameters": 623296,
+    "best_step": 2000,
+    "initial_validation_nll": 9.020962238311768,
+    "validation": {
+      "nll": 6.297082751989365,
+      "perplexity": 542.9855737977362,
+      "sample_target_tokens": 16384
+    },
+    "train_targets_presented": 4096000,
+    "seconds": 8.421222460980061,
+    "deployment_tensor_bytes": 2493184,
+    "peak_cuda_bytes": 281796608,
+    "exact_coefficient_and_logit_roundtrip": true
+  },
+  {
+    "method": "real8",
+    "seed": 1,
+    "parameters": 623302,
+    "best_step": 2000,
+    "initial_validation_nll": 9.02104938030243,
+    "validation": {
+      "nll": 6.298196077346802,
+      "perplexity": 543.5904300441898,
+      "sample_target_tokens": 16384
+    },
+    "train_targets_presented": 4096000,
+    "seconds": null,
+    "recovered_completed_training": true,
+    "recovery_export_seconds": 0.2966287449817173,
+    "deployment_tensor_bytes": 2272024,
+    "peak_cuda_bytes": 99708928,
+    "exact_coefficient_and_logit_roundtrip": true
+  },
+  {
+    "method": "polar_fp32",
+    "seed": 1,
+    "parameters": 697088,
+    "best_step": 2000,
+    "initial_validation_nll": 9.0208939909935,
+    "validation": {
+      "nll": 6.370182037353516,
+      "perplexity": 584.1641589104903,
+      "sample_target_tokens": 16384
+    },
+    "train_targets_presented": 4096000,
+    "seconds": 12.655323829996632,
+    "recovered_completed_training": false,
+    "recovery_export_seconds": null,
+    "deployment_tensor_bytes": 2788352,
+    "peak_cuda_bytes": 287056384,
+    "exact_coefficient_and_logit_roundtrip": true
+  },
+  {
+    "method": "mag4phase4",
+    "seed": 1,
+    "parameters": 697094,
+    "best_step": 2000,
+    "initial_validation_nll": 9.021870493888855,
+    "validation": {
+      "nll": 6.375084757804871,
+      "perplexity": 587.0351846468042,
+      "sample_target_tokens": 16384
+    },
+    "train_targets_presented": 4096000,
+    "seconds": 16.25874302900047,
+    "recovered_completed_training": false,
+    "recovery_export_seconds": null,
+    "deployment_tensor_bytes": 2272280,
+    "peak_cuda_bytes": 290872832,
+    "exact_coefficient_and_logit_roundtrip": true
+  },
+  {
+    "method": "real_fp32",
+    "seed": 2,
+    "parameters": 623296,
+    "best_step": 2000,
+    "initial_validation_nll": 9.036874890327454,
+    "validation": {
+      "nll": 6.288524925708771,
+      "perplexity": 538.3586241383933,
+      "sample_target_tokens": 16384
+    },
+    "train_targets_presented": 4096000,
+    "seconds": 8.257947159989271,
+    "recovered_completed_training": false,
+    "recovery_export_seconds": null,
+    "deployment_tensor_bytes": 2493184,
+    "peak_cuda_bytes": 281018368,
+    "exact_coefficient_and_logit_roundtrip": true
+  },
+  {
+    "method": "real8",
+    "seed": 2,
+    "parameters": 623302,
+    "best_step": 2000,
+    "initial_validation_nll": 9.03661024570465,
+    "validation": {
+      "nll": 6.287839353084564,
+      "perplexity": 537.9896666916922,
+      "sample_target_tokens": 16384
+    },
+    "train_targets_presented": 4096000,
+    "seconds": 11.53497809599503,
+    "recovered_completed_training": false,
+    "recovery_export_seconds": null,
+    "deployment_tensor_bytes": 2272024,
+    "peak_cuda_bytes": 282398720,
+    "exact_coefficient_and_logit_roundtrip": true
+  },
+  {
+    "method": "polar_fp32",
+    "seed": 2,
+    "parameters": 697088,
+    "best_step": 2000,
+    "initial_validation_nll": 9.024368584156036,
+    "validation": {
+      "nll": 6.373603701591492,
+      "perplexity": 586.1663960602874,
+      "sample_target_tokens": 16384
+    },
+    "train_targets_presented": 4096000,
+    "seconds": 12.523293256992474,
+    "recovered_completed_training": false,
+    "recovery_export_seconds": null,
+    "deployment_tensor_bytes": 2788352,
+    "peak_cuda_bytes": 289153536,
+    "exact_coefficient_and_logit_roundtrip": true
+  },
+  {
+    "method": "mag4phase4",
+    "seed": 2,
+    "parameters": 697094,
+    "best_step": 2000,
+    "initial_validation_nll": 9.02350389957428,
+    "validation": {
+      "nll": 6.383725970983505,
+      "perplexity": 592.129861212009,
+      "sample_target_tokens": 16384
+    },
+    "train_targets_presented": 4096000,
+    "seconds": 15.568398236006033,
+    "recovered_completed_training": false,
+    "recovery_export_seconds": null,
+    "deployment_tensor_bytes": 2272280,
+    "peak_cuda_bytes": 290872832,
+    "exact_coefficient_and_logit_roundtrip": true
+  }
+]

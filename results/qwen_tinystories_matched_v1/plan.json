@@ -1,0 +1,13 @@
+{
+  "dataset": "roneneldan/TinyStories",
+  "evaluation": "first 261,284 contiguous validation targets in 128-target blocks, identical target count/reset policy to WikiText-2",
+  "calibration": "eight fixed 128-target train windows",
+  "test_split_touched": false,
+  "methods": [
+    "bf16",
+    "task_real4",
+    "task_polar3_5",
+    "block_gptq_real4"
+  ],
+  "runtime_cap_seconds": 1800.0
+}

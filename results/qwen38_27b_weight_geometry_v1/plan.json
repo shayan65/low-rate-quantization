@@ -1,0 +1,8 @@
+{
+  "model": "Qwen/Qwen3.8-27B",
+  "source": "official BF16 safetensors shard 1",
+  "method": "256 evenly spaced actual rows per target tensor; full input width; 10 scale candidates per row; four fixed polar pairings",
+  "scope": "weight reconstruction only; no activations, task NLL, or full-model claim",
+  "payload": "actual equal-byte sampled-row payload including one FP32 row scale and one pairing-ID byte",
+  "runtime_seconds": 0.42143562401179224
+}
