@@ -463,3 +463,92 @@ thing to scale than one that costs 27.2%, and the §6 gate should be read
 against the new number. The §6 engineering conditions are unchanged: none of
 this provides resident packed inference, a compressed KV cache, or measured
 peak memory and latency at 27B.
+
+## 8. MLP feasibility: does the recipe transfer off the projections? (2026-09-21)
+
+Every result in §§1–5c was measured on `linear_attn.in_proj_qkv` alone — 15.1%
+of the parameters at 0.8B and **9.1% at 27B**. The MLPs are **63.5% of
+Qwen3.8-27B** and were entirely unmeasured, so the §6 conversion plan rested on
+an untested assumption: that a recipe fitted to DeltaNet input projections
+transfers to `gate/up/down`. `run_mlp_task_v1.py` is the cheap falsification,
+run before any 27B time is spent.
+
+All 72 MLP tensors (264,241,152 params, 35.1% of the 0.8B) are quantized while
+`in_proj_qkv` is held at BF16, isolating the MLP question. `down_proj` is
+(1024, 3584) and 3584 is not a multiple of the 1024-element Hadamard block, so
+it uses a 512-element block (3584 = 7×512); both block sizes were verified to
+round-trip and to satisfy the rotated-Hessian identity before the run.
+`gate_proj` and `up_proj` read the same tensor, and their independently
+captured Hessians agree to **exactly zero**, which validates the capture path.
+
+| Arm | bits/wt | weight MSE | act-weighted err | ΔNLL vs BF16 | 95% CI |
+|---|---:|---:|---:|---:|:--|
+| mlp_scalar3_rot | 1.7250 | 2.392e-05 | 3.561e-05 | $+2.119720$ | $[+2.106,+2.133]$ |
+| mlp_scalar3_rot_gptq | 1.7250 | 3.337e-05 | 1.125e-05 | $+0.658007$ | $[+0.652,+0.664]$ |
+| mlp_scalar3_g64_rot_gptq | 1.8500 | 3.327e-05 | 1.117e-05 | $+0.656502$ | $[+0.651,+0.662]$ |
+| mlp_vq4_rot_gptq | 1.7250 | 2.885e-05 | 9.537e-06 | $+0.552558$ | $[+0.547,+0.558]$ |
+| **mlp_vq8_rot_gptq** | 1.7282 | 2.679e-05 | 8.743e-06 | $\mathbf{+0.500777}$ | $[+0.495,+0.506]$ |
+| mlp_vq8_rot_gptq_pertype | 1.7345 | 2.687e-05 | 8.775e-06 | $+0.521963$ | $[+0.516,+0.528]$ |
+
+### The codec ordering transfers
+
+`mlp_vq8_rot_gptq` beats `mlp_scalar3_rot_gptq` by $-0.157230$
+$[-0.161835,-0.152538]$ — **23.9% less damage**, against 31.9% on the
+projections. Smaller, but far outside the interval. Storage dominance holds in
+the same strong form: it also beats `mlp_scalar3_g64_rot_gptq`, which stores
+6.4% *more* bytes, by $-0.155725$ $[-0.160014,-0.151299]$. At exact byte parity
+(1.7250 both), dim-4 wins by $-0.105449$ $[-0.110025,-0.100968]$, 16.0%.
+
+GPTQ's contribution is almost identical on both families: it removes **69.0%**
+of MLP damage against 68.3% on the projections. And the §5c finding that finer
+scalar groups buy nothing under compensation **replicates independently**:
+`scalar3_g64` vs `scalar3` is $+0.001504$ $[-0.002309,+0.005386]$, an interval
+**including zero**, for 6.4% more bytes.
+
+The go/no-go condition for §6 was whether the codec ordering survives off the
+projections. It does. But the absolute numbers change what §6 should expect.
+
+### Per-type codebooks are a negative result
+
+Fitting a separate codebook for `gate`/`up`/`down` is **worse**, by $+0.021186$
+$[+0.017102,+0.025162]$, *and* costs 0.37% more bytes — dominated on both axes.
+The motivating intuition was that `down_proj` reads the activated intermediate
+and so needs its own book. The measurement says the loss of effective sample
+size in each fit outweighs whatever distributional difference exists. One
+shared codebook across all 72 tensors is the right choice, which is also the
+cheaper one.
+
+### The number that should change expectations for 27B
+
+| | params | ΔNLL | per 1e9 params |
+|---|---:|---:|---:|
+| `in_proj_qkv` (§5c) | 113.2 M | $+0.077$ | 0.680 |
+| MLP (§8) | 264.2 M | $+0.501$ | **1.895** |
+
+MLP weights are **2.79x more damaging per parameter** at ternary rate. In
+perplexity: the projections alone cost $+8.0\%$, the MLPs alone cost
+$+65.0\%$, and if the two were additive a joint conversion would cost
+$+78.2\%$ — at 0.8B, where MLP is only 35.1% of the model. At 27B the MLP share
+is 63.5%, so the mix is worse, not better.
+
+**The conclusion is two-sided and both sides matter.** The codec result
+generalizes: shared-codebook dim-8 VQ beats learned scalar ternary on MLP
+weights, at or below parity bytes, under a competitive recipe, with the same
+storage-dominance property. But post-training quantization alone will not
+produce a *good* ternary 27B. A 65% perplexity cost on the MLPs is not a
+deployable model, and no amount of further codec work closes a gap that size —
+§5c already showed error compensation is worth 3x what the codec is worth, and
+compensation is already applied here.
+
+What this implies for §6, in order of expected value:
+
+1. **Mixed precision is now the obvious lever, not an afterthought.** The
+   2.79x per-parameter asymmetry is a direct instruction about where to spend
+   bits. A rate allocation across families, measured rather than assumed, is
+   likely worth more than anything left in codec design.
+2. **Quantization-aware training or distillation** is what the published
+   ternary models almost certainly rely on; §7 should not compare our PTQ
+   numbers against their trained ones as if they were the same procedure.
+3. The §6 engineering conditions are unchanged and still unmet: no resident
+   packed inference, no compressed KV cache, no measured peak memory or
+   latency at 27B.
