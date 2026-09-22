@@ -937,25 +937,42 @@ and calibration size from 16k to 131k tokens.
 
 Eight refits, complete validation stream, four arms each.
 
-| Contrast | median within-refit half-width | spread across draws | across seeds | across sizes |
+| Contrast | median half-width (text bootstrap) | range over 3 draws | over 3 seeds | over 4 sizes |
 |---|---:|---:|---:|---:|
-| VQ8 vs scalar | 0.002416 | 0.004255 (**1.76x**) | 0.005057 (**2.09x**) | 0.004474 (**1.85x**) |
-| VQ8 vs scalar g64 | 0.002416 | 0.007078 (**2.93x**) | 0.005057 (**2.09x**) | 0.007110 (**2.94x**) |
-| VQ8 vs VQ4 | 0.002324 | 0.003893 (**1.68x**) | 0.006350 (**2.73x**) | 0.011189 (**4.82x**) |
-| g64 vs g128 | 0.001983 | 0.005548 (**2.80x**) | 0.000000 (0.00x) | 0.007441 (**3.75x**) |
+| VQ8 vs scalar | 0.002416 | 0.004255 | 0.005057 | 0.004474 |
+| VQ8 vs scalar g64 | 0.002416 | 0.007078 | 0.005057 | 0.007110 |
+| VQ8 vs VQ4 | 0.002324 | 0.003893 | 0.006350 | 0.011189 |
+| g64 vs g128 | 0.001983 | 0.005548 | 0.000000 | 0.007441 |
 
-### The intervals understate uncertainty by roughly two to five fold
+### Two statistics, reported side by side rather than divided
 
-For every contrast and every factor, the spread produced by refitting the
-quantizer exceeds the bootstrap half-width that the paper reports — by 1.7x to
-4.8x. **The dominant source of uncertainty in these comparisons is not which
-text was evaluated but which quantizer was fitted**, and text-only intervals
-are the wrong summary to attach to them.
+An earlier draft divided these columns and called the quotient an uncertainty
+inflation factor, claiming the intervals "understate uncertainty two to five
+fold". **That is withdrawn.** A range over three point estimates and a
+bootstrap confidence-interval half-width are different statistics: one is the
+observed spread of a handful of refits, the other a quantile interval for a
+single estimate. Their ratio is not an inflation factor and carries no coverage
+interpretation. The two belong beside each other:
 
-The single zero is a check on the harness rather than an exception: the
-`g64 vs g128` contrast compares two scalar arms, whose codebooks come from a
-deterministic Lloyd pass, so a k-means seed cannot move it and the measured
-spread is exactly $0.000000$.
+* **conditional text-bootstrap intervals** — what every table in this document
+  reports, describing sampling of the evaluation text given one fitted
+  quantizer;
+* **observed effects across refits** — the ranges above.
+
+The calibration-size column is different in kind again. Going from 16k to 131k
+tokens changes the experimental condition; it is not a further draw from the
+same distribution, and the earlier draft's grouping of it with draw and seed as
+though all three were "refit noise" was a second error. It is a condition
+effect, and the monotone trend below is what a condition effect looks like.
+
+What the columns do support, without the arithmetic: **the effects observed
+across refits are of the same order as, and in several cases larger than, the
+text-bootstrap half-width.** A single six-decimal margin from one refit is
+quoted more precisely than the procedure warrants.
+
+The single zero remains a harness check: `g64 vs g128` compares two scalar arms
+fitted by a deterministic Lloyd pass, so a k-means seed cannot move it, and the
+measured range is exactly $0.000000$.
 
 ### What survives, and what does not
 
@@ -990,14 +1007,34 @@ Four nested sizes on one draw cannot establish it.
 ### Consequence for the paper
 
 Reported intervals stay, labelled as text-sampling variability conditional on
-one fitted quantizer, and refit ranges are reported beside them for the primary
-contrasts. The honest headline is the direction and a range, not a single
-six-decimal margin: on this target set, eight-dimensional VQ reduces damage
-relative to learned scalar ternary by **0.031 to 0.038 NLL across eight
-refits**, always in the same direction. A comparable measurement at 27B was not
-run — it would cost roughly eight times the frozen confirmation — so the 27B
-intervals should be read as conditional in exactly the same way, with their
-refit variability unmeasured.
+one fitted quantizer, with refit ranges beside them rather than folded into
+them. The honest headline is a direction and a range: on this target set,
+eight-dimensional VQ reduces damage relative to learned scalar ternary by
+**0.031 to 0.038 NLL across eight refits**, always in the same direction. A
+comparable measurement at 27B was not run, at roughly eight times the cost of
+the frozen confirmation, so the 27B intervals carry the same conditioning with
+their refit variability unmeasured.
+
+### Why finer scalar groups have no stable sign: a hypothesis
+
+The `g64 vs g128` contrast changes sign across refits and, in §13, across
+evaluation domains. The leading explanation is a mismatch between the local
+quantization objective and the final language-model loss, and it is specific to
+how the control is built rather than mysterious.
+
+Moving from g128 to g64 does not enlarge a solution space that contains the
+g128 solution. Group scales are *derived* (the absolute maximum of each group),
+not free parameters, so a g64 configuration cannot in general represent a g128
+one; and the shared three-level codebook is refit in g64-normalized space, so
+the reconstruction alphabet changes too. GPTQ then makes greedy sequential
+decisions against calibration activations on top of both changes. Spending more
+bytes on scale metadata therefore carries no guarantee of lower reconstruction
+error, let alone lower held-out loss.
+
+Calibration-dependent and domain-dependent sign changes are *consistent* with
+this account. They do not prove it. A direct test would hold the codebook fixed
+across group sizes and measure reconstruction error and held-out loss
+separately, which this project has not done.
 
 ## 13. Generalization: fixed quantizer, varied evaluation (2026-09-22)
 
@@ -1036,40 +1073,61 @@ about 2.7x a typical bootstrap half-width — real variation, though these are
 different texts with different baselines rather than repeated measurements of
 one quantity, so this is not an error term in the sense §12's refit spread is.
 
-### Long context does not degrade the result
+### Context extension to 2048 tokens: no reversal, but the advantage shrinks
 
-This was the worry that motivated the check, and it is not borne out. Absolute
-damage is essentially flat in context length — scalar ternary costs $0.121115$
-at 128 tokens, $0.116657$ at 512 and $0.115984$ at 2048 — and the VQ8 advantage
-survives at every length ($-0.031832$ at 2048, excluding zero). The 128-token
-reset protocol was not concealing a long-context failure in these projections.
-Two caveats: longer blocks mean fewer bootstrap units (128 blocks at 2048
-tokens), and BF16 loss itself falls with context, so the same absolute damage
-is a larger relative cost at 2048.
+This was the worry that motivated the check, and the ordering survives: VQ8
+beats scalar at every context length, excluding zero at 2048. But the earlier
+draft's "does not degrade" was too strong. VQ8's advantage falls from
+$0.038806$ at 128 tokens to $0.031832$ at 2048 — about **18% smaller** — while
+its own damage rises slightly, $0.082309$ to $0.084152$. Aggregate damage is
+roughly flat (scalar ternary $0.121115 \to 0.115984$).
 
-### Domain shift raises damage, and the vector code absorbs it better
+The defensible statement is narrow: **no ordering reversal and no large
+increase in aggregate quantization damage was observed through 2048 tokens.**
+That is useful evidence and it is not evidence of absence of recurrent-state
+drift. Aggregate NLL over a long block averages over positions and would hide a
+drift that grows with position. Position-resolved loss, or direct comparison of
+recurrent state between the BF16 and quantized models, would address the
+mechanism; neither was run.
 
-On TinyStories every arm is hurt far more than on wikitext — scalar ternary
-costs $0.182354$ against $0.121115$ — which is the expected price of
-calibrating on one domain and evaluating on another. The interesting part is
-that the gap *widens* in VQ8's favour: $-0.043775$ against $-0.038806$ in
-domain, and $-0.054717$ against the g64 control. A wikitext-calibrated
-eight-dimensional codebook degrades less under domain shift than a
-wikitext-calibrated scalar code, which is the opposite of the natural worry
-that a large learned codebook would be the more domain-specific object.
+A correction to the earlier draft: it claimed that because BF16 loss falls with
+context, the same absolute damage is "a larger relative cost at 2048". That is
+wrong. The relative perplexity penalty is $\exp(\Delta\mathrm{NLL}) - 1$ and
+depends on $\Delta\mathrm{NLL}$ alone — $12.88\%$ at 128 tokens and $12.30\%$
+at 2048. Only when expressed as a percentage *of baseline NLL* does a lower
+baseline inflate it, and that is a different quantity.
 
-### The scalar group-size contrast fails once more, in a new way
+### Domain shift: absolute advantage grows, proportional advantage shrinks
 
-`g64 vs g128` includes zero on four of five sets — and on TinyStories it
-**excludes zero with the wrong sign** ($+0.010942$): spending 7.25% more bytes
-on finer scalar groups actively *hurts* on out-of-domain text. With §12's sign
-flip across refits, the position is now that this contrast is refit-dependent
-*and* domain-dependent and has never been reliably beneficial. No claim about
-finer scalar groups is supportable in either direction.
+On TinyStories every arm is hurt far more than on wikitext. Both framings are
+legitimate measurements and they point in opposite directions, so both belong
+in the table:
+
+| | WikiText test | TinyStories |
+|---|---:|---:|
+| scalar damage | 0.121115 | 0.182354 |
+| VQ8 damage | 0.082309 | 0.138579 |
+| VQ8 absolute advantage | 0.038806 | **0.043775** |
+| fraction of scalar damage removed | **32.0%** | 24.0% |
+
+The earlier draft reported only the first of these and concluded that the
+vector code "absorbs domain shift better". **That wording is withdrawn.** The
+absolute advantage grows; the proportional advantage shrinks from 32.0% to
+24.0%.
+
+A second overreach: higher damage on TinyStories does not establish that
+*calibration mismatch* caused it. TinyStories may simply be more sensitive to
+these weight perturbations for reasons unrelated to where the Hessians came
+from. Isolating mismatch needs two calibration domains crossed with two
+evaluation domains, everything else fixed — four cells, all cheap at 0.8B, and
+not run here. Until then the observation is that damage is higher
+out-of-domain, with the cause unattributed.
 
 ### Scope
 
-One model, one calibration corpus, two evaluation corpora, four context
-lengths, a single fitted quantizer. It does not establish that the ordering
-holds on other model families, other calibration domains, or at 27B, where
-neither the domain nor the context axis was measured.
+One model, one calibration corpus, a single fitted quantizer, and five
+evaluation configurations that are **two corpora and three context lengths, not
+five independent replications** — the three wikitext-test rows share their text
+and differ only in blocking. It does not establish that the ordering holds on
+other model families, other calibration domains, or at 27B, where neither the
+domain nor the context axis was measured.

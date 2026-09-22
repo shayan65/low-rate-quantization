@@ -80,6 +80,11 @@ random.
 activation-weighted error each predict loss inside the regime where they are
 fitted and fail outside it; a self-consistent calibration loop is unnecessary
 because the dependency graph is acyclic.
+\item \textbf{Robustness of the main result.} On these 0.8B DeltaNet
+projections the eight-dimensional code's advantage survives refitting over
+calibration draws and seeds, held-out text, a second domain, and context
+extension through 2048 tokens. Its magnitude varies across those conditions,
+and finer scalar grouping shows no consistent benefit in any of them.
 \end{enumerate}
 
 \section{What this paper does not establish}
@@ -165,6 +170,7 @@ textbook scalar GPTQ, and our test suite verifies it does so bit-exactly against
 an independently written reference. We regard this as a routine generalization.
 
 \section{Results}
+\label{sec:results}
 
 \input{generated/tab_primary.tex}
 \input{generated/tab_v4_arms.tex}
@@ -285,19 +291,28 @@ additionally re-decodes each artifact from disk.
 
 \textbf{Statistical scope.} Intervals measure text-sampling variability
 conditional on one fitted quantizer, and that conditioning is load-bearing.
-Refitting the quantizer over three calibration draws, three codebook seeds and
-four calibration sizes moves every contrast by $1.7$ to $4.8$ times the
-bootstrap half-width, so the dominant uncertainty is which quantizer was fitted
-rather than which text was evaluated. Directions survive --- the vector code
-wins in all eight refits on all three primary contrasts --- but magnitudes
-should be read as ranges over refits ($-0.031$ to $-0.038$ for VQ8 against
-scalar), not as single intervals. The scalar group-size contrast changes sign
-across refits, which is why every reading of it here is inconclusive. The 27B
-intervals carry the same conditioning, with refit variability unmeasured
-there. Adjacent 128-target blocks may be dependent even with
-state reset, so block-bootstrap intervals may be optimistic. Validation text has
-guided many decisions in this project, so the confirmation run freezes the
-recipe and prespecifies its contrasts.
+Refitting over three calibration draws and three codebook seeds produces
+ranges of the same order as, and in several cases larger than, the
+text-bootstrap half-width; calibration size is reported separately again, as a
+condition change rather than a further sample. We report the two statistics
+side by side and do not divide them: a range over a handful of refits and a
+bootstrap half-width are different quantities, and their ratio has no coverage
+interpretation. Directions survive --- the vector code wins in all eight refits
+on all three primary contrasts --- but a single six-decimal margin from one
+refit is more precise than the procedure warrants, so magnitudes are quoted as
+ranges ($-0.031$ to $-0.038$ for VQ8 against scalar). The scalar group-size
+contrast changes sign across refits and across evaluation domains. The 27B
+intervals carry the same conditioning, with refit variability unmeasured there.
+
+\textbf{Generalization scope.} The five evaluation configurations in
+Section~\ref{sec:results} are two corpora and three context lengths, not five
+independent replications; the three wikitext-test rows share their text. No
+ordering reversal and no large increase in aggregate damage was observed
+through 2048 tokens, which is not evidence of absence of recurrent-state drift
+--- aggregate loss averages over positions, and position-resolved loss was not
+measured. Higher damage out of domain is reported without attributing it to
+calibration mismatch; isolating that needs two calibration domains crossed with
+two evaluation domains, which was not run.
 
 \begin{thebibliography}{9}
 \bibitem{gptvq} GPTVQ: The Blessing of Dimensionality for LLM Quantization.
