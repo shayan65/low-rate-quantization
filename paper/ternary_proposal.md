@@ -707,28 +707,37 @@ the curve is a property of the codec.
 | 565 | 2.286 | 2.4108 | 113.76 | 1.850e-05 | $+0.230274$ | $+25.9\%$ |
 | 1625 | 2.667 | 2.7920 | 131.74 | 1.111e-05 | $+0.121974$ | $+13.0\%$ |
 | 7131 | 3.200 | 3.3262 | 156.95 | 5.533e-06 | $+0.060716$ | $+6.3\%$ |
+| **65535** | **4.000** | 4.1361 | 195.17 | 1.522e-06 | $\mathbf{+0.018572}$ | $+1.9\%$ |
 
 ### No knee is visible over the measured interval
 
-Damage halves every **0.451, 0.507, 0.416 and 0.530 bits** across the four
-intervals — a mean of 0.476 with no systematic drift. Over this range the
-decline is well described by
+Damage halves every **0.451, 0.506, 0.416, 0.530 and 0.468 bits** across the
+five intervals — a mean of 0.474 with no systematic drift over a $2.40\times$
+range of stored bytes (81.40 to 195.17 MB) and 2.4 bits of rate. Over this
+range the decline is well described by
 
-$$\Delta\text{NLL}\;\approx\;0.629\cdot 2^{-(r-1.600)/0.476},$$
+$$\Delta\text{NLL}\;\approx\;0.629\cdot 2^{-(r-1.600)/0.474}.$$
 
-across a **1.93x** range of stored bytes (81.40 to 156.95 MB). Within the
-measured interval there is no visible knee, so on this checkpoint at this
-coverage the rate choice behaves like a budget decision at a roughly constant
-exchange rate: 1.6 bits instead of 3.2 saves 1.93x the storage and costs 10.4x
-the damage, smoothly.
+Within the measured interval there is no visible knee, so on this checkpoint at
+this coverage the rate choice behaves like a budget decision at a roughly
+constant exchange rate. Scope: six rates on one model, one 50.2% target set and
+one corpus. That supports "approximately exponential over this interval" and
+nothing stronger; it does not establish that no knee exists outside it, at other
+coverages or on other checkpoints, and an earlier draft overreached by saying no
+experiment could find one.
 
-Scope: five rates from 1.600 to 3.200 index bits, one model, one 50.2% target
-set, one validation corpus. That supports "approximately exponential over this
-interval" and nothing stronger. It does not establish that no knee exists
-outside the interval, at other coverages or on other checkpoints, and an
-earlier draft of this section overreached by saying no experiment could find
-one. A four-bit point on *these* tensors is missing; the historical QKV-only
-four-bit measurement is a different target set and cannot fill the gap.
+**The four-bit point, measured on these tensors.** The review noted that a
+four-bit rung was missing and that the historical QKV-only measurement could not
+fill the gap. It is now measured: $+0.018572$ NLL, $+1.87\%$ perplexity, at
+4.136 total bits/weight over 50.2% of parameters. The historical figure is
+$+0.008393$ ($+0.84\%$ perplexity) over 15.1% of parameters — a different target
+set, roughly a third of the coverage, and not a substitute for this point. The
+earlier omission was also not the judgement call the first draft claimed: a
+fixed 200,000-point chunk in the nearest-neighbour search asks for 52 GB of
+distance buffer at $K=65535$, and the rung became affordable only once that
+buffer was sized against the codebook. The reduction triggers above 6 GB, so
+all six smaller rungs reproduce **bit-identically** ($\Delta = 0$ to nine
+decimals).
 
 A smaller free observation: K=84 beats K=81 by $-0.008581$ at *identical*
 1.600 bits/weight, because 84 is the largest codebook the 10-codes-per-word

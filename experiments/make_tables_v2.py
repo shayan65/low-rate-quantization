@@ -28,7 +28,7 @@ RUNS = {
     "v4": ("ternary_task_v4", "0.8B, GPTQ recipe"),
     "mlp": ("mlp_task_v1", "0.8B MLP, GPTQ recipe"),
     "alloc": ("mixed_alloc_v1", "0.8B, allocation"),
-    "rate": ("rate_curve_v1", "0.8B, rate sweep"),
+    "rate": ("rate_curve_v2", "0.8B, rate sweep incl. four bits"),
     "q27": ("qwen38_confirm_v1", "27B, GPTQ recipe"),
     "q27b": ("qwen38_confirm_v2", "27B, GPTQ recipe, frozen full stream"),
 }
@@ -105,7 +105,8 @@ def rate_table():
     hi = max(a["stored_bytes"] for a in r["arms"].values())
     L += [r"\bottomrule", r"\end{tabular}",
           f"\\caption{{Uniform rate sweep at fixed coverage (50.2\\% of parameters), "
-          f"dimension 4 throughout so rate varies alone. Stored-byte range "
+          f"dimension 4 throughout so rate varies alone; six rates from 1.600 to "
+          f"4.000 index bits. Stored-byte range "
           f"{hi / lo:.2f}$\\times$. Source: \\texttt{{results/{RUNS['rate'][0]}}}; "
           f"BF16 NLL {r['bf16']['nll']:.6f}.}}",
           r"\label{tab:rate}", r"\end{table}", ""]

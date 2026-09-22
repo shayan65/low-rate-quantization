@@ -33,9 +33,9 @@ factors dominate that codec choice. GPTQ-style error compensation removes
 $68$--$69\%$ of the damage on both tensor families, roughly three times what the
 codec contributes, and it does so while \emph{raising} plain weight MSE, which
 inverts the proxy the earlier literature and our own earlier drafts relied on.
-Index rate dominates in turn: over $1.6$ to $3.2$ bits, damage falls
-approximately exponentially, halving about every $0.48$ bits, with no knee
-visible in the measured interval. Coverage matters more than any of them --- MLP
+Index rate dominates in turn: over $1.6$ to $4.0$ bits, damage falls
+approximately exponentially, halving about every $0.47$ bits, with no knee
+visible across a $2.4\times$ range of stored bytes. Coverage matters more than any of them --- MLP
 weights are $2.79\times$ more damaging per parameter than the projections --- and
 a Hessian-derived per-tensor ranking intended to exploit that fact performs
 \emph{worse than random selection} of the same byte budget, the second
@@ -210,13 +210,16 @@ cross terms.
 
 \subsection{Rate dominates compensation}
 
-Over $1.600$ to $3.200$ index bits at fixed $50.2\%$ coverage, damage halves
-every $0.451$, $0.507$, $0.416$ and $0.530$ bits --- approximately exponential
-across a $1.93\times$ range of payload bytes, with no knee visible
-(Table~\ref{tab:rate}). Five rates on one checkpoint at one coverage support
-``approximately exponential over this interval'' and nothing stronger; a
-matched four-bit point on these same tensors is missing and would be the single
-most informative addition.
+Over $1.600$ to $4.000$ index bits at fixed $50.2\%$ coverage, damage halves
+every $0.451$, $0.506$, $0.416$, $0.530$ and $0.468$ bits --- approximately
+exponential across a $2.40\times$ range of payload bytes, with no knee visible
+(Table~\ref{tab:rate}). Six rates on one checkpoint at one coverage support
+``approximately exponential over this interval'' and nothing stronger.
+
+The four-bit point is measured on these same tensors: $+0.018572$ NLL,
+$+1.87\%$ perplexity. It is \emph{not} interchangeable with the historical
+four-bit figure of $+0.008393$, which covers 15.1\% of parameters rather than
+$50.2\%$.
 
 \subsection{Coverage dominates rate, and cannot be exploited by ranking}
 
