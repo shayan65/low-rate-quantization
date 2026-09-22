@@ -675,3 +675,75 @@ of the rate–distortion curve, and the distance from 1.6 to 2.0 bits buys
 considerably more than every codec refinement in this project combined. The
 codec contribution is real, replicated and essentially free in bytes, but it is
 a 6.6% effect sitting on top of a 68% one.
+
+## 10. The rate–distortion curve above ternary, and a premise worth re-examining (2026-09-22)
+
+Section 9's ladder stopped at 2.000 bits because that was all the allocation
+study needed, leaving the region between 2 and 4 bits unmeasured — which is
+where a *usable* model is most likely to live. `run_rate_curve_v1.py` sweeps
+uniform rate over the same 90 tensors (50.2% of the model) with everything else
+fixed: dimension-4 codes, rotation, FP16 group scales, GPTQ compensation,
+storage measured from packed bytes, weights decoded back from them.
+
+Rungs come from the packing itself. With $c$ codes per `uint64` at dimension
+$d$ the rate is exactly $64/(cd)$, and the best code at that rate takes the
+largest $K$ with $K^{c}<2^{64}$. Every rung's packed rate matches
+$\log_2 K/4$ to three decimals, so the container wastes essentially nothing and
+the curve is a property of the codec.
+
+| K | index bpw | total bpw | stored MB | weight MSE | ΔNLL vs BF16 | perplexity |
+|---:|---:|---:|---:|---:|---:|---:|
+| 81 | 1.600 | 1.7250 | 81.40 | 4.589e-05 | $+0.637829$ | $+89.2\%$ |
+| 84 | 1.600 | 1.7250 | 81.40 | 4.511e-05 | $+0.629249$ | $+87.6\%$ |
+| 255 | 2.000 | 2.1250 | 100.27 | 2.700e-05 | $+0.340476$ | $+40.6\%$ |
+| 565 | 2.286 | 2.4108 | 113.76 | 1.850e-05 | $+0.230274$ | $+25.9\%$ |
+| 1625 | 2.667 | 2.7920 | 131.74 | 1.111e-05 | $+0.121974$ | $+13.0\%$ |
+| 7131 | 3.200 | 3.3262 | 156.95 | 5.533e-06 | $+0.060716$ | $+6.3\%$ |
+
+### There is no knee
+
+Damage halves every **0.451, 0.507, 0.416 and 0.530 bits** across the four
+intervals — a mean of 0.476 with no systematic drift. The curve is a clean
+exponential,
+
+$$\Delta\text{NLL}\;\approx\;0.629\cdot 2^{-(r-1.600)/0.476},$$
+
+over a 2.6x range of stored bytes. **There is no structurally preferred
+operating point.** This is a useful negative result: it means no experiment
+will ever identify "the right rate," because rate is a pure budget decision
+with a constant exchange rate, not a property of the model to be discovered.
+Choosing 1.6 bits over 3.2 buys a 1.93x storage reduction and costs 10.4x the
+damage, and that trade is smooth all the way along.
+
+A smaller free observation: K=84 beats K=81 by $-0.008581$ at *identical*
+1.600 bits/weight, because 84 is the largest codebook the 10-codes-per-word
+packing admits. Section 9's K=81 left that on the table.
+
+### The premise worth re-examining
+
+The 27B target has always been a 24 GiB card, and ternary was adopted to reach
+it. With the parameter census from §7 — 27.78 B total, 2.55 B of embeddings —
+a full-coverage conversion at rate $r$, embeddings kept at FP16, costs:
+
+| rate | model size | fits 24 GiB? |
+|---:|---:|:--|
+| 1.600 | 10.1 GB | yes |
+| 2.000 | 11.4 GB | yes |
+| 2.667 | 13.5 GB | yes |
+| 3.200 | 15.2 GB | yes |
+| 4.000 | 17.7 GB | yes |
+
+**Every rate on the ladder fits, with room to spare.** Four-bit weights leave
+6 GB of headroom on the card, and this project's earlier work measured damage
+at 4 bits of 0.24%. Ternary was never required by the stated constraint; it was
+required by an assumption about the constraint that nobody checked, and the
+whole ternary arc has been solving a problem that the hardware does not pose.
+
+That does not retract the codec result. Dimension-8 vector quantization beating
+learned scalar ternary at parity bytes is real, replicated on two tensor
+families, and robust to a competitive recipe — it is a genuine finding about
+low-rate codecs. But it should be presented as a finding about codecs at
+extreme rates, not as the route to a deployable 27B model on this hardware. For
+that goal the evidence now points somewhere much duller: quantize at 3 to 4
+bits, where damage is 0.06 NLL or less, and spend the engineering effort on the
+packed inference kernel that §6 still lacks.
