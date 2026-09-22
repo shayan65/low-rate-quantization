@@ -1,0 +1,18 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{llrlr}
+\toprule
+Contrast & Run & $\Delta$NLL & 95\% CI & byte ratio \\
+\midrule
+VQ8 vs scalar (0.8B) & 0.8B, GPTQ recipe & $-0.036118$ & $[-0.038414, -0.033768]$ & 1.00430 \\
+VQ8 vs scalar (27B) & 27B, GPTQ recipe & $-0.003957$ & $[-0.006805, -0.001083]$ & 1.00019 \\
+VQ4 vs scalar (0.8B) & 0.8B, GPTQ recipe & $-0.024667$ & $[-0.027041, -0.022348]$ & 1.00003 \\
+VQ4 vs scalar (27B) & 27B, GPTQ recipe & $-0.003776$ & $[-0.006495, -0.001045]$ & 1.00000 \\
+VQ8 vs scalar g64 (0.8B) & 0.8B, GPTQ recipe & $-0.034303$ & $[-0.036660, -0.031971]$ & 0.93644 \\
+VQ8 vs scalar g64 (27B) & 27B, GPTQ recipe & $-0.001736$ & $[-0.004444, +0.000923]$ & 0.93261 \\
+\bottomrule
+\end{tabular}
+\caption{Primary and secondary contrasts, matched recipe across checkpoints. The 0.8B rows come from the GPTQ run, not the earlier uncompensated one. Each row names the run it comes from; rows from different runs are not matched comparisons. Byte ratios are printed to five decimals because ``byte-matched'' here means near-equal payload, not literal parity.}
+\label{tab:primary}
+\end{table}

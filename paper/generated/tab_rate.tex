@@ -1,0 +1,18 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{rrrrrl}
+\toprule
+$K$ & index bpw & total bpw & payload MB & $\Delta$NLL & 95\% CI \\
+\midrule
+81 & 1.600 & 1.7250 & 81.40 & $+0.637829$ & $[+0.628446, +0.647323]$ \\
+84 & 1.600 & 1.7250 & 81.40 & $+0.629249$ & $[+0.619764, +0.638577]$ \\
+255 & 2.000 & 2.1250 & 100.27 & $+0.340476$ & $[+0.334386, +0.346756]$ \\
+565 & 2.286 & 2.4108 & 113.76 & $+0.230274$ & $[+0.225334, +0.235236]$ \\
+1625 & 2.667 & 2.7920 & 131.74 & $+0.121974$ & $[+0.118594, +0.125236]$ \\
+7131 & 3.200 & 3.3262 & 156.95 & $+0.060716$ & $[+0.058676, +0.062752]$ \\
+\bottomrule
+\end{tabular}
+\caption{Uniform rate sweep at fixed coverage (50.2\% of parameters), dimension 4 throughout so rate varies alone. Stored-byte range 1.93$\times$. Source: \texttt{results/rate_curve_v1}; BF16 NLL 3.436710.}
+\label{tab:rate}
+\end{table}

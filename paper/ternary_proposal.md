@@ -163,6 +163,13 @@ Do not interpret BF16 evaluation throughput as packed-kernel speed.
 
 ## 5b. Corrected experiment: results (2026-09-21)
 
+> **Byte-matching convention (revised 2026-09-22).** Comparisons described as
+> byte-matched are *near-equal payload bytes*, not literal parity. Dimension-4
+> VQ costs +0.0029% over scalar ternary at 0.8B and +0.00012% at 27B;
+> dimension-8 costs +0.43% and +0.0193%. Payload counts indices plus FP16
+> group scales plus the shared codebook; they are not complete-file byte
+> counts, and §11's v2 runner reports both.
+
 Raw: `results/ternary_task_v3/`. The corrected protocol of section 4 has now
 been executed. Every arm asserts `decode(encode(w))` is bit-exact, bits/weight
 is computed from `len(bytes)`, and the evaluation covers the complete
@@ -184,7 +191,8 @@ count as a full one.
 that stores **6.4% more** bytes than the dim-8 VQ arm — dim-8 VQ is $-0.113585$
 NLL, CI $[-0.117539,-0.109645]$. It wins while storing strictly less.
 
-**At exact byte parity**, dim-4 VQ (ratio 1.0000 against scalar3 g128) is
+**At near-equal payload bytes** (dim-4 VQ stores 714 bytes more than scalar3
+g128, +0.0029%), dim-4 VQ is
 $-0.098443$, CI $[-0.102171,-0.094707]$: **27.6% less damage for identical
 bytes.** dim-8 VQ reaches 32.6% at +0.43% bytes.
 
@@ -386,7 +394,7 @@ essentially unchanged**. So the two mechanisms are close to independent, and
 the objection that VQ was only recovering what compensation recovers is
 answered: it is not.
 
-At exact byte parity (ratio $1.0000$), `vq4_rot_gptq` beats `scalar3_rot_gptq`
+At near-equal payload bytes (+0.0029%), `vq4_rot_gptq` beats `scalar3_rot_gptq`
 by $-0.024667$ $[-0.027041,-0.022348]$, or 21.8% less damage — down from 27.6%
 in the stripped recipe, so dimension-4 does lose some ground to compensation
 even though dimension-8 does not.
@@ -496,7 +504,7 @@ captured Hessians agree to **exactly zero**, which validates the capture path.
 $[-0.161835,-0.152538]$ — **23.9% less damage**, against 31.9% on the
 projections. Smaller, but far outside the interval. Storage dominance holds in
 the same strong form: it also beats `mlp_scalar3_g64_rot_gptq`, which stores
-6.4% *more* bytes, by $-0.155725$ $[-0.160014,-0.151299]$. At exact byte parity
+6.4% *more* bytes, by $-0.155725$ $[-0.160014,-0.151299]$. At near-equal bytes
 (1.7250 both), dim-4 wins by $-0.105449$ $[-0.110025,-0.100968]$, 16.0%.
 
 GPTQ's contribution is almost identical on both families: it removes **69.0%**
@@ -700,44 +708,71 @@ the curve is a property of the codec.
 | 1625 | 2.667 | 2.7920 | 131.74 | 1.111e-05 | $+0.121974$ | $+13.0\%$ |
 | 7131 | 3.200 | 3.3262 | 156.95 | 5.533e-06 | $+0.060716$ | $+6.3\%$ |
 
-### There is no knee
+### No knee is visible over the measured interval
 
 Damage halves every **0.451, 0.507, 0.416 and 0.530 bits** across the four
-intervals — a mean of 0.476 with no systematic drift. The curve is a clean
-exponential,
+intervals — a mean of 0.476 with no systematic drift. Over this range the
+decline is well described by
 
 $$\Delta\text{NLL}\;\approx\;0.629\cdot 2^{-(r-1.600)/0.476},$$
 
-over a 2.6x range of stored bytes. **There is no structurally preferred
-operating point.** This is a useful negative result: it means no experiment
-will ever identify "the right rate," because rate is a pure budget decision
-with a constant exchange rate, not a property of the model to be discovered.
-Choosing 1.6 bits over 3.2 buys a 1.93x storage reduction and costs 10.4x the
-damage, and that trade is smooth all the way along.
+across a **1.93x** range of stored bytes (81.40 to 156.95 MB). Within the
+measured interval there is no visible knee, so on this checkpoint at this
+coverage the rate choice behaves like a budget decision at a roughly constant
+exchange rate: 1.6 bits instead of 3.2 saves 1.93x the storage and costs 10.4x
+the damage, smoothly.
+
+Scope: five rates from 1.600 to 3.200 index bits, one model, one 50.2% target
+set, one validation corpus. That supports "approximately exponential over this
+interval" and nothing stronger. It does not establish that no knee exists
+outside the interval, at other coverages or on other checkpoints, and an
+earlier draft of this section overreached by saying no experiment could find
+one. A four-bit point on *these* tensors is missing; the historical QKV-only
+four-bit measurement is a different target set and cannot fill the gap.
 
 A smaller free observation: K=84 beats K=81 by $-0.008581$ at *identical*
 1.600 bits/weight, because 84 is the largest codebook the 10-codes-per-word
 packing admits. Section 9's K=81 left that on the table.
 
-### The premise worth re-examining
+### A premise worth testing — but not yet tested
 
 The 27B target has always been a 24 GiB card, and ternary was adopted to reach
-it. With the parameter census from §7 — 27.78 B total, 2.55 B of embeddings —
-a full-coverage conversion at rate $r$, embeddings kept at FP16, costs:
+it. That motivation deserves scrutiny, but the arithmetic below is a **storage
+estimate, not a measured deployment result**, and an earlier draft of this
+section presented it as though it were the latter.
 
-| rate | model size | fits 24 GiB? |
+Using the safetensors census (27.78 B parameters including the vision tower;
+the runner's text-model census is 26.896 B, and the two are not reconciled
+here), with embeddings retained at FP16 and *ignoring* scale, codebook and
+header overhead as well as any retained modules:
+
+| rate | estimated weight bytes | under 24 GiB? |
 |---:|---:|:--|
-| 1.600 | 10.1 GB | yes |
-| 2.000 | 11.4 GB | yes |
-| 2.667 | 13.5 GB | yes |
-| 3.200 | 15.2 GB | yes |
-| 4.000 | 17.7 GB | yes |
+| 1.600 | 10.1 GB (9.4 GiB) | yes |
+| 2.000 | 11.4 GB (10.6 GiB) | yes |
+| 2.667 | 13.5 GB (12.6 GiB) | yes |
+| 3.200 | 15.2 GB (14.2 GiB) | yes |
+| 4.000 | 17.7 GB (16.5 GiB) | yes |
 
-**Every rate on the ladder fits, with room to spare.** Four-bit weights leave
-6 GB of headroom on the card, and this project's earlier work measured damage
-at 4 bits of 0.24%. Ternary was never required by the stated constraint; it was
-required by an assumption about the constraint that nobody checked, and the
-whole ternary arc has been solving a problem that the hardware does not pose.
+Three things this does **not** establish. First, packed weights fitting in VRAM
+is not execution fitting: the KV cache, DeltaNet recurrent state, activations,
+kernel workspaces and decoding buffers are all unmeasured here. Second, the
+quality of a full-coverage conversion at any of these rates has never been
+measured — §8 measured MLP damage only at ternary on a 0.8B model, and §11
+measured 27B damage only on the 9.36% QKV subset. Third, and most importantly:
+
+> **Withdrawn.** An earlier draft asserted that four-bit weights give a
+> deployable 27B at 0.24% damage. The +0.008393 NLL figure behind that number
+> is a **0.8B, projection-subset** measurement (§2). It is 0.24% *of baseline
+> NLL* and 0.84% *relative perplexity* — two different quantities that the
+> draft conflated — and it is not a 27B result, not a full-coverage result,
+> and not a runtime result.
+
+What survives is narrower and still worth saying: the storage arithmetic gives
+no reason to believe ternary is *forced* by a 24 GiB budget, and a matched
+four-bit measurement on the §9 90-tensor set would be cheap and would settle
+far more than another low-rate variant. Until that is run, deployment remains
+motivation and estimate, not result.
 
 That does not retract the codec result. Dimension-8 vector quantization beating
 learned scalar ternary at parity bytes is real, replicated on two tensor
@@ -764,51 +799,84 @@ tensor, and all four passed.
 | vq4_rot_gptq | 1.7250 | 542.6 | 6.400e-05 | $+0.006439$ |
 | **vq8_rot_gptq** | 1.7253 | 542.7 | 5.947e-05 | $\mathbf{+0.006258}$ |
 
-### The parity-byte result transfers
+### The near-equal-byte result transfers
 
-At byte parity, dimension-8 VQ beats learned scalar ternary by $-0.003957$
-$[-0.006805,-0.001083]$, excluding zero — **38.7% less damage**, against 31.9%
-at 0.8B. Dimension-4 at exactly equal bytes gives $-0.003776$
-$[-0.006495,-0.001045]$, 37.0%. The weight-MSE ordering again matches the NLL
-ordering within this fixed recipe. **The central claim survives a 32x scale
-jump.**
+At **near-equal payload bytes**, dimension-8 VQ beats learned scalar ternary by
+$-0.003957$ NLL, paired block-bootstrap 95% CI $[-0.006805,-0.001083]$. The
+byte match is close but not literal: VQ8 stores 542,743,056 bytes against
+scalar's 542,638,086, **0.0193% more**; VQ4 differs by 642 bytes (0.00012%).
+Earlier drafts called this "exact parity", which the accounting does not
+support. Dimension-4 gives $-0.003776$ $[-0.006495,-0.001045]$.
 
-### The storage-dominance result does not
+The ratios — 38.7% and 37.0% less damage — are descriptive ratios of point
+estimates, quoted after the absolute contrast rather than instead of it; their
+uncertainty is not bootstrapped jointly here. The weight-MSE ordering again
+matches the NLL ordering within this fixed recipe. **The direction of the
+small-model comparison reproduces on this larger checkpoint under the evaluated
+protocol.**
 
-At 0.8B the stronger claim also held: dimension-8 VQ beat a scalar control
-spending 6.4% *more* bytes, by $-0.113585$, decisively. At 27B the same
-comparison is $-0.001736$ $[-0.004444,+0.000923]$ — the interval **includes
-zero**. The sign is right and the point estimate favours VQ, but this is a tie,
-not a win, and it must be reported as one.
+### The storage-dominance result is inconclusive at 27B
 
-The cause is not a failure of the codec but the shrinking of everything being
-measured. Ternary scalar quantization of 9.36% of a 27B model costs only
-$+0.010215$ NLL — **9.0% of the corresponding 0.8B damage**, or $+1.03\%$
-perplexity against $+0.63\%$ for dimension-8 VQ. All margins shrink with it,
-into the resolution of a 65,536-target evaluation whose paired interval has a
-half-width of about $0.0027$.
+The stronger claim is that VQ8 also beats a scalar control spending *more*
+bytes. Comparing like with like — the matched GPTQ recipe, not the earlier
+uncompensated run — that margin at 0.8B is $-0.034303$
+$[-0.036660,-0.031971]$ at a byte ratio of 0.9364. (An earlier draft quoted
+$-0.113585$ here, which belongs to `ternary_task_v3` **without** GPTQ and is
+not comparable to the 27B number.)
 
-This is a resolution limit, not a refutation, and the arithmetic says what it
-would take to settle: the full 261,284-target stream would shrink the
-half-width to roughly $0.0013$, which would exclude zero for a $-0.0017$ margin
-**only just**. A definitive answer needs either the full stream or more
-evaluation data than wikitext-2 validation contains.
+At 27B the same comparison is $-0.001736$ $[-0.004444,+0.000923]$ — the
+interval **includes zero**. The point estimate favours VQ8 and the sign is
+right, but the comparison is **inconclusive**: failing to reject zero is not
+evidence of equivalence, and no equivalence margin was prespecified.
+
+Everything being measured is smaller here. Ternary scalar quantization of 9.36%
+of this 27B checkpoint costs $+0.010215$ NLL — $+1.03\%$ perplexity, against
+$+0.63\%$ for VQ8 — which is 9.0% of the corresponding 0.8B figure. That is an
+**observation, not an explained cause**. The two runs differ in checkpoint
+generation and training, target coverage (9.36% vs 15.1%), tensor dimensions,
+calibration size (**32,768 tokens at 27B against 65,536 at 0.8B**, a difference
+the earlier draft did not disclose) and evaluated text extent (65,536 targets
+against 261,284). Attributing the shrinkage to scale alone is not supported.
+
+On what would settle it: under unchanged variance and exchangeable blocks,
+extending to the full 261,284-target stream projects a half-width of about
+$0.00134$. If the effect stayed at $-0.001736$ that interval would exclude
+zero — but a normal approximation gives only about **72% power** at that
+effect and sample size, and roughly 320k targets would be needed for 80%.
+These are planning calculations from a selected pilot estimate, not guarantees.
+Adjacent 128-target blocks may also be dependent even with state reset, so a
+document-cluster or moving-block resampling check belongs alongside the
+per-block bootstrap.
 
 ### What this says about the 27B programme
 
-Two findings replicate here. The extra 7.25% of bytes spent on finer scalar
-groups again buys nothing measurable ($-0.002220$ $[-0.004450,+0.000004]$,
-including zero) — the third independent replication of that result, after §5c
-and §8.
+One earlier observation recurs, with a correction to how it was stated. Finer
+scalar groups (g64, 7.25% more bytes) reduce damage by $0.002220$ NLL, about
+**21.7%** of scalar g128 damage, with interval $[-0.004450,+0.000004]$. That
+interval is almost entirely favourable and ends a hair above zero: it is **weak
+evidence of a benefit**, not evidence of no benefit. Earlier drafts wrote
+"buys nothing measurable" and counted this as a third *independent*
+replication; both were overstated. These runs share evaluation text, codebase
+and protocol, so they are repeated measurements under correlated conditions,
+not independent replications.
 
-And the absolute numbers reinforce §10 from a different direction. Converting
-9.36% of a 27B model to ternary costs about 1% perplexity whichever codec is
-used; the choice between them moves 0.4 percentage points. Combined with the
-finding that a full-coverage 4-bit conversion fits the card with 6 GB to spare
-and costs 0.24%, the honest conclusion is that **at 27B this codec choice is
-not where deployment quality is decided**. It remains a real and now
-scale-confirmed result about low-rate codecs; it is not a lever on the
-deployed model.
+The absolute numbers still carry a message, stated within what was measured.
+Converting 9.36% of this 27B checkpoint to ternary costs about 1% perplexity
+whichever codec is used, and the choice between codecs moves roughly 0.4
+percentage points of perplexity. That is a small lever on this target subset.
+Whether it is a small lever on a *deployed* model is not established here,
+because no full-coverage conversion — at four bits or any other rate — has been
+measured at 27B for either quality or runtime footprint.
+
+### Is dimension 8 needed?
+
+VQ4 captures **95.4%** of VQ8's point-estimated improvement over scalar, and
+VQ8 improves on VQ4 by only $0.000181$ NLL while storing 104,328 more bytes of
+codebook. No paired interval for that contrast was saved by the v1 runner,
+which is a gap: VQ8 was selected for headline treatment because it had the
+smallest point estimate, and whether eight dimensions are justified at this
+checkpoint is a more informative question than that selection assumed. The v2
+runner adds VQ8-vs-VQ4 as a prespecified secondary contrast.
 
 ### A defect that is mitigated but not explained
 

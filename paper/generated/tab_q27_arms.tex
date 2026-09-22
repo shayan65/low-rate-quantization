@@ -1,0 +1,16 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lrrrl}
+\toprule
+Arm & bits/wt & payload MB & $\Delta$NLL vs BF16 & 95\% CI \\
+\midrule
+scalar3\_rot\_gptq & 1.7250 & 542.64 & $+0.010215$ & $[+0.007008, +0.013455]$ \\
+vq4\_rot\_gptq & 1.7250 & 542.64 & $+0.006439$ & $[+0.003473, +0.009490]$ \\
+vq8\_rot\_gptq & 1.7253 & 542.74 & $+0.006258$ & $[+0.003408, +0.009206]$ \\
+scalar3\_g64\_rot\_gptq & 1.8500 & 581.96 & $+0.007994$ & $[+0.004835, +0.011247]$ \\
+\bottomrule
+\end{tabular}
+\caption{Scale transfer: 48 DeltaNet QKV projections of Qwen3.8-27B. Source: \texttt{results/qwen38_confirm_v1} (27B, GPTQ recipe); BF16 NLL 2.579685.}
+\label{tab:q27}
+\end{table}

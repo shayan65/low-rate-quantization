@@ -1,0 +1,18 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lrrrl}
+\toprule
+Arm & bits/wt & payload MB & $\Delta$NLL vs BF16 & 95\% CI \\
+\midrule
+mlp\_scalar3\_rot & 1.7250 & 56.98 & $+2.119720$ & $[+2.104286, +2.134513]$ \\
+mlp\_scalar3\_rot\_gptq & 1.7250 & 56.98 & $+0.658007$ & $[+0.648510, +0.667584]$ \\
+mlp\_vq4\_rot\_gptq & 1.7250 & 56.98 & $+0.552558$ & $[+0.544087, +0.561040]$ \\
+mlp\_vq8\_rot\_gptq & 1.7282 & 57.08 & $+0.500777$ & $[+0.492819, +0.508608]$ \\
+mlp\_vq8\_rot\_gptq\_pertype & 1.7345 & 57.29 & $+0.521963$ & $[+0.514011, +0.529926]$ \\
+mlp\_scalar3\_g64\_rot\_gptq & 1.8500 & 61.11 & $+0.656502$ & $[+0.647276, +0.665713]$ \\
+\bottomrule
+\end{tabular}
+\caption{The same recipe on all 72 MLP tensors of the 0.8B model. Source: \texttt{results/mlp_task_v1} (0.8B MLP, GPTQ recipe); BF16 NLL 3.436710.}
+\label{tab:mlp}
+\end{table}

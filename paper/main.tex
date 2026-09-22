@@ -6,314 +6,286 @@
 \usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
 \newtheorem{proposition}{Proposition}
 \setlength{\emergencystretch}{3em}
-\title{Two Negative Results in Post-Training Quantization:\\
-Polar Weight Codes and Self-Consistent Calibration}
+\title{Low-Rate Quantization in Hybrid Language Models:\\
+Codebook Dimension, Error Compensation, and Coverage}
 \author{Working research draft}
-\date{September 21, 2026}
+\date{September 22, 2026}
 \begin{document}
 \maketitle
 \begin{center}\small\textbf{Status: working draft. Not submission ready.}\\
-No quantum-hardware, quantum-advantage, or quantization-aware-training result is reported.
+No quantum-hardware, quantum-advantage, or quantization-aware-training result is
+reported. No fully quantized model, runtime memory measurement, or latency
+measurement is reported.
 \end{center}
 
 \begin{abstract}
-We report two hypotheses about four-bit weight quantization, both of which we
-pursued at length and both of which we now refute, together with the small set
-of findings that survive. The first is that a quantum-inspired polar code --
-storing a magnitude and a phase index per pair of real weights -- preserves
-language-model loss better than an equal-byte real 4-bit code. It does, but only
-against a control with a uniform codebook. Giving the scalar control the same
-per-tensor Lloyd--Max fitting reverses the ranking on every tensor and on the
-complete validation stream, and measuring an unconstrained 256-point
-two-dimensional codebook shows the polar arrangement is structurally capped
-$6$--$8\%$ above the fitted scalar code while a free 2-D codebook sits
-$18$--$24\%$ below it. The second hypothesis is that activation-aware
-calibration should be solved as a self-consistent fixed point, by analogy with
-the Kohn--Sham loop in density functional theory. It should not: the
-forward-only dependency graph is acyclic, so one sequential pass is exact, and
-our iteration measurably underperforms that pass. A bidirectional reformulation
-using downstream loss sensitivity does identify a genuinely cyclic coupling
-$8.41\times$ larger than the one the literature corrects, but the metric it
-implies has no rank skill across layers, and its single correct call gives no
-clear advantage over spending the same bytes uniformly. Both hypotheses failed the
-same way -- they beat a control that had been given less tuning than the method
--- and we document that pattern as the paper's main methodological contribution.
+We report a controlled study of post-training weight quantization below two bits
+in a hybrid linear-attention language model, asking which factors actually move
+validation loss under measured storage budgets: codebook dimension, error
+compensation, index rate, and which tensors are converted at all. On the
+DeltaNet QKV projections of a 0.8B model, a shared eight-dimensional codebook
+reduces damage relative to a learned three-level scalar code by
+$0.036118$ NLL (95\% CI $[0.033768, 0.038414]$) at $0.43\%$ more payload bytes,
+and the direction reproduces on the 48 corresponding projections of a 27B
+checkpoint ($0.003957$, CI $[0.001083, 0.006805]$, $0.019\%$ more bytes). Two
+factors dominate that codec choice. GPTQ-style error compensation removes
+$68$--$69\%$ of the damage on both tensor families, roughly three times what the
+codec contributes, and it does so while \emph{raising} plain weight MSE, which
+inverts the proxy the earlier literature and our own earlier drafts relied on.
+Index rate dominates in turn: over $1.6$ to $3.2$ bits, damage falls
+approximately exponentially, halving about every $0.48$ bits, with no knee
+visible in the measured interval. Coverage matters more than any of them --- MLP
+weights are $2.79\times$ more damaging per parameter than the projections --- and
+a Hessian-derived per-tensor ranking intended to exploit that fact performs
+\emph{worse than random selection} of the same byte budget, the second
+forward-side layer-ranking failure we record. We state boundaries explicitly:
+these are partial-coverage, short-context quality and payload-storage results on
+two checkpoints and one corpus, and they do not establish full-model quality or
+runtime feasibility.
 \end{abstract}
 
-\section{Introduction}
+\section{Scope and contributions}
 
-This paper is a report of two failures and a short list of what we learned from
-them. We state that plainly because intermediate drafts of this work claimed
-both hypotheses as positive results, and the corrections matter more than the
-original claims did.
+Vector quantization with Hessian-aware compensation, and Hadamard incoherence
+processing with eight-dimensional codes, are established
+ideas~\cite{gptvq,quipsharp,gptq,quip}. We do not claim a new algorithm; the
+block extension of GPTQ in Section~\ref{sec:method} is a routine generalization
+and we treat it as implementation, not contribution. What we offer is controlled
+evidence, with explicit boundaries, about a setting the literature covers
+thinly: rates below two bits, on the recurrent projections of a hybrid model,
+with storage measured from bytes that are actually written and weights that are
+actually read back.
 
-\paragraph{Hypothesis 1: polar weight codes.} Pair two real weights as
-$z=w_a+iw_b$ and store a three-bit magnitude and a five-bit phase index, the
-same eight index bits two real 4-bit weights would take. An earlier draft
-reported that this preserved frozen Qwen3.5-0.8B validation loss better than an
-equal-byte real 4-bit control across all eighteen DeltaNet input projections.
-Section~\ref{sec:part1} shows the advantage came from the control, not the code.
+Concretely:
 
-\paragraph{Hypothesis 2: self-consistent calibration.} Activation-aware
-quantizers calibrate against activations measured on the full-precision model
-but are applied to a model in which many layers have been replaced. Writing the
-missing condition as a fixed point $Q^\star=\mathcal Q(H[Q^\star])$ suggests the
-Kohn--Sham self-consistent field loop as a solution method.
-Section~\ref{sec:part2} shows the forward-only version of this problem is
-acyclic and therefore solved exactly by one sequential pass -- as two published
-closed-form methods already exploit -- and that a bidirectional reformulation,
-while identifying a real and much larger coupling, does not convert into a
-usable method.
-
-\paragraph{The common failure mode.} Both hypotheses survived as long as they
-did because each was compared against a control that had received less tuning
-than the proposed method. The polar code was matched on bytes but not on
-codebook adaptation. The layer-protection scheme was compared against another
-selection criterion rather than against uniformly spending the same bytes. In
-both cases the effect disappeared the moment the control was brought to equal
-strength. Section~\ref{sec:discussion} develops this, because we think it is the
-most transferable thing in the paper.
-
-\paragraph{What survives.} Three findings, none of them the original hypothesis,
-are reported in Section~\ref{sec:survives}: uniformly spending a few more bits
-beats every layer-selective scheme we tested; the single most damaging layer to
-quantize is the one that weight MSE ranks as the safest, which is a concrete
-mechanism for a failure this project observed repeatedly without explaining; and
-paired 2-D vector quantization reaches parity with a well-tuned scalar code
-where the polar code does not.
-
-\paragraph{What this is not.} Polar notation, complex-valued networks, and
-rotation-block weights are prior art, and a complex multiplication by
-$\rho e^{i\phi}$ is exactly the real $2\times2$ rotation block. Nothing here is
-a quantum algorithm, uses quantum hardware, or demonstrates quantum advantage.
-The DFT correspondence in Section~\ref{sec:part2} is a numerical-methods analogy
-about fixed-point iteration, and Section~\ref{sec:acyclic} reports that it is
-the wrong analogy. We report storage in counted bytes and quality in held-out
-loss; we do \emph{not} report an inference speedup.
-
-\section{Related Work and Claim Boundaries}
-
-\paragraph{Post-training quantization.} GPTQ uses approximate second-order
-information to compensate rounding error within a block \cite{gptq}; AWQ scales
-channels by activation statistics before rounding \cite{awq}. GPTAQ's asymmetric
-calibration \cite{gptaq} and CoreQ's mismatch correction \cite{coreq} both
-address accumulated error from previously quantized layers in closed form and in
-a single pass; they are the prior art that makes our Hypothesis 2 redundant in
-its forward-only form, and we found them only after building the iteration. Our
-GPTQ- and AWQ-style baselines are local implementations, because available
-production backends do not expose Qwen3.5's custom DeltaNet projections.
-
-\paragraph{Complex and phase representations.} Complex-valued networks and
-phase-encoded weights predate this work \cite{phaseweights,deepcomplex}, and the
-Phase-Coherent Transformer studies phase-preserving attention \cite{pct}.
-Expressing a weight as $qe^{i\phi}$ was never a claimed novelty, and
-Section~\ref{sec:ceiling} reports it is not even a good code.
-
-\paragraph{Recurrent structure and its quantization.} Unitary recurrent networks
-use structured norm-preserving transformations \cite{urnn}; S4D uses complex
-diagonal state dynamics \cite{s4d}; QS4D studies quantization-aware training of
-structured state-space models \cite{qs4d}; Quamba2 develops post-training
-quantization for Mamba backbones \cite{quamba2}. Gated DeltaNet supplies the
-recurrent half of our target checkpoints \cite{gdn}, and concurrent work reports
-that it tolerates 4-bit quantization well \cite{gdnquant}.
-
-\paragraph{Vector quantization.} Joint quantization of weight groups with a
-learned codebook is established practice, and our 2-D codec is a deliberately
-simple instance. Our contribution there is the measured ceiling it approaches,
-not the codec.
-
-\section{Experimental Protocol}
-\label{sec:protocol}
-
-All language-model experiments use the official 752M-parameter
-Qwen3.5-0.8B-Base checkpoint as a frozen pretrained model and replace all
-eighteen \texttt{linear\_attn.in\_proj\_qkv.weight} tensors. All remaining
-weights stay BF16, so reported byte reductions describe that tensor subset and
-not whole-checkpoint compression.
-
-\paragraph{Budget.} Every codec spends four index bits per real weight and one
-FP32 scale per output row. Per-tensor codebook headers are counted and stated:
-16 FP32 for the fitted scalar code, 8 FP32 plus one offset for polar, and
-$256\times2$ FP32 (2\,KB) for the 2-D code. Against these $6144\times1024$
-matrices the largest header is $2.6\times10^{-3}$ bits per weight, or $0.065\%$
-of the four-bit index budget, so the comparison is byte-matched to within
-rounding. Where an arm spends more (Table~\ref{tab:protect}), the payload ratio
-is stated and matched controls are supplied at the same ratio.
-
-\paragraph{Evaluation.} Unless stated otherwise we evaluate every one of the
-2{,}041 contiguous 128-target blocks of the Qwen-tokenized WikiText-2 validation
-stream (261{,}248 targets), resetting context at each block boundary. This is
-the all-token protocol; an earlier phase established that a
-last-token-per-example protocol can reverse codec rankings, so we fix one
-objective. Confidence intervals are paired percentile bootstraps over validation
-blocks with 5{,}000 replicates. Screening experiments use reduced slices, stated
-per table.
-
-\paragraph{Calibration.} Windows of 129 tokens are drawn from the WikiText-2
-\emph{training} split with fixed seeds; no validation target is used for any
-selection. Where codecs make a per-layer choice, every codec receives the same
-selection rule.
-
-\paragraph{Verification.} Every codec is checked to decode exactly from what it
-claims to store -- indices, row scales, and the per-tensor codebook header --
-and the polar nearest-neighbour claim is verified in float64 against
-brute-force search over all 256 codepoints. Byte accounting is asserted against
-the real-4 budget.
-
-\input{part1_codes.tex}
-
-\input{part2_scf.tex}
-
-\section{What Survives}
-\label{sec:survives}
-\input{survives.tex}
-
-\section{Discussion: Control Strength as the Recurring Failure Mode}
-\label{sec:discussion}
-
-Both hypotheses in this paper produced apparently significant, well-powered,
-reproducible positive results that evaporated when a single control was
-strengthened. The pattern is worth stating explicitly because it was not obvious
-from inside either project.
-
-\paragraph{The control absorbed the tuning.} In Part~I the polar code had an
-implicitly adapted codebook -- annular sectors fitted by a radius grid -- while
-the control had a uniform grid. In Part~II the layer-protection scheme was
-compared against a different \emph{selection criterion} rather than against the
-obvious alternative use of the same bytes. In both cases the proposed method and
-the control differed in two ways at once -- the mechanism under test, and the
-amount of fitting applied -- and the second difference explained the result.
-
-\paragraph{Diagnostics that would have caught it earlier.} Three cheap checks
-found both errors, and none required new infrastructure.
 \begin{enumerate}
-\item \textbf{Give the control the method's own advantage.} Fitting a Lloyd--Max
-codebook for the scalar code costs 16 floats per tensor and reversed the
-headline result.
-\item \textbf{Measure the ceiling before optimizing inside it.} A 256-point
-$k$-means codebook is a few lines and bounds every paired 8-bit scheme. It
-showed the polar family capped and the pairing family open, which no amount of
-tuning within the polar family could have revealed.
-\item \textbf{Match the budget, not the method.} When an arm spends more bytes,
-interpolate the uniform-spending frontier to the same budget. This converted
-``protecting the right layer recovers $57.7\%$'' into ``$+5.1$ points against an
-$11.8$-point noise band''.
+\item \textbf{Dimension.} A shared 6561-point eight-dimensional codebook beats a
+learned three-level scalar code at near-equal payload bytes, on two tensor
+families of a 0.8B model and on the QKV projections of a 27B model
+(Table~\ref{tab:primary}). Whether eight dimensions are needed rather than four
+is \emph{not} settled: four-dimensional codes capture $95.4\%$ of the
+point-estimated gain at 27B.
+\item \textbf{Compensation dominates the codec.} Error compensation is worth
+$68$--$69\%$ of the damage against the codec's $6$--$32\%$, and it improves loss
+while degrading weight MSE.
+\item \textbf{Rate dominates in turn}, falling exponentially with no knee over
+the measured interval (Table~\ref{tab:rate}).
+\item \textbf{Coverage dominates all of them}, and the obvious way to exploit
+that --- ranking tensors by activation-weighted error per byte --- is worse than
+random.
+\item \textbf{Two negative results on proxies and one on method.} Weight MSE and
+activation-weighted error each predict loss inside the regime where they are
+fitted and fail outside it; a self-consistent calibration loop is unnecessary
+because the dependency graph is acyclic.
 \end{enumerate}
 
-\paragraph{A statistical tell.} In Section~\ref{sec:fisherfail} a Pearson
-correlation of $0.898$ coexisted with a Spearman correlation of $0.015$. That
-disagreement is diagnostic of a single leverage point and should be treated as
-an alarm rather than a result; reporting the rank statistic alongside the linear
-one would have prevented the overclaim.
+\section{What this paper does not establish}
 
-\paragraph{On reproducing a prior number.} Our reproduction of the earlier
-draft's polar result at its own calibration size gave $+0.011358$ against a
-published $+0.009333$, with three seeds spanning $[+0.010515,+0.011358]$. A
-published value outside the spread of its own reproduction is evidence about the
-selector's variance rather than about the method, and small-calibration
-protocols should report a seed sweep for that reason.
-
-\section{Limitations}
-
-One checkpoint, one corpus, one projection family, one evaluation objective.
-Earlier phases of this project established that all four axes can change a codec
-ranking, so these results are a controlled comparison on a fixed protocol rather
-than a general claim. Specifically:
+We separate these from the results because earlier drafts of this work did not,
+and the reader should not have to reconstruct the boundary.
 
 \begin{itemize}
-\item \textbf{Scope.} We quantize one tensor in each of the eighteen DeltaNet
-layers of a 24-layer model: $113{,}246{,}208$ of 752M parameters, or $15.1\%$.
-That is why the forward statistics move by only $0.87\%$ and why sequential
-calibration has so little to recover. Whole-model quantization would enlarge
-that gap and could change the Part~II conclusions about the forward half, though
-not the acyclicity argument itself.
-\item \textbf{No speedup.} Task-quality evaluation decodes candidate weights to
-BF16 and uses ordinary BF16 matrix multiplies. Byte counts are storage results.
-Our packed polar kernels were $3$--$4.5\times$ slower than resident BF16; a
-lookup-table decoder removes the trigonometric cost that caused this, but we
-have not built or benchmarked that kernel.
-\item \textbf{Power.} The single-layer diagnostic in
-Section~\ref{sec:fisherfail} leaves eight of eighteen layers with damage
-intervals covering zero, so its null result among low-damage layers is weakly
-powered. Three layers have significantly \emph{negative} damage, which caps the
-correlation any unsigned surrogate can achieve.
-\item \textbf{Diagonal statistics.} We mix and weight by diagonal second
-moments. Full or block Hessians are a closer analogue of the DFT density and may
-behave differently, though the acyclicity argument of
-Section~\ref{sec:acyclic} is independent of that choice.
-\item \textbf{Controls.} GPTQ- and AWQ-style baselines are local
-implementations, not official backend results, and we did not implement GPTAQ or
-CoreQ.
+\item \textbf{No full-model conversion.} Every measurement covers a subset:
+$15.1\%$ of parameters (0.8B QKV), $35.1\%$ (0.8B MLP), $50.2\%$ (both), or
+$9.36\%$ (27B QKV). No end-to-end quantized checkpoint was produced or
+evaluated.
+\item \textbf{No runtime claim.} We report payload bytes and complete artifact
+file bytes. Packed weights fitting in VRAM does not establish that execution
+fits: KV cache, recurrent state, activations, kernel workspaces and decoding
+buffers are unmeasured. There is no packed inference kernel.
+\item \textbf{No four-bit deployment claim.} A historical $+0.008393$ NLL
+four-bit measurement exists, but it is a 0.8B projection-subset result
+($0.24\%$ of baseline NLL, $0.84\%$ relative perplexity --- distinct
+quantities). It is not a 27B result and not a full-coverage result. An earlier
+draft used it as both; that claim is withdrawn.
+\item \textbf{No causal scaling statement.} The two checkpoints differ in
+generation, coverage, tensor dimensions, calibration size and evaluated text
+extent. That the 27B margins are smaller is an observation, not an explained
+consequence of scale.
+\item \textbf{No equivalence results.} Where an interval includes zero we say
+\emph{inconclusive}. We prespecified no equivalence margin, and failing to
+reject zero is not evidence of no effect.
 \end{itemize}
 
-\section{Conclusion}
+\section{Protocol}
+\label{sec:protocol}
 
-Neither hypothesis survived. Polar magnitude--phase weight coding loses to a
-real 4-bit code once the scalar code receives the same per-tensor codebook
-fitting, and it is structurally capped several percent above that control no
-matter how its assignment rule, radius grid, or bit split are tuned.
-Self-consistent calibration is the wrong frame for the forward-only problem,
-whose dependency graph is acyclic and which one sequential pass solves exactly;
-the bidirectional reformulation identifies a coupling $8.41\times$ larger than
-the one the literature corrects, but the metric it implies neither ranks layers
-nor yields an allocation that beats spending the same bytes uniformly.
+All arms share one protocol, and the properties below are the ones earlier
+versions of this work got wrong.
 
-What we would keep is smaller than what we set out to show. Uniformly
-spending a few more bits beat every layer-selective scheme we tried. The most
-damaging layer to quantize is the one weight MSE calls safest, which is a
-concrete mechanism for a failure mode this project observed for months without
-explaining. And both hypotheses failed in the same way, against controls that
-had been given less tuning than the methods they were testing -- a pattern we
-would now check for first rather than last.
+\textbf{Storage is measured, not derived.} Every codec serializes to packed
+bytes --- five trits per byte, or $c$ base-$K$ codes per \texttt{uint64} with
+$K^{c} < 2^{64}$ --- and bits per weight is computed from \texttt{len(bytes)},
+not from $\log_2 K / d$. Multi-symbol packing makes the ternary and
+vector formats cost the same per index to within a few bytes per tensor, which
+is the conservative choice as well as the realistic one.
 
-\appendix
-\section{Operator Pilot}
-\label{sec:operator}
+\textbf{The evaluated weights are the stored weights.} Group scales are rounded
+to FP16 \emph{before} quantization, and every tensor is decoded back from its
+serialized bytes and required to match the quantizer's reconstruction exactly
+before it is installed. In the confirmation run the artifact is additionally
+written to disk, reloaded and re-decoded. Omitting this check cost an earlier
+draft six points of headline: FP16 scale storage costs a 6561-point codebook
+$+0.019$ NLL while leaving a 3-point code unchanged.
 
-We retain the earlier sampled-operator study as motivation only. A recurrent
-weight is applied repeatedly, so accurate one-step reconstruction need not
-preserve long-horizon behavior; in a complex diagonal transition, eigenvalue
-magnitude controls decay and phase controls oscillation.
+\textbf{Byte matching is near-equal, not literal.} Where we say byte-matched,
+dimension-4 costs $+0.0029\%$ over scalar at 0.8B and $+0.00012\%$ at 27B;
+dimension-8 costs $+0.43\%$ and $+0.0193\%$. Tables report five decimals.
 
-\begin{proposition}[Phase drift for a fixed radius]
-If $\lambda=\rho e^{i\phi}$ and $\widehat\lambda=\rho e^{i\widehat\phi}$, then
-for integer $T\geq0$,
-$|\lambda^T-\widehat\lambda^T| = 2\rho^T|\sin(T(\phi-\widehat\phi)/2)|$.
-\end{proposition}
-\begin{proof}
-Factor out $\rho^Te^{iT(\phi+\widehat\phi)/2}$ and apply $e^{iu}-e^{-iu}=2i\sin u$.
-\end{proof}
+\textbf{Evaluation.} Token-weighted NLL over the complete validation stream
+including the ragged final block, with a paired block bootstrap over
+$\ge 5000$ resamples. Calibration uses the training split. Table~\ref{tab:coverage}
+gives coverage and calibration size per run; they are not identical across runs,
+which is why cross-run differences are not attributed to scale.
 
-This bounds modal drift by $\rho^T\min(2,T|\phi-\widehat\phi|)$ and motivated
-calibrating against a multi-step impulse response rather than one-step
-coefficients. We sampled three systems with $N=64$ complex diagonal modes,
-calibration horizon $128$, and evaluation horizons to $512$, comparing
-phase-grid and Cartesian decoders under weight and memory objectives at matched
-index budgets with binary export. Per-system numbers are in
-\texttt{memory\_results.tex}. Three seeds support descriptive statistics only.
-Because Part~I shows the phase parameterization is not competitive as a weight
-code, we did not develop this pilot further.
+\input{generated/tab_coverage.tex}
 
-\begingroup
-\small
-\begin{thebibliography}{99}
-\setlength{\itemsep}{2pt}
-\bibitem{phaseweights} \emph{Artificial neural networks using complex numbers and phase encoded weights}. Applied Optics, 2010. \url{https://opg.optica.org/ao/abstract.cfm?uri=ao-49-10-b71}.
-\bibitem{deepcomplex} C. Trabelsi et al. \emph{Deep Complex Networks}. 2017. \url{https://arxiv.org/abs/1705.09792}.
-\bibitem{pct} L. Hioki. \emph{Complex-Valued Phase-Coherent Transformer}. 2026. \url{https://arxiv.org/abs/2605.10123}.
-\bibitem{urnn} M. Arjovsky, A. Shah, and Y. Bengio. \emph{Unitary Evolution Recurrent Neural Networks}. ICML, 2016. \url{https://arxiv.org/abs/1511.06464}.
-\bibitem{s4d} A. Gu, A. Gupta, K. Goel, and C. R\'e. \emph{On the Parameterization and Initialization of Diagonal State Space Models}. 2022. \url{https://arxiv.org/abs/2206.11893}.
-\bibitem{qs4d} S. Siegel et al. \emph{QS4D: Quantization-aware training for efficient hardware deployment of structured state-space sequential models}. 2025 preprint; journal version 2026. \url{https://arxiv.org/abs/2507.06079}.
-\bibitem{quamba2} H.-Y. Chiang et al. \emph{Quamba2: A Robust and Scalable Post-training Quantization Framework for Selective State Space Models}. 2025. \url{https://arxiv.org/abs/2503.22879}.
-\bibitem{gdn} S. Yang, J. Kautz, and A. Hatamizadeh. \emph{Gated Delta Networks: Improving Mamba2 with Delta Rule}. ICLR, 2025. \url{https://arxiv.org/abs/2412.06464}.
-\bibitem{gdnquant} S. Kozyrev and D. Maiboroda. \emph{Why Gated DeltaNet Survives 4-Bit Quantization: NVFP4 W4A4 for the Recurrent Half of a Hybrid 27B LLM}. 2026 preprint. \url{https://arxiv.org/abs/2609.04098}.
-\bibitem{gptq} E. Frantar, S. Ashkboos, T. Hoefler, and D. Alistarh. \emph{GPTQ: Accurate Post-Training Quantization for Generative Pre-trained Transformers}. ICLR, 2023. \url{https://arxiv.org/abs/2210.17323}.
-\bibitem{awq} J. Lin et al. \emph{AWQ: Activation-aware Weight Quantization for On-Device LLM Compression and Acceleration}. MLSys, 2024. \url{https://arxiv.org/abs/2306.00978}.
-\bibitem{gptaq} \emph{GPTAQ: Efficient Finetuning-Free Quantization for Asymmetric Calibration}. 2025. \url{https://arxiv.org/abs/2504.02692}.
-\bibitem{coreq} \emph{CoreQ: Learning-Free Mismatch Correction and Successive Rounding for Quantization}. 2026. \url{https://arxiv.org/abs/2602.05902}.
-\bibitem{kohnsham} W. Kohn and L. J. Sham. \emph{Self-Consistent Equations Including Exchange and Correlation Effects}. Phys. Rev., 1965.
-\bibitem{anderson} D. G. Anderson. \emph{Iterative Procedures for Nonlinear Integral Equations}. JACM, 1965.
-\bibitem{pulay} P. Pulay. \emph{Convergence acceleration of iterative sequences: the case of SCF iteration}. Chem. Phys. Lett., 1980.
+\section{Method}
+\label{sec:method}
+
+Rotation is a blockwise randomized Hadamard transform on the input dimension.
+Codebooks are fitted by Lloyd/$k$-means in group-normalized space and shared
+across all target tensors, charged once.
+
+Extending GPTQ to a codec that quantizes $d$ columns jointly is the only
+non-standard step. For a block of columns $J$ the cost charged by the GPTQ
+derivation and the compensation applied to the remainder are
+\[
+\|(W_J-Q_J)\,U_{JJ}^{-1}\|_F^2,
+\qquad
+W_{\text{rest}} \mathrel{-}= (W_J-Q_J)\,U_{JJ}^{-1}U_{J,\text{rest}},
+\]
+with $U$ the upper Cholesky factor of $H^{-1}$. The within-block decision is
+therefore a metric nearest-neighbour search with $M = U_{JJ}^{-1}$: transform
+points and codebook by $M$ and search normally. At $d=1$ this must reduce to
+textbook scalar GPTQ, and our test suite verifies it does so bit-exactly against
+an independently written reference. We regard this as a routine generalization.
+
+\section{Results}
+
+\input{generated/tab_primary.tex}
+\input{generated/tab_v4_arms.tex}
+\input{generated/tab_mlp_arms.tex}
+\input{generated/tab_q27_arms.tex}
+\input{generated/tab_rate.tex}
+
+\subsection{Dimension helps; how much dimension is unsettled}
+
+At near-equal payload bytes the eight-dimensional code beats the learned scalar
+ternary code on both 0.8B tensor families and on the 27B projections
+(Table~\ref{tab:primary}). Against a scalar control that spends $6.4\%$
+\emph{more} bytes the margin is $-0.034303$ $[-0.036660,-0.031971]$ at 0.8B
+under the matched compensated recipe; at 27B the corresponding contrast is
+$-0.001736$ $[-0.004444,+0.000923]$ and is \textbf{inconclusive}.
+
+Dimension-4 captures $95.4\%$ of dimension-8's point-estimated improvement at
+27B, with dimension-8 ahead by only $0.000181$ NLL while storing $104{,}328$
+more bytes of codebook. The confirmation run adds this contrast as a
+prespecified secondary comparison; until it reports, we do not claim eight
+dimensions are necessary.
+
+\subsection{Compensation dominates the codec, and inverts the proxy}
+
+Error compensation removes $68.3\%$ of the damage on the 0.8B projections and
+$69.0\%$ on the MLPs --- both far larger than the codec effect. It achieves this
+while \emph{raising} plain weight MSE by $38\%$
+($7.18\to9.89\times10^{-5}$), so across recipes weight MSE is anti-predictive
+even though within a fixed recipe its ordering matches the loss ordering
+exactly. Diagonal activation weighting, by contrast, is worthless: harmful on
+scalar codes ($+0.004485$), and a tie once compensation is present
+($+0.000206$), because the block metric already carries the diagonal and the
+cross terms.
+
+\subsection{Rate dominates compensation}
+
+Over $1.600$ to $3.200$ index bits at fixed $50.2\%$ coverage, damage halves
+every $0.451$, $0.507$, $0.416$ and $0.530$ bits --- approximately exponential
+across a $1.93\times$ range of payload bytes, with no knee visible
+(Table~\ref{tab:rate}). Five rates on one checkpoint at one coverage support
+``approximately exponential over this interval'' and nothing stronger; a
+matched four-bit point on these same tensors is missing and would be the single
+most informative addition.
+
+\subsection{Coverage dominates rate, and cannot be exploited by ranking}
+
+MLP weights are $2.79\times$ more damaging per parameter than the projections.
+Given a fixed extra-byte budget, confining it to the MLP family beats spending
+it on the projections by $-0.061105$ $[-0.064430,-0.057804]$.
+
+The natural refinement --- rank all 90 tensors by activation-weighted error
+removed per extra byte --- \emph{fails}. It promotes 14 of 18 projections and
+none of the 48 \texttt{up}/\texttt{down} projections, and loses to random
+selection of the same budget by $+0.061244$ $[+0.058083,+0.064344]$. Per
+parameter the projections carry $5.7\times$ more activation-weighted error while
+causing $2.79\times$ less loss damage, so across families the proxy is
+anti-correlated with its target. The quantity measures error injected at a
+layer's output and carries no information about propagation to the loss. This is
+the second forward-side ranking failure we record; a Fisher-based diagnostic
+gave Spearman $+0.015$.
+
+\section{Negative results retained from earlier work}
+
+Two hypotheses were pursued at length and refuted; they are retained because
+their failure mode recurs.
+
+\textbf{Polar weight codes.} Storing a magnitude and a phase index per weight
+pair appeared to beat an equal-byte real four-bit code. It beat only a control
+with a \emph{uniform} codebook; giving the scalar control the same Lloyd--Max
+fitting reverses the ranking. Repairing the polar assignment changes MSE by
+$0.035\%$, because with five phase bits $1-\cos(\pi/32) \le 4.8\times10^{-3}$
+while one radius-grid step is $\approx 14\%$ of the row scale.
+
+\textbf{Self-consistent calibration.} Solving activation-aware calibration as a
+DFT-style fixed point is unnecessary: the forward-only dependency graph is
+acyclic, so one ordered pass is exact, and closed-form one-pass corrections
+already exist~\cite{gptaq}. Measured, sequential capture is worth $-0.001890$
+$[-0.003421,-0.000315]$ at $3.5\times$ the cost.
+
+\textbf{The pattern.} Both, and the ranking failure above, are the same error:
+a method beat a control that had been given less tuning, or a proxy was trusted
+outside the regime where it was fitted. Every correction in this paper came from
+a control --- a fitted scalar baseline, a random allocation, a bit-exactness
+assertion --- and not from inspection.
+
+\section{Reproducibility and limitations}
+
+Runs record a manifest: arguments, source hashes, checkpoint hashes, library and
+CUDA versions, device map, GPU budget, calibration size, and the evaluated
+versus available target counts. Tables in this paper are generated directly from
+saved results by \texttt{experiments/make\_tables\_v2.py}; an earlier draft
+mixed an uncompensated margin into a compensated comparison, and generation is
+how we prevent recurrence rather than by care.
+
+\textbf{An unresolved defect.} At a 17\,GiB GPU weight budget the per-tensor
+bit-exactness check fires on the 27B model with a decoded-versus-reference
+difference of $0.036$; at 15\,GiB every tensor is exact. The codec is exact at
+the same shapes on synthetic data, all 48 targets share one shape, and layer 0
+passes the full real path, so the obvious explanations are excluded --- but the
+cause is \textbf{not understood}, and budget dependence is an observation, not
+evidence that memory pressure changes arithmetic. Reported runs use 15\,GiB and
+keep the check enabled per tensor; it saves the first failing case for
+localization. Anyone extending this work should treat the check as load-bearing.
+
+\textbf{Statistical scope.} Intervals measure text-sampling variability
+conditional on one fitted quantizer; they do not include calibration or
+codebook-seed variability. Adjacent 128-target blocks may be dependent even with
+state reset, so block-bootstrap intervals may be optimistic. Validation text has
+guided many decisions in this project, so the confirmation run freezes the
+recipe and prespecifies its contrasts.
+
+\begin{thebibliography}{9}
+\bibitem{gptvq} GPTVQ: The Blessing of Dimensionality for LLM Quantization.
+  \url{https://arxiv.org/abs/2402.15319}
+\bibitem{quipsharp} QuIP\#: Even Better LLM Quantization with Hadamard
+  Incoherence and Lattice Codebooks. \url{https://arxiv.org/abs/2402.04396}
+\bibitem{gptq} GPTQ: Accurate Post-Training Quantization for Generative
+  Pre-trained Transformers. \url{https://arxiv.org/abs/2210.17323}
+\bibitem{quip} QuIP: 2-Bit Quantization of Large Language Models With
+  Guarantees. \url{https://arxiv.org/abs/2307.13304}
+\bibitem{aqlm} Extreme Compression of Large Language Models via Additive
+  Quantization. \url{https://arxiv.org/abs/2401.06118}
+\bibitem{gptaq} GPTAQ: Efficient Finetuning-Free Quantization for Asymmetric
+  Calibration. \url{https://arxiv.org/abs/2504.02692}
 \end{thebibliography}
-\endgroup
+
 \end{document}

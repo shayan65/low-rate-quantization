@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lrrrr}
+\toprule
+Run & target params & share & eval targets & calib.\ tokens \\
+\midrule
+\texttt{ternary\_task\_v4} & 0 & 0.0\% & 261,284 & 65,536 \\
+\texttt{mlp\_task\_v1} & 264,241,152 & 35.1\% & 261,284 & -- \\
+\texttt{mixed\_alloc\_v1} & 377,487,360 & 50.2\% & 261,284 & -- \\
+\texttt{rate\_curve\_v1} & 377,487,360 & 50.2\% & 261,284 & -- \\
+\texttt{qwen38\_confirm\_v1} & 2,516,582,400 & 9.4\% & 65,536 & -- \\
+\bottomrule
+\end{tabular}
+\caption{Protocol and coverage for every run reported. Coverage and calibration differ between checkpoints, so cross-run differences are not attributable to scale alone.}
+\label{tab:coverage}
+\end{table}

@@ -1,0 +1,22 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lrrrl}
+\toprule
+Arm & bits/wt & payload MB & $\Delta$NLL vs BF16 & 95\% CI \\
+\midrule
+scalar3\_rot & 1.7250 & 24.42 & $+0.356599$ & $[+0.352028, +0.361286]$ \\
+scalar3\_rot\_actw & 1.7250 & 24.42 & $+0.361084$ & $[+0.356485, +0.365764]$ \\
+scalar3\_rot\_gptq & 1.7250 & 24.42 & $+0.113179$ & $[+0.109919, +0.116351]$ \\
+vq8\_rot & 1.7324 & 24.52 & $+0.240180$ & $[+0.236367, +0.243903]$ \\
+vq8\_rot\_actw & 1.7324 & 24.52 & $+0.227827$ & $[+0.224049, +0.231700]$ \\
+vq8\_rot\_gptq & 1.7324 & 24.52 & $+0.077061$ & $[+0.074362, +0.079868]$ \\
+vq8\_rot\_gptq\_actwfit & 1.7324 & 24.52 & $+0.077267$ & $[+0.074642, +0.079910]$ \\
+vq4\_rot\_gptq & 1.7251 & 24.42 & $+0.088512$ & $[+0.085730, +0.091370]$ \\
+scalar3\_g64\_rot\_gptq & 1.8500 & 26.19 & $+0.111363$ & $[+0.108285, +0.114369]$ \\
+vq8\_rot\_gptq\_seq & 1.7324 & 24.52 & $+0.075171$ & $[+0.072454, +0.077936]$ \\
+\bottomrule
+\end{tabular}
+\caption{Codec and recipe ablation on the 0.8B DeltaNet QKV projections. Source: \texttt{results/ternary_task_v4} (0.8B, GPTQ recipe); BF16 NLL 3.436710.}
+\label{tab:v4}
+\end{table}
