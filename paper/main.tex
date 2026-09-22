@@ -19,30 +19,34 @@ measurement is reported.
 \end{center}
 
 \begin{abstract}
-We report a controlled study of post-training weight quantization below two bits
-in a hybrid linear-attention language model, asking which factors actually move
+We report a controlled study of post-training weight quantization below two
+bits in a hybrid linear-attention language model, asking which factors move
 validation loss under measured storage budgets: codebook dimension, error
 compensation, index rate, and which tensors are converted at all. On the
-DeltaNet QKV projections of a 0.8B model, a shared eight-dimensional codebook
-reduces damage relative to a learned three-level scalar code by
-$0.036118$ NLL (95\% CI $[0.033768, 0.038414]$) at $0.43\%$ more payload bytes,
+DeltaNet QKV projections of a 0.8B model a shared eight-dimensional codebook
+reduces damage relative to a learned three-level scalar code by $0.036118$ NLL
+(paired block bootstrap $[0.033768, 0.038414]$) at $0.43\%$ more payload bytes,
 and the direction reproduces on the 48 corresponding projections of a 27B
-checkpoint over its complete validation stream ($0.007121$, CI
-$[0.005725, 0.008513]$, $0.019\%$ more bytes). Two
-factors dominate that codec choice. GPTQ-style error compensation removes
-$68$--$69\%$ of the damage on both tensor families, roughly three times what the
-codec contributes, and it does so while \emph{raising} plain weight MSE, which
-inverts the proxy the earlier literature and our own earlier drafts relied on.
-Index rate dominates in turn: over $1.6$ to $4.0$ bits, damage falls
-approximately exponentially, halving about every $0.47$ bits, with no knee
-visible across a $2.4\times$ range of stored bytes. Coverage matters more than any of them --- MLP
-weights are $2.79\times$ more damaging per parameter than the projections --- and
-a Hessian-derived per-tensor ranking intended to exploit that fact performs
-\emph{worse than random selection} of the same byte budget, the second
-forward-side layer-ranking failure we record. We state boundaries explicitly:
-these are partial-coverage, short-context quality and payload-storage results on
-two checkpoints and one corpus, and they do not establish full-model quality or
-runtime feasibility.
+checkpoint over its complete validation stream ($0.007121$,
+$[0.005725, 0.008513]$, $0.019\%$ more bytes). The advantage keeps its sign
+under eight refits of the quantizer, on held-out text, on a second domain, and
+at contexts to 2048 tokens; its magnitude varies across those conditions
+($0.031$ to $0.038$ across refits), and we quote ranges rather than single
+margins because the spread across refits is of the same order as the
+text-bootstrap interval. Two factors dominate the codec choice. GPTQ-style
+error compensation removes $68$--$69\%$ of the damage on both tensor families,
+roughly three times what the codec contributes, while \emph{raising} plain
+weight MSE --- inverting a proxy that earlier work, including our own earlier
+drafts, relied on. Index rate dominates in turn: from $1.6$ to $4.0$ bits
+damage falls approximately exponentially, halving about every $0.47$ bits, with
+no knee across a $2.4\times$ range of stored bytes. Coverage matters more
+again --- MLP weights are $2.79\times$ more damaging per parameter than the
+projections --- yet a Hessian-derived per-tensor ranking built to exploit that
+performs \emph{worse than random selection} of the same byte budget, the second
+forward-side ranking failure we record. These are partial-coverage,
+payload-storage results on two checkpoints and two corpora; they establish
+neither full-model quality nor runtime feasibility, and we do not claim a new
+algorithm.
 \end{abstract}
 
 \section{Scope and contributions}
@@ -177,6 +181,8 @@ an independently written reference. We regard this as a routine generalization.
 \input{generated/tab_mlp_arms.tex}
 \input{generated/tab_q27_arms.tex}
 \input{generated/tab_rate.tex}
+\input{generated/tab_refit.tex}
+\input{generated/tab_gen.tex}
 
 \subsection{Dimension helps, and eight dimensions earn their place}
 
@@ -243,6 +249,41 @@ anti-correlated with its target. The quantity measures error injected at a
 layer's output and carries no information about propagation to the loss. This is
 the second forward-side ranking failure we record; a Fisher-based diagnostic
 gave Spearman $+0.015$.
+
+\subsection{How far the main result travels}
+
+Two studies probe the conditions under which the eight-dimensional advantage
+was measured, one varying the fit and the other the evaluation.
+
+\textbf{Refitting} (Table~\ref{tab:refit}). Eight refits over three disjoint
+calibration draws, three codebook seeds and four calibration sizes. All three
+primary contrasts keep their sign in $8/8$ refits; VQ8 against scalar ranges
+from $-0.037809$ to $-0.031061$. The ranges over refits are of the same order
+as, and in several cases larger than, the text-bootstrap half-width, so
+magnitudes are quoted as ranges rather than single margins. VQ8's advantage
+grows monotonically with calibration size ($-0.033335$ at 16k tokens to
+$-0.037809$ at 131k), which is a condition effect rather than noise.
+
+\textbf{Varying the evaluation} (Table~\ref{tab:gen}). One fitted quantizer
+evaluated on the never-used wikitext-2 test split, on TinyStories, and at
+$512$ and $2048$ token contexts. All three primary contrasts exclude zero in
+every configuration. Through 2048 tokens there is no ordering reversal and no
+large increase in aggregate damage, though VQ8's advantage does shrink about
+$18\%$ from the 128-token setting; aggregate loss averages over positions, so
+this is not evidence against recurrent-state drift. Out of domain, VQ8's
+absolute advantage grows ($0.038806 \to 0.043775$) while the fraction of scalar
+damage it removes falls ($32.0\%\to24.0\%$); we do not attribute the higher
+out-of-domain damage to calibration mismatch, which would need two calibration
+domains crossed with two evaluation domains.
+
+\textbf{The scalar group-size control} has no stable sign: it flips across
+refits and, on TinyStories, excludes zero in the \emph{unfavourable} direction
+($+0.010942$). Our leading hypothesis is that moving from g128 to g64 does not
+enlarge a solution space containing the g128 solution --- group scales are
+derived from group maxima rather than chosen, and the shared codebook is refit
+in the new normalized space --- so extra scale bytes guarantee neither lower
+reconstruction error nor lower loss. That is a hypothesis; a direct test would
+hold the codebook fixed across group sizes.
 
 \section{Negative results retained from earlier work}
 

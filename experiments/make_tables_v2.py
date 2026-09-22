@@ -31,6 +31,8 @@ RUNS = {
     "rate": ("rate_curve_v2", "0.8B, rate sweep incl. four bits"),
     "q27": ("qwen38_confirm_v1", "27B, GPTQ recipe"),
     "q27b": ("qwen38_confirm_v2", "27B, GPTQ recipe, frozen full stream"),
+    "refit": ("calib_variability_v1", "0.8B, 8 refits"),
+    "gen": ("generalization_v1", "0.8B, fixed quantizer, varied evaluation"),
 }
 
 
@@ -113,6 +115,77 @@ def rate_table():
     return "\n".join(L)
 
 
+def refit_table():
+    """Text-bootstrap half-width beside refit ranges -- never divided.
+
+    The two are different statistics; an earlier draft quoted their quotient as
+    an uncertainty inflation factor, which has no coverage interpretation.
+    Calibration size is a condition change, not a further sample, so it is
+    labelled separately.
+    """
+    r = load("refit")
+    if r is None:
+        return "% calib_variability_v1 not present\n"
+    sm = r["summary"]
+    nice = {"vq8_vs_scalar3": "VQ8 vs scalar", "vq8_vs_scalar3_g64": "VQ8 vs scalar g64",
+            "vq8_vs_vq4": "VQ8 vs VQ4", "scalar3_g64_vs_scalar3": "g64 vs g128"}
+    keys = ["calibration draw (3 disjoint, 65k)", "codebook seed (3, fixed calibration)",
+            "calibration size (16k-131k, nested)"]
+    L = [r"\begin{table}[t]", r"\centering", r"\small",
+         r"\begin{tabular}{lrrrr}", r"\toprule",
+         r"Contrast & bootstrap half-width & range: draws & seeds & size$^{*}$ \\",
+         r"\midrule"]
+    for ck, label in nice.items():
+        if ck not in sm:
+            continue
+        f = sm[ck]["factors"]
+        L.append(f"{esc(label)} & {sm[ck]['median_half_width']:.6f} & "
+                 + " & ".join(f"{f[k]['spread']:.6f}" for k in keys if k in f) + r" \\")
+    L += [r"\bottomrule", r"\end{tabular}",
+          r"\caption{Conditional text-bootstrap half-width beside the range of each "
+          r"contrast over refits. These are different statistics and are not divided: "
+          r"a range over a few point estimates has no coverage interpretation. "
+          r"$^{*}$Calibration size changes the experimental condition rather than "
+          r"resampling it. The zero for seed on the scalar-only contrast is a harness "
+          r"check: both arms use a deterministic Lloyd fit, so a seed cannot move it. "
+          f"Source: \\texttt{{results/{RUNS['refit'][0]}}}.}}",
+          r"\label{tab:refit}", r"\end{table}", ""]
+    return "\n".join(L)
+
+
+def generalization_table():
+    """One fitted quantizer, five evaluation configurations."""
+    r = load("gen")
+    if r is None:
+        return "% generalization_v1 not present\n"
+    ev = r["plan"]["evals"]
+    order = [k for k in ("wt2_val_128", "wt2_test_128", "tiny_128",
+                         "wt2_test_512", "wt2_test_2048") if k in ev]
+    nice = {"vq8_vs_scalar3": "VQ8 vs scalar", "vq8_vs_scalar3_g64": "VQ8 vs scalar g64",
+            "vq8_vs_vq4": "VQ8 vs VQ4", "scalar3_g64_vs_scalar3": "g64 vs g128"}
+    L = [r"\begin{table}[t]", r"\centering", r"\small",
+         r"\begin{tabular}{l" + "r" * len(order) + "}", r"\toprule",
+         "Contrast & " + " & ".join(esc(o) for o in order) + r" \\", r"\midrule"]
+    for ck, label in nice.items():
+        if ck not in r.get("contrasts", {}):
+            continue
+        row = r["contrasts"][ck]
+        cells = []
+        for o in order:
+            v = row[o]
+            star = "" if (v["ci"][0] > 0) == (v["ci"][1] > 0) else r"$^{\dagger}$"
+            cells.append(f"${v['delta']:+.6f}${star}")
+        L.append(f"{esc(label)} & " + " & ".join(cells) + r" \\")
+    L += [r"\bottomrule", r"\end{tabular}",
+          r"\caption{One fitted quantizer; only the evaluation varies. These are two "
+          r"corpora and three context lengths, not five independent replications --- the "
+          r"three \texttt{wt2\_test} columns share their text and differ only in "
+          r"blocking. $\dagger$ marks an interval including zero. "
+          f"Source: \\texttt{{results/{RUNS['gen'][0]}}}.}}",
+          r"\label{tab:gen}", r"\end{table}", ""]
+    return "\n".join(L)
+
+
 def coverage_table():
     """Protocol and coverage, the table the review asked to lead with."""
     rows = []
@@ -155,6 +228,8 @@ def main():
             "q27b", "Scale transfer, frozen confirmation: 48 DeltaNet QKV "
             "projections of Qwen3.8-27B over the complete validation stream.",
             "tab:q27"),
+        "tab_refit.tex": refit_table(),
+        "tab_gen.tex": generalization_table(),
         "tab_primary.tex": comparison_table([
             ("v4", "vq8_rot_gptq_vs_scalar3_rot_gptq", "VQ8 vs scalar (0.8B)"),
             ("q27b", "vq8_rot_gptq_vs_scalar3_rot_gptq", "VQ8 vs scalar (27B)"),
