@@ -552,3 +552,126 @@ What this implies for §6, in order of expected value:
 3. The §6 engineering conditions are unchanged and still unmet: no resident
    packed inference, no compressed KV cache, no measured peak memory or
    latency at 27B.
+
+## 9. Mixed-precision allocation, and the failure of the sensitivity proxy (2026-09-21)
+
+Section 8 measured that MLP weights are 2.79x more damaging per parameter than
+the input projections, and concluded that rate allocation was the obvious
+remaining lever. `run_mixed_alloc_v1.py` tests that, over all 90 target tensors
+(`in_proj_qkv` + every MLP projection; 377,487,360 params, **50.2% of the
+model**).
+
+The question is posed so it can be answered fairly. Not "which family deserves
+more bits" — that cannot be byte-matched, because the families differ in size —
+but: **given a fixed number of extra bytes, which tensors should receive
+them?** Every promotion arm spends exactly 5,662,224 extra bytes, which is
+precisely what promoting all 18 projections costs, so `promote_proj` is one
+candidate answer rather than the reference. Both rates are dimension-4 vector
+codes (K=81 at 1.600 bits of index, K=243 at 2.000), so promotion changes the
+rate and nothing else; mixing dimension-8 into the ladder would have confounded
+rate with dimension.
+
+Tensors are ranked without any extra model evaluations, by quantizing each at
+both rates and scoring the summed activation-weighted error
+$\operatorname{tr}(\Delta W H \Delta W^{\mathsf T})$, then promoting greedily by
+error removed per extra byte. `promote_random` spends the identical budget on
+randomly chosen tensors and is the control that decides whether the proxy is
+worth anything.
+
+| Arm | bits/wt | stored MB | promoted | ΔNLL vs BF16 |
+|---|---:|---:|---:|---:|
+| all_low (dim-4 K=81) | 1.7250 | 81.40 | — | $+0.637829$ |
+| promote_proj | 1.8451 | 87.06 | 113.2 M | $+0.594650$ |
+| promote_greedy_all | 1.8417 | 86.90 | 110.1 M | $+0.598860$ |
+| promote_random | 1.8451 | 87.06 | 113.2 M | $+0.537616$ |
+| **promote_greedy_mlp** | 1.8417 | 86.90 | 110.1 M | $\mathbf{+0.533546}$ |
+| all_low_d8 (dim-8 K=6561) | 1.7272 | 81.50 | — | $+0.595745$ |
+| all_high (everything K=243) | 2.1250 | 100.27 | 377.5 M | $+0.351119$ |
+
+### The proxy is worse than random
+
+The greedy ranking over all 90 tensors promoted **14 of 18 `in_proj_qkv`, 6 of
+24 `gate_proj`, and none of the 48 `up_proj`/`down_proj`** — it sent the budget
+almost entirely to the projections. Against the random control on identical
+bytes it loses by $+0.061244$ $[+0.058083,+0.064344]$. `promote_proj` likewise
+loses to random, by $+0.057034$. **A principled, measured, Hessian-derived
+ranking performs significantly worse than choosing tensors at random.**
+
+The mechanism is visible in numbers already reported. Per parameter, the
+projections carry $5.00\times10^{-5}$ of activation-weighted error against the
+MLPs' $8.74\times10^{-6}$ — 5.7x *more* — while causing 2.79x *less* NLL
+damage. Across families the proxy is anti-correlated with what it is meant to
+predict, by roughly a factor of 16 in the wrong direction.
+
+Why: $\operatorname{tr}(\Delta W H \Delta W^{\mathsf T})$ measures error
+injected at a layer's *output*. It carries no information about how that error
+propagates to the loss, which is a backward quantity. This project has now
+failed to rank layers twice by two different forward-side statistics — the
+Fisher diagnostic found Spearman $+0.015$, and this proxy is worse than
+chance. Those are consistent findings, not two accidents.
+
+### Narrowing a claim from §5c
+
+§5c reported that the activation-weighted error "is the first proxy in this
+project to survive a setting where plain weight error reverses." That was
+measured **within one tensor family, across recipes**, and in that setting it
+holds. Used **across families** it fails outright. The §5c sentence should be
+read with that scope, and the general claim is **withdrawn**.
+
+### What does work: family-level allocation, from measured damage
+
+`promote_greedy_mlp` — the budget confined to MLP tensors — is the best
+promotion arm, beating `promote_proj` by $-0.061105$
+$[-0.064430,-0.057804]$ and `all_low` by $-0.104284$ for 6.8% more bytes. But
+the credit belongs to the *family* decision, which came from §8's measured
+NLL-per-parameter, not from the ranking. Random already places about 70% of its
+budget on MLP simply because MLP is 70% of the target parameters, and
+`greedy_mlp` beats it by only $-0.004070$ $[-0.006991,-0.001160]$.
+
+Interpolating the family effect linearly between `promote_proj` (0% of budget
+to MLP) and `promote_random` (~70%), an allocation at 100% should land near
+$+0.513$. The observed $+0.533546$ is **$0.020$ worse**, so the within-family
+ranking appears mildly harmful too, consistent with its sign across families.
+The honest summary: *choose the family by measured damage per parameter, then
+distribute within it uniformly.*
+
+### Dimension and allocation compose, sub-additively
+
+The first pass tested composition with `greedy_all`, which turned out to be the
+inferior allocation; a rerun (`results/mixed_alloc_v1b`, in which both original
+arms reproduce to all printed digits) adds the allocation that won:
+
+| Arm | bits/wt | ΔNLL vs BF16 |
+|---|---:|---:|
+| all_low (dim-4 K=81) | 1.7250 | $+0.637829$ |
+| all_low_d8 (dim-8 K=6561) | 1.7272 | $+0.595745$ |
+| promote_greedy_mlp (dim-4 low) | 1.8417 | $+0.533546$ |
+| **greedy_mlp_d8_low** | 1.8439 | $\mathbf{+0.514512}$ |
+
+Against `all_low_d8` on identical rates elsewhere, MLP-first promotion is worth
+$-0.081233$ $[-0.084066,-0.078503]$. Taken from `all_low`, the dimension change
+alone is worth $-0.042084$, the allocation alone $-0.104283$, and the two
+together $-0.123317$ — **84% of the additive sum**. They reinforce rather than
+overlap, but not fully: once the MLP tensors are promoted to dimension-4 K=243,
+the dimension-8 gain applies only to what remains, and it halves.
+
+The best configuration measured in this project is therefore dimension-8
+ternary on unpromoted tensors with the MLP family promoted to 2.000 bits:
+$+0.514512$ at 1.8439 bits/weight over 50.2% of the model.
+
+### The levers, ranked by what they actually buy
+
+| Lever | damage cut | byte cost |
+|---|---:|---:|
+| GPTQ error compensation (§5c, §8) | 68–69% | 0% |
+| Rate 1.600 → 2.000 bits of index | 45.0% | $+23.2\%$ |
+| Family allocation (MLP-first) | 16.3% | $+6.8\%$ |
+| Codec dimension, dim-4 → dim-8 | 6.6% | $+0.1\%$ |
+| Per-tensor proxy ranking | **negative** | — |
+
+The rate row is the one that should change the 27B plan most. A 0.4-bit
+increase in index rate removes 45% of the damage — ternary sits on a steep part
+of the rate–distortion curve, and the distance from 1.6 to 2.0 bits buys
+considerably more than every codec refinement in this project combined. The
+codec contribution is real, replicated and essentially free in bytes, but it is
+a 6.6% effect sitting on top of a 68% one.

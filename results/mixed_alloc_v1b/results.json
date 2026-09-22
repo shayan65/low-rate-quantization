@@ -1,0 +1,116 @@
+{
+  "plan": {
+    "model": "../models/Qwen3.5-0.8B-Base",
+    "tensors": 90,
+    "target_params": 377487360,
+    "share": 0.5017156565236841,
+    "eval_targets": 261284,
+    "rates": {
+      "low": [
+        4,
+        81
+      ],
+      "high": [
+        4,
+        243
+      ],
+      "d8": [
+        8,
+        6561
+      ]
+    },
+    "budget_bytes": 5662224,
+    "spent": {
+      "promote_proj": 5662224,
+      "promote_greedy_mlp": 5504880,
+      "promote_greedy_all": 5504928,
+      "promote_random": 5662176
+    },
+    "promoted_params": {
+      "all_low": 0,
+      "promote_proj": 113246208,
+      "promote_greedy_mlp": 110100480,
+      "promote_greedy_all": 110100480,
+      "promote_random": 113246208,
+      "all_high": 377487360,
+      "all_low_d8": 0,
+      "greedy_all_d8_low": 110100480,
+      "greedy_mlp_d8_low": 110100480
+    },
+    "greedy_all_families": {
+      "down_proj": 0,
+      "gate_proj": 6,
+      "in_proj_qkv": 14,
+      "up_proj": 0
+    },
+    "family_counts": {
+      "down_proj": 24,
+      "gate_proj": 24,
+      "in_proj_qkv": 18,
+      "up_proj": 24
+    }
+  },
+  "bf16": {
+    "nll": 3.4367098761642176
+  },
+  "arms": {
+    "all_low_d8": {
+      "nll": 4.0324550530609775,
+      "delta_nll": 0.5957451768967599,
+      "delta_ci": [
+        0.586526166703862,
+        0.6048490965129679
+      ],
+      "bits_per_weight": 1.72723388671875,
+      "stored_bytes": 81501120,
+      "codebook_bytes": 104976,
+      "promoted_params": 0,
+      "quantize_seconds": 41.870217054965906
+    },
+    "greedy_all_d8_low": {
+      "nll": 3.999993370342192,
+      "delta_nll": 0.5632834941779743,
+      "delta_ci": [
+        0.5545767596274424,
+        0.572137652778175
+      ],
+      "bits_per_weight": 1.843939717610677,
+      "stored_bytes": 87007992,
+      "codebook_bytes": 106920,
+      "promoted_params": 110100480,
+      "quantize_seconds": 40.46163009200245
+    },
+    "greedy_mlp_d8_low": {
+      "nll": 3.9512219386895655,
+      "delta_nll": 0.5145120625253479,
+      "delta_ci": [
+        0.5063072567395169,
+        0.5227313737736159
+      ],
+      "bits_per_weight": 1.843938700358073,
+      "stored_bytes": 87007944,
+      "codebook_bytes": 106920,
+      "promoted_params": 110100480,
+      "quantize_seconds": 40.89612660300918
+    }
+  },
+  "comparisons": {
+    "greedy_all_d8_low_vs_all_low_d8": {
+      "delta": -0.03246168271878558,
+      "ci": [
+        -0.034570600779126714,
+        -0.030392963601956313
+      ],
+      "byte_ratio": 1.0675680530525224
+    },
+    "greedy_mlp_d8_low_vs_all_low_d8": {
+      "delta": -0.08123311437141201,
+      "ci": [
+        -0.08406597940562188,
+        -0.07850303539274767
+      ],
+      "byte_ratio": 1.0675674641035608
+    }
+  },
+  "seconds": 213.9
+}
