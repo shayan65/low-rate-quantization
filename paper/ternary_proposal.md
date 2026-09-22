@@ -998,3 +998,78 @@ refits**, always in the same direction. A comparable measurement at 27B was not
 run — it would cost roughly eight times the frozen confirmation — so the 27B
 intervals should be read as conditional in exactly the same way, with their
 refit variability unmeasured.
+
+## 13. Generalization: fixed quantizer, varied evaluation (2026-09-22)
+
+Every contrast so far was evaluated on wikitext-2 validation in 128-token
+blocks with state reset per block. That text has guided many decisions and is
+no longer held out, and a 128-token reset cannot speak to how a quantized
+recurrent model behaves over long contexts. §12 varied the fit and held the
+evaluation fixed; `run_generalization_v1.py` does the reverse — **one
+calibration draw, one seed, one set of codes**, with only the evaluation
+changing — so the two sensitivities are separated rather than confounded.
+
+| Evaluation | corpus | context | blocks | targets | BF16 NLL |
+|---|---|---:|---:|---:|---:|
+| wt2_val_128 | wikitext-2 val | 128 | 2,042 | 261,284 | 3.436710 |
+| wt2_test_128 | wikitext-2 **test** | 128 | 2,048 | 262,143 | 3.394295 |
+| tiny_128 | **TinyStories** | 128 | 2,048 | 262,143 | 2.314432 |
+| wt2_test_512 | wikitext-2 test | 512 | 512 | 262,143 | 2.870202 |
+| wt2_test_2048 | wikitext-2 test | 2048 | 128 | 262,143 | 2.567222 |
+
+Calibration is always wikitext-2 train, which is the realistic setting and what
+makes the TinyStories column informative. `wt2_val_128` reproduces §5c to six
+decimals on all four contrasts, so it is a harness check, not evidence.
+
+### The ordering holds everywhere tested
+
+All three primary contrasts exclude zero on **all five** evaluation sets:
+
+| Contrast | wikitext range | TinyStories |
+|---|---|---:|
+| VQ8 vs scalar | $-0.038806$ to $-0.031832$ | $-0.043775$ |
+| VQ8 vs scalar g64 | $-0.039543$ to $-0.031779$ | $-0.054717$ |
+| VQ8 vs VQ4 | $-0.015220$ to $-0.011451$ | $-0.015677$ |
+
+Across the four wikitext sets the VQ8-vs-scalar contrast varies by $0.006974$,
+about 2.7x a typical bootstrap half-width — real variation, though these are
+different texts with different baselines rather than repeated measurements of
+one quantity, so this is not an error term in the sense §12's refit spread is.
+
+### Long context does not degrade the result
+
+This was the worry that motivated the check, and it is not borne out. Absolute
+damage is essentially flat in context length — scalar ternary costs $0.121115$
+at 128 tokens, $0.116657$ at 512 and $0.115984$ at 2048 — and the VQ8 advantage
+survives at every length ($-0.031832$ at 2048, excluding zero). The 128-token
+reset protocol was not concealing a long-context failure in these projections.
+Two caveats: longer blocks mean fewer bootstrap units (128 blocks at 2048
+tokens), and BF16 loss itself falls with context, so the same absolute damage
+is a larger relative cost at 2048.
+
+### Domain shift raises damage, and the vector code absorbs it better
+
+On TinyStories every arm is hurt far more than on wikitext — scalar ternary
+costs $0.182354$ against $0.121115$ — which is the expected price of
+calibrating on one domain and evaluating on another. The interesting part is
+that the gap *widens* in VQ8's favour: $-0.043775$ against $-0.038806$ in
+domain, and $-0.054717$ against the g64 control. A wikitext-calibrated
+eight-dimensional codebook degrades less under domain shift than a
+wikitext-calibrated scalar code, which is the opposite of the natural worry
+that a large learned codebook would be the more domain-specific object.
+
+### The scalar group-size contrast fails once more, in a new way
+
+`g64 vs g128` includes zero on four of five sets — and on TinyStories it
+**excludes zero with the wrong sign** ($+0.010942$): spending 7.25% more bytes
+on finer scalar groups actively *hurts* on out-of-domain text. With §12's sign
+flip across refits, the position is now that this contrast is refit-dependent
+*and* domain-dependent and has never been reliably beneficial. No claim about
+finer scalar groups is supportable in either direction.
+
+### Scope
+
+One model, one calibration corpus, two evaluation corpora, four context
+lengths, a single fitted quantizer. It does not establish that the ordering
+holds on other model families, other calibration domains, or at 27B, where
+neither the domain nor the context axis was measured.
