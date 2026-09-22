@@ -3,11 +3,12 @@
 Section 9 found that a 0.4-bit increase in index rate removes 45% of the
 damage -- more than every codec refinement in this project combined -- but the
 ladder stopped at 2.000 bits because that was all the allocation study needed.
-Nothing here has ever measured the region between 2 and 4 bits, which is
-exactly where a *usable* model is likely to live: at ternary the damage is
-+0.51 NLL even with the best configuration, and at 4 bits earlier work found
-total damage of 0.24%, so the interesting knee is somewhere in between and has
-never been looked at.
+Nothing here has ever measured the region between 2 and 4 bits on this target
+set, which is where a *usable* operating point is most likely to live: at
+ternary the damage is +0.51 NLL even with the best configuration. A historical
+four-bit number exists but is a different target set (QKV only, 0.8B) and is
+0.24% of baseline NLL / 0.84% relative perplexity -- it cannot be placed on
+this curve, and earlier drafts wrongly used it as a deployment result.
 
 This run sweeps uniform rate over the same 90 tensors as section 9
 (`in_proj_qkv` + every MLP projection, 50.2% of the model) with everything else
@@ -30,11 +31,16 @@ wastes essentially nothing and the curve is a property of the codec rather than
 of the container. K=81 is included as a sixth point purely to tie this sweep to
 section 9, which used it.
 
-Dimension is held at 4 throughout so the curve measures rate alone. The 4.000
-rung (K=65535) is omitted deliberately: assignment against 65,535 centroids
-over 94M vectors costs roughly 20 minutes per arm, and earlier work already
-established that damage at 4 bits is negligible, so the rung would cost the
-most and tell us the least.
+Dimension is held at 4 throughout so the curve measures rate alone.
+
+The 4.000 rung (K=65535) was omitted from the first version of this sweep on
+the grounds that a historical four-bit measurement already existed. That
+reasoning was wrong twice over: the historical number is a different target set
+(QKV only, 0.8B) and so cannot be placed on this curve, and it was being quoted
+as a deployment result it does not support. The rung is included here. It
+requires `assign` to size its distance buffer against the codebook -- a fixed
+200,000-point chunk would ask for 52 GB at this K -- and the reduction triggers
+only above 6 GB, so the smaller rungs run on exactly the path they ran before.
 """
 
 import argparse
@@ -64,6 +70,7 @@ LADDER = [
     ("r2286_k565", 565),
     ("r2667_k1625", 1625),
     ("r3200_k7131", 7131),
+    ("r4000_k65535", 65535),  # the four-bit point the 2026-09-22 review asked for
 ]
 
 

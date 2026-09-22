@@ -876,3 +876,40 @@ percentage points of perplexity on this subset. Whether that matters for a
 deployed model is still unmeasured: no full-coverage conversion at any rate has
 been evaluated at 27B for quality or runtime footprint, and there is no packed
 inference kernel.
+
+### An exactness failure observed once and not reproduced
+
+An earlier draft of this document described a "budget-sensitive defect" and
+speculated that memory pressure changed arithmetic. That outran the evidence.
+
+**What was observed.** One run of the v1 confirmation script at a 17 GiB GPU
+weight budget raised the per-tensor bit-exactness check with a
+decoded-versus-reference difference of $0.036$ — far too large to be rounding.
+Runs at 15 GiB were exact.
+
+**What reproduction found.** Seven further runs at 17 GiB, across two script
+versions and in fresh processes, all terminated with an identical CUDA
+out-of-memory error (200 MiB requested, 196 MiB free) *before* reaching the
+state in question: four with the strict check (two of them using a
+reduced-footprint host-side comparison specifically to survive longer) and
+three re-running the exact original v1 invocation. Runs at 15 and 16 GiB are
+exact. **The corruption was never reproduced and no failing tensor was
+captured**, so the intended localization — comparing unpacked indices, unpacked
+scales, an independent CPU reconstruction, the GPU decode and the quantizer
+reference — could not be run at all.
+
+**What can be said.** At a 17 GiB weight budget this configuration sits within
+about 200 MiB of the card's capacity and does not complete there. One
+observation of a wrong value stands against seven of a clean failure. That is
+consistent with a transient fault, with machine state differing between the two
+occasions, or with a genuine narrow-regime bug, and the evidence does not
+distinguish them. The honest status is **one unexplained event, not
+reproduced**, and the earlier framing is withdrawn.
+
+**Why it does not affect the reported results.** Every reported run used 15 GiB
+and every tensor in every reported arm passed the strict per-tensor check —
+explicit finiteness and exact equality, evaluated before the tensor is
+installed into the model, with the failing case dumped on violation. The frozen
+confirmation additionally writes each arm's artifact to disk and re-decodes it
+from the reloaded files, exact in all four arms. The check is cheap, it is the
+only reason the anomaly was noticed, and it should be kept rather than relaxed.

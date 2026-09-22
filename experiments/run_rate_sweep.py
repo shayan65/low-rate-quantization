@@ -121,8 +121,21 @@ def scalar_mse(u: torch.Tensor, scale: torch.Tensor, c: torch.Tensor) -> float:
 
 
 @torch.no_grad()
-def assign(points: torch.Tensor, cent: torch.Tensor, chunk: int = 200_000):
-    """Nearest centroid by chunked matmul; returns (index, sum of sq distance)."""
+def assign(points: torch.Tensor, cent: torch.Tensor, chunk: int = 200_000,
+           max_buffer_bytes: float = 6e9):
+    """Nearest centroid by chunked matmul; returns (index, sum of sq distance).
+
+    The distance buffer is chunk x K floats, so a fixed chunk does not survive a
+    large codebook: at K=65535 the default would ask for 52 GB, which is why the
+    rate ladder previously stopped at K=7131. The chunk is reduced only when the
+    buffer would exceed `max_buffer_bytes`, which leaves every previously
+    reported configuration on exactly the path it ran (K=7131 needs 5.7 GB and
+    is untouched). Chunking partitions points, never centroids, so each point is
+    still compared against the whole codebook.
+    """
+    k = cent.shape[0]
+    if chunk * k * 4 > max_buffer_bytes:
+        chunk = max(1024, int(max_buffer_bytes // (k * 4)))
     cn = cent.square().sum(1)
     idx = torch.empty(points.shape[0], dtype=torch.long, device=points.device)
     sq = 0.0

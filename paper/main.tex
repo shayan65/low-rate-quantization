@@ -27,7 +27,8 @@ DeltaNet QKV projections of a 0.8B model, a shared eight-dimensional codebook
 reduces damage relative to a learned three-level scalar code by
 $0.036118$ NLL (95\% CI $[0.033768, 0.038414]$) at $0.43\%$ more payload bytes,
 and the direction reproduces on the 48 corresponding projections of a 27B
-checkpoint ($0.003957$, CI $[0.001083, 0.006805]$, $0.019\%$ more bytes). Two
+checkpoint over its complete validation stream ($0.007121$, CI
+$[0.005725, 0.008513]$, $0.019\%$ more bytes). Two
 factors dominate that codec choice. GPTQ-style error compensation removes
 $68$--$69\%$ of the damage on both tensor families, roughly three times what the
 codec contributes, and it does so while \emph{raising} plain weight MSE, which
@@ -62,9 +63,11 @@ Concretely:
 \item \textbf{Dimension.} A shared 6561-point eight-dimensional codebook beats a
 learned three-level scalar code at near-equal payload bytes, on two tensor
 families of a 0.8B model and on the QKV projections of a 27B model
-(Table~\ref{tab:primary}). Whether eight dimensions are needed rather than four
-is \emph{not} settled: four-dimensional codes capture $95.4\%$ of the
-point-estimated gain at 27B.
+(Table~\ref{tab:primary}). Eight dimensions earn their place: on the frozen
+27B run they beat four by $0.004034$ (CI $[0.002715, 0.005334]$), more than half
+of the eight-dimensional code's entire advantage over scalar. A 512-block pilot
+had suggested the opposite, with four dimensions capturing $95.4\%$ of the gain;
+that estimate did not survive the full stream.
 \item \textbf{Compensation dominates the codec.} Error compensation is worth
 $68$--$69\%$ of the damage against the codec's $6$--$32\%$, and it improves loss
 while degrading weight MSE.
@@ -169,20 +172,29 @@ an independently written reference. We regard this as a routine generalization.
 \input{generated/tab_q27_arms.tex}
 \input{generated/tab_rate.tex}
 
-\subsection{Dimension helps; how much dimension is unsettled}
+\subsection{Dimension helps, and eight dimensions earn their place}
 
 At near-equal payload bytes the eight-dimensional code beats the learned scalar
 ternary code on both 0.8B tensor families and on the 27B projections
 (Table~\ref{tab:primary}). Against a scalar control that spends $6.4\%$
 \emph{more} bytes the margin is $-0.034303$ $[-0.036660,-0.031971]$ at 0.8B
-under the matched compensated recipe; at 27B the corresponding contrast is
-$-0.001736$ $[-0.004444,+0.000923]$ and is \textbf{inconclusive}.
+under the matched compensated recipe; at 27B, over the complete validation
+stream, it is $-0.007836$ $[-0.009247,-0.006356]$ at a payload ratio of
+$0.93261$ --- the vector code wins while storing $6.7\%$ \emph{fewer} bytes. A
+512-block pilot of the same comparison was inconclusive
+($-0.001736$ $[-0.004444,+0.000923]$).
 
-Dimension-4 captures $95.4\%$ of dimension-8's point-estimated improvement at
-27B, with dimension-8 ahead by only $0.000181$ NLL while storing $104{,}328$
-more bytes of codebook. The confirmation run adds this contrast as a
-prespecified secondary comparison; until it reports, we do not claim eight
-dimensions are necessary.
+On the frozen confirmation, dimension-8 beats dimension-4 by $-0.004034$
+$[-0.005334,-0.002715]$ --- more than half of dimension-8's entire advantage
+over the scalar code. The 512-block pilot had dimension-4 capturing $95.4\%$ of
+the gain, with dimension-8 ahead by only $0.000181$; that reading did not
+survive the complete stream. The difference is not sampling: the pilot's blocks
+and the remaining $1{,}530$ agree with each other, and BF16 loss on the pilot's
+blocks is identical across runs to all printed digits. What differs is
+calibration size ($32{,}768$ against $65{,}536$ tokens), which moved the
+storage-dominance contrast across non-overlapping intervals on identical
+evaluation data. Every interval reported here is conditional on one fitted
+quantizer, and calibration variability is not inside it.
 
 \subsection{Compensation dominates the codec, and inverts the proxy}
 
@@ -256,15 +268,17 @@ saved results by \texttt{experiments/make\_tables\_v2.py}; an earlier draft
 mixed an uncompensated margin into a compensated comparison, and generation is
 how we prevent recurrence rather than by care.
 
-\textbf{An unresolved defect.} At a 17\,GiB GPU weight budget the per-tensor
-bit-exactness check fires on the 27B model with a decoded-versus-reference
-difference of $0.036$; at 15\,GiB every tensor is exact. The codec is exact at
-the same shapes on synthetic data, all 48 targets share one shape, and layer 0
-passes the full real path, so the obvious explanations are excluded --- but the
-cause is \textbf{not understood}, and budget dependence is an observation, not
-evidence that memory pressure changes arithmetic. Reported runs use 15\,GiB and
-keep the check enabled per tensor; it saves the first failing case for
-localization. Anyone extending this work should treat the check as load-bearing.
+\textbf{An exactness failure, observed once and not reproduced.} One run at a
+17\,GiB GPU weight budget raised the per-tensor bit-exactness check with a
+decoded-versus-reference difference of $0.036$. Seven subsequent runs at that
+budget, across two script versions in fresh processes, instead terminated with
+an identical out-of-memory error before reaching that state; 15 and 16\,GiB are
+exact. The corruption was never reproduced and no failing tensor was captured,
+so it could not be localized. One observation of a wrong value stands against
+seven of a clean failure, and an earlier draft's framing of this as a
+characterized budget-sensitive defect is withdrawn. Every reported run used
+15\,GiB, every tensor passed the strict check, and the confirmation run
+additionally re-decodes each artifact from disk.
 
 \textbf{Statistical scope.} Intervals measure text-sampling variability
 conditional on one fitted quantizer; they do not include calibration or

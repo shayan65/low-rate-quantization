@@ -156,6 +156,42 @@ def verify_reload(path, packs, book, device="cuda"):
     return worst
 
 
+def check_exact_lean(layer, idx, sc, ref, dq, book, dump_dir, chunk=512):
+    """Verify on the host in row chunks, for the near-OOM regime.
+
+    The strict check keeps several full tensors resident at once, which raises
+    peak memory enough that a 17 GiB weight budget OOMs before it can reach the
+    state in which the original corruption appeared. Comparing row-chunk by
+    row-chunk on the host keeps peak allocation flat, so the failing regime is
+    reachable and the failing tensor can actually be captured.
+    """
+    import numpy as np
+    rows = ref.shape[0]
+    worst, nbad, first = 0.0, 0, None
+    for r0 in range(0, rows, chunk):
+        a_ = ref[r0:r0 + chunk].detach().to("cpu")
+        b_ = dq[r0:r0 + chunk].detach().to("cpu")
+        if not torch.equal(a_, b_):
+            d = (a_ - b_).abs()
+            worst = max(worst, float(d.max()))
+            nbad += int(d.gt(0).sum())
+            if first is None:
+                nz = d.gt(0).nonzero()
+                first = [int(nz[0][0]) + r0, int(nz[0][1])]
+        del a_, b_
+    fin = bool(torch.isfinite(dq).all() and torch.isfinite(ref).all())
+    if nbad == 0 and fin:
+        return
+    dump_dir.mkdir(parents=True, exist_ok=True)
+    f = dump_dir / f"failing_layer{layer}.npz"
+    np.savez(f, idx=idx.cpu().numpy(), scale=sc.cpu().numpy(),
+             ref=ref.cpu().numpy(), decoded=dq.cpu().numpy(), book=book.cpu().numpy(),
+             first_bad=np.array(first if first else [-1, -1]))
+    raise AssertionError(json.dumps({"layer": layer, "max_abs": worst,
+                                     "n_differing": nbad, "finite": fin,
+                                     "first_bad": first, "saved": str(f)}))
+
+
 def check_exact(layer, w, idx, sc, ref, dq, book, dump_dir):
     """Strict, immediate verification of one tensor; dump the case if it fails.
 
@@ -291,6 +327,9 @@ def main() -> None:
     ap.add_argument("--cal-batch", type=int, default=2)
     ap.add_argument("--seconds", type=float, default=21600)
     ap.add_argument("--only", default="")
+    ap.add_argument("--lean-check", action="store_true",
+                    help="host-side chunked verification; lower peak memory so the "
+                         "near-OOM regime that produced the defect is reachable")
     a = ap.parse_args()
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -424,7 +463,10 @@ def main() -> None:
                  else encode_vq(idx, sc, (rows, cols), group, dim, k))
             dq = decode(p, book, "cuda")
             # strict and immediate: localize, preserve and stop before installing
-            check_exact(i, w, idx, sc, ref, dq, book, out / "failures" / name)
+            if a.lean_check:
+                check_exact_lean(i, idx, sc, ref, dq, book, out / "failures" / name)
+            else:
+                check_exact(i, w, idx, sc, ref, dq, book, out / "failures" / name)
             wse += (dq - w).square().double().sum().item()
             wn += rows * cols
             tw = stores[i]
