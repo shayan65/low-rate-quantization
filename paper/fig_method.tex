@@ -1,0 +1,73 @@
+% Method diagram. Hand-written rather than generated: it encodes the pipeline's
+% structure, not any measured number, so there is nothing for a generator to
+% read. Every quantity that appears here (1.600, 2.000, g=128) is a property of
+% the format and is stated identically in the text. Drawn at a comfortable size
+% and scaled to the text width, so node contents are never cramped to fit.
+\begin{figure}[t]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  font=\small,
+  box/.style={draw, rounded corners=1.5pt, align=center, inner sep=4pt,
+              minimum height=9mm, fill=black!3},
+  hot/.style={box, fill=red!6, draw=red!45},
+  cool/.style={box, fill=blue!5, draw=blue!35},
+  lbl/.style={font=\scriptsize\itshape, text=black!55, align=left},
+  ar/.style={-{Latex[length=1.8mm]}, thin},
+]
+
+% ---------------- offline ----------------
+\node[lbl, anchor=west] at (0,1.5) {offline, once per tensor};
+\node[box] (w)    at ( 0.7, 0) {$W$};
+\node[hot] (rot)  at ( 3.4, 0) {rotate\\[-2pt]\scriptsize $\pm$signs, blockwise Hadamard};
+\node[box] (gn)   at ( 7.2, 0) {group normalize\\[-2pt]\scriptsize $g{=}128$};
+\node[hot] (gptq) at (11.2, 0) {assign $+$ compensate\\[-2pt]\scriptsize
+                                metric NN, $M{=}U_{JJ}^{-1}$};
+\node[box] (pack) at (15.2, 0) {pack\\[-2pt]\scriptsize 5 codes / \texttt{uint64}};
+\node[lbl, anchor=west] at (16.9, 0) {$1.600$\\bits/weight};
+
+\draw[ar] (w)    -- (rot);
+\draw[ar] (rot)  -- (gn);
+\draw[ar] (gn)   -- (gptq);
+\draw[ar] (gptq) -- (pack);
+
+\node[lbl, anchor=north, align=center] at (9.6,-0.8)
+  {propagate $E\,U_{J,\text{rest}}$ to the columns not yet quantized};
+
+% ---------------- served ----------------
+\node[lbl, anchor=west] at (0,-2.6) {served, once per token};
+\node[box] (x)     at ( 0.7,-4.0) {$x$};
+\node[hot] (frot)  at ( 3.4,-4.0) {fused rotation\\[-2pt]\scriptsize one Triton kernel};
+\node[cool](codes) at ( 7.6,-4.0) {\texttt{int16} codes\\[-2pt]\scriptsize
+                                   $+$ FP16 codebook, FP16 scales};
+\node[hot] (gemv)  at (12.0,-4.0) {GEMV\\[-2pt]\scriptsize gather, scale, accumulate};
+\node[box] (y)     at (15.2,-4.0) {$y$};
+\node[lbl, anchor=west] at (16.9,-4.0) {$2.000$\\bits/weight};
+
+\draw[ar] (x)     -- (frot);
+\draw[ar] (frot)  -- (codes);
+\draw[ar] (codes) -- (gemv);
+\draw[ar] (gemv)  -- (y);
+
+\draw[ar, dashed, black!40] (pack.south) -- ++(0,-1.05)
+  node[lbl, anchor=west, xshift=1.5mm, yshift=2mm] {one-off unpack at load}
+  -| (codes.north);
+
+\end{tikzpicture}}
+\caption{The recipe, and the two layouts it produces. \textbf{Offline}, each
+covered matrix is rotated by a blockwise randomized Hadamard transform,
+normalized in groups of 128, then quantized one column block at a time: within a
+block the assignment is a nearest-neighbour search under the metric
+$M = U_{JJ}^{-1}$, and the residual is propagated to the columns not yet
+quantized. That is GPTQ generalized to a vector code, and it collapses to
+textbook scalar GPTQ at dimension one, which we verify bit-exactly.
+\textbf{Served}, the stored packing is not what runs. Five base-$K$ codes in a
+\texttt{uint64} give an optimal $1.600$ bits of index but are inconvenient to
+address, so a one-off unpack at load time yields one \texttt{int16} code per
+group of weights, at $2.000$ bits. The rotation moves to the \emph{activation},
+because the codes are stored in the rotated basis:
+$y = \mathrm{rotate}(x)\,\widehat{W}^{\top}$. Quoting the storage rate as a
+resident footprint, as earlier drafts of this work did implicitly, overstates
+the served model by $25\%$ on the index.}
+\label{fig:method}
+\end{figure}

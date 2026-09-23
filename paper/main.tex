@@ -1,6 +1,8 @@
 \documentclass[11pt]{article}
 \usepackage[margin=1in]{geometry}
 \usepackage{amsmath,amssymb,amsthm,booktabs,graphicx,microtype}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning}
 \usepackage[T1]{fontenc}
 \usepackage{xurl}
 \usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
@@ -230,8 +232,12 @@ which is why cross-run differences are not attributed to scale.
 
 \input{generated/tab_coverage.tex}
 
+\input{fig_method}
+
 \section{Method}
 \label{sec:method}
+
+Figure~\ref{fig:method} shows the pipeline and the two layouts it produces.
 
 Rotation is a blockwise randomized Hadamard transform on the input dimension.
 Codebooks are fitted by Lloyd/$k$-means in group-normalized space and shared
@@ -300,6 +306,16 @@ scalar codes ($+0.004485$), and a tie once compensation is present
 ($+0.000206$), because the block metric already carries the diagonal and the
 cross terms.
 
+\begin{figure}[t]
+\centering
+\includegraphics{generated/fig_rate.pdf}
+\caption{Damage falls approximately exponentially with stored rate, with no knee
+over the measured interval: seven codebook sizes from $K=81$ to $K=65535$ on the
+90-tensor target set, halving about every $0.47$ bits. A table of seven rows
+states this; a log axis shows it. Source: \texttt{results/rate\_curve\_v2}.}
+\label{fig:rate}
+\end{figure}
+
 \subsection{Rate dominates compensation}
 
 Over $1.600$ to $4.000$ index bits at fixed $50.2\%$ coverage, damage halves
@@ -312,6 +328,9 @@ The four-bit point is measured on these same tensors: $+0.018572$ NLL,
 $+1.87\%$ perplexity. It is \emph{not} interchangeable with the historical
 four-bit figure of $+0.008393$, which covers 15.1\% of parameters rather than
 $50.2\%$.
+
+Figure~\ref{fig:rate} plots the curve; the exponential fit and the absence
+of a knee are easier to see than to tabulate.
 
 \subsection{Coverage dominates rate, and cannot be exploited by ranking}
 
@@ -528,6 +547,18 @@ rather than merely adding noise to it.
 \section{Full coverage and a compressed matmul}
 \label{sec:coverage-runtime}
 
+\begin{figure}[t]
+\centering
+\includegraphics{generated/fig_bytes.pdf}
+\caption{Where the parameters are. The weight codec in this paper --- and in the
+low-rate literature generally --- addresses the blue bar. At 0.8B the embedding
+is a third of the model and the codec cannot reach it; at 27B, where the head is
+untied and the embedding is charged twice, the same vocabulary occupies under a
+tenth. Norms and convolutions ($0.07\%$ at 0.8B) are folded into the blue bar.
+Counted from the checkpoint indices.}
+\label{fig:bytes}
+\end{figure}
+
 \subsection{Converting every non-embedding matrix}
 
 All $186$ two-dimensional weights outside the embedding, $497{,}614{,}848$ of
@@ -563,7 +594,7 @@ $2.44\times$: the embedding, which \texttt{tie\_word\_embeddings} also makes the
 output head, stays at BF16 and is then $83\%$ of what remains, putting the
 effective rate at $6.559$ bits/weight while the covered tensors sit at $1.725$.
 \textbf{At these rates the binding constraint is embedding precision, not the
-weight codec}, and crossing the two axes shows the exchange rate is not close
+weight codec} (Figure~\ref{fig:bytes}), and crossing the two axes shows the exchange rate is not close
 (Table~\ref{tab:embed}). The embedding quantizer is deliberately naive --- per-row
 or per-group scaling, no rotation, no compensation --- and still, in $\Delta$NLL
 per 100\,MB saved, moving it from BF16 to INT8 costs $0.000098$ against
@@ -572,7 +603,8 @@ The conjecture that FP8 on the embedding would save more bytes than moving the
 covered tensors from $2.792$ to $1.725$ bits, at far less cost, holds with room
 to spare: $253.8$\,MB against $66.4$\,MB, at $+0.001434$ against $+0.828532$.
 
-The consequence is a dominance rather than a trade-off. A model with 2.792-bit
+The consequence is a dominance rather than a trade-off
+(Figure~\ref{fig:frontier}). A model with 2.792-bit
 weights and an INT4 embedding is $305.8$\,MB at $+0.208926$; one with ternary
 weights and a BF16 embedding is $616.9$\,MB at $+1.000022$ --- half the size and
 a fifth of the damage. \emph{On this model, every sub-two-bit configuration we
@@ -586,6 +618,20 @@ untied head --- embedding and head together are $2{,}542{,}796{,}800$ of
 $27{,}781{,}427{,}952$ parameters, $9.15\%$ counted from the checkpoint index,
 and the arithmetic inverts. Nothing here measures the embedding's quality cost
 at 27B, so that inversion is an argument about bytes and not a result.
+
+\begin{figure}[t]
+\centering
+\includegraphics{generated/fig_frontier.pdf}
+\caption{Whole-model size against damage, over the weight-rate $\times$
+embedding-precision grid. Each series fixes a weight rate and varies the
+embedding from BF16 (rightmost point) to INT4 (leftmost), so moving left along a
+series is spending nothing but embedding precision. The sub-two-bit series sit
+above and to the right of points that are both smaller and better: the
+dominance the text describes is the arrow. The BF16/BF16 reference has exactly
+zero damage and no position on a log axis; it is $1504.8$\,MB. Source:
+\texttt{results/embed\_precision\_v1}.}
+\label{fig:frontier}
+\end{figure}
 
 \input{generated/tab_embed}
 
