@@ -86,8 +86,16 @@ def matmul_streamed(codes: torch.Tensor, book: torch.Tensor, scale: torch.Tensor
     x is (batch, cols) and the result is (batch, rows). Only (rows, tile_cols)
     of weight is resident at any moment, so peak allocation is the compressed
     payload plus one tile rather than the dense matrix.
+
+    The tile must be group-aligned, not merely code-aligned: scales are sliced
+    by whole groups below, so a tile narrower than one group selects an empty
+    slice and the multiply fails on a shape mismatch. Checking only `dim`
+    divisibility, as this did originally, accepted `tile_cols=64` at
+    `group=128` and crashed inside the loop.
     """
-    assert tile_cols % dim == 0
+    assert tile_cols % group == 0, (
+        f"tile_cols={tile_cols} must be a multiple of group={group}")
+    assert group % dim == 0, f"group={group} must be a multiple of dim={dim}"
     ng = cols // group
     codes = codes.view(rows, cols // dim)
     y = torch.zeros(x.shape[0], rows, device=x.device, dtype=torch.float32)
@@ -95,9 +103,13 @@ def matmul_streamed(codes: torch.Tensor, book: torch.Tensor, scale: torch.Tensor
     for c0 in range(0, cols, tile_cols):
         c1 = min(c0 + tile_cols, cols)
         blk = codes[:, c0 // dim : c1 // dim].reshape(-1).long()
-        tile = book[blk].view(rows, c1 - c0)
+        # Tables are resident in FP16 but the product is formed in FP32, the
+        # same policy the Triton kernel follows. Multiplying in FP16 costs
+        # about three decimal digits: it took the streamed path's error against
+        # the reference decoder from 3e-7 to 2e-4.
+        tile = book[blk].view(rows, c1 - c0).float()
         g0, g1 = c0 // group, c1 // group
-        tile = tile * sc[:, g0:g1].repeat_interleave(group, dim=1)[:, : c1 - c0]
+        tile = tile * sc[:, g0:g1].float().repeat_interleave(group, dim=1)[:, : c1 - c0]
         y += x[:, c0:c1].float() @ tile.T.float()
         del blk, tile
     return y
@@ -129,8 +141,14 @@ if HAVE_TRITON:
             for d in tl.static_range(DIM):
                 col = off * DIM + d
                 mm = m & (col < COLS)
-                wv = tl.load(book_ptr + code * DIM + d, mask=mm, other=0.0)
-                sv = tl.load(scale_ptr + row * NG + col // GROUP, mask=mm, other=0.0)
+                # Read the tables in whatever precision they are stored and
+                # promote here. Converting them in the wrapper instead, as this
+                # did originally, silently doubled their resident cost while
+                # the byte accounting still charged two bytes an element.
+                wv = tl.load(book_ptr + code * DIM + d, mask=mm,
+                             other=0.0).to(tl.float32)
+                sv = tl.load(scale_ptr + row * NG + col // GROUP, mask=mm,
+                             other=0.0).to(tl.float32)
                 xv = tl.load(x_ptr + col, mask=mm, other=0.0)
                 acc += tl.where(mm, wv * sv * xv, 0.0)
         tl.store(y_ptr + row, tl.sum(acc))
@@ -144,8 +162,25 @@ def matmul_triton(codes: torch.Tensor, book: torch.Tensor, scale: torch.Tensor,
     assert HAVE_TRITON, "triton unavailable"
     y = torch.empty(rows, device=x.device, dtype=torch.float32)
     _gemv_kernel[(rows,)](
-        codes.contiguous(), book.contiguous().float(), scale.contiguous().float(),
+        codes.contiguous(), book.contiguous(), scale.contiguous(),
         x.contiguous().float(), y, cols, cols // group,
         DIM=dim, GROUP=group, BLOCK=block,
     )
     return y
+
+
+def resident_bytes(codes: torch.Tensor, book: torch.Tensor,
+                   scale: torch.Tensor) -> dict:
+    """Bytes actually occupied, from each tensor's own element size.
+
+    The first version of this benchmark charged two bytes an element for the
+    codebook and the scales because that is what the design intended, while
+    both tensors were in fact FP32 at runtime. Element size is read from the
+    tensor so the claim cannot drift from the object again.
+    """
+    parts = {"codes": codes.numel() * codes.element_size(),
+             "codebook": book.numel() * book.element_size(),
+             "scales": scale.numel() * scale.element_size()}
+    return {**parts, "total": sum(parts.values()),
+            "dtypes": {"codes": str(codes.dtype), "codebook": str(book.dtype),
+                       "scales": str(scale.dtype)}}

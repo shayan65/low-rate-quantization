@@ -14,8 +14,8 @@ Codebook Dimension, Error Compensation, and Coverage}
 \maketitle
 \begin{center}\small\textbf{Status: working draft. Not submission ready.}\\
 No quantum-hardware, quantum-advantage, or quantization-aware-training result is
-reported. No fully quantized model, runtime memory measurement, or latency
-measurement is reported.
+reported. A full-coverage conversion and a verified compressed matmul are now
+reported (\S\ref{sec:coverage-runtime}); no end-to-end quantized deployment is.
 \end{center}
 
 \begin{abstract}
@@ -34,7 +34,7 @@ only half individually significant and one favouring the scalar code. At 27B
 the effect is \emph{smaller than the spread induced by refitting}
 ($0.46\times$ the refit range, against $5.05\times$ at 0.8B), so the 27B
 evidence supports direction on average rather than a reliable per-conversion
-benefit. The advantage keeps its sign
+benefit. \emph{At 0.8B}, and only there, the advantage keeps its sign
 under eight refits of the quantizer, on held-out text, on a second domain, and
 at contexts to 2048 tokens; its magnitude varies across those conditions
 ($0.031$ to $0.038$ across refits), and we quote ranges rather than single
@@ -49,10 +49,16 @@ no knee across a $2.4\times$ range of stored bytes. Coverage matters more
 again --- MLP weights are $2.79\times$ more damaging per parameter than the
 projections --- yet a Hessian-derived per-tensor ranking built to exploit that
 performs \emph{worse than random selection} of the same byte budget, the second
-forward-side ranking failure we record. These are partial-coverage,
-payload-storage results on two checkpoints and two corpora; they establish
-neither full-model quality nor runtime feasibility, and we do not claim a new
-algorithm.
+forward-side ranking failure we record. Converting \emph{every} non-embedding
+matrix ($66.1\%$ of parameters) costs $+1.000022$ NLL at ternary rate and
+shrinks the model only $2.44\times$, because a tied BF16 embedding is then
+$83\%$ of what remains: at these rates the binding constraint is embedding
+precision, not the weight codec. A compressed matmul on a real projection is
+four orders of magnitude more faithful to the codec than the BF16 weights our
+loss numbers were measured with, and peaks at $5.00\times$ less memory, but is
+slower than cuBLAS --- mostly because of the activation rotation the format
+requires. These are two checkpoints and two corpora; we establish neither
+end-to-end deployment nor a new algorithm.
 \end{abstract}
 
 \section{Scope and contributions}
@@ -106,14 +112,15 @@ We separate these from the results because earlier drafts of this work did not,
 and the reader should not have to reconstruct the boundary.
 
 \begin{itemize}
-\item \textbf{No full-model conversion.} Every measurement covers a subset:
-$15.1\%$ of parameters (0.8B QKV), $35.1\%$ (0.8B MLP), $50.2\%$ (both), or
-$9.36\%$ (27B QKV). No end-to-end quantized checkpoint was produced or
-evaluated.
-\item \textbf{No runtime claim.} We report payload bytes and complete artifact
-file bytes. Packed weights fitting in VRAM does not establish that execution
-fits: KV cache, recurrent state, activations, kernel workspaces and decoding
-buffers are unmeasured. There is no packed inference kernel.
+\item \textbf{No conversion of the embedding, and no deployment.} A
+full-coverage conversion is now reported (\S\ref{sec:coverage-runtime}), but it
+leaves the tied embedding at BF16, and that embedding is $83\%$ of the
+compressed model. No end-to-end quantized checkpoint was served: KV cache,
+recurrent state and decoding buffers remain unmeasured.
+\item \textbf{No latency claim.} A compressed matmul is verified and measured
+(\S\ref{sec:coverage-runtime}), and it is \emph{slower} than a BF16 cuBLAS
+product at batch one. The memory reduction is real; the speed is not
+established, and the activation rotation the format requires is unfused.
 \item \textbf{No four-bit deployment claim.} A historical $+0.008393$ NLL
 four-bit measurement exists, but it is a 0.8B projection-subset result
 ($0.24\%$ of baseline NLL, $0.84\%$ relative perplexity --- distinct
@@ -298,12 +305,146 @@ domains crossed with two evaluation domains.
 
 \textbf{The scalar group-size control} has no stable sign: it flips across
 refits and, on TinyStories, excludes zero in the \emph{unfavourable} direction
-($+0.010942$). Our leading hypothesis is that moving from g128 to g64 does not
-enlarge a solution space containing the g128 solution --- group scales are
-derived from group maxima rather than chosen, and the shared codebook is refit
-in the new normalized space --- so extra scale bytes guarantee neither lower
-reconstruction error nor lower loss. That is a hypothesis; a direct test would
-hold the codebook fixed across group sizes.
+($+0.010942$). Section~\ref{sec:calibration} resolves this into two opposed
+effects of similar size.
+
+\section{Calibration mismatch: an identity, a bound, and a crossed test}
+\label{sec:calibration}
+
+Changing the calibration corpus changes damage substantially while changing
+storage not at all, which makes it the sharpest lever in this study. The
+mechanism is visible in the objective the compensation step actually minimizes.
+
+\subsection{Why mismatch has an effect at all}
+
+Write $E = \widehat{W} - W$ for the weight error a codec leaves behind. For a
+fixed input distribution $D$ the layer reconstruction objective is quadratic,
+\begin{equation}
+L_D(E) \;=\; \mathbb{E}_D \lVert E x \rVert_2^2
+      \;=\; \operatorname{tr}\!\left( E H_D E^{\top} \right),
+\qquad H_D = \mathbb{E}_D\!\left[ x x^{\top} \right],
+\end{equation}
+so evaluating on one domain a quantizer fitted on another costs exactly
+\begin{equation}
+L_{\mathrm{test}}(E) - L_{\mathrm{cal}}(E)
+  \;=\; \operatorname{tr}\!\left[ E \left( H_{\mathrm{test}} - H_{\mathrm{cal}} \right) E^{\top} \right],
+\label{eq:mismatch}
+\end{equation}
+and this is bounded elementarily by
+\begin{equation}
+\left\lvert L_{\mathrm{test}}(E) - L_{\mathrm{cal}}(E) \right\rvert
+  \;\le\; \lVert H_{\mathrm{test}} - H_{\mathrm{cal}} \rVert_2 \, \lVert E \rVert_F^2 .
+\label{eq:bound}
+\end{equation}
+
+\emph{This is an identity and an elementary bound, not a theorem and not a
+statement about NLL.} It says only that the penalty depends on how the error
+$E$ is \emph{oriented} relative to the difference of second moments: a pattern
+that is cheap under one domain's activations can be expensive under another's,
+and two quantizers with identical $\lVert E \rVert_F$ can differ arbitrarily
+in \eqref{eq:mismatch}. Plain weight MSE is exactly $\lVert E \rVert_F^2$ up
+to a constant and therefore cannot see the difference at all --- which is the
+same blindness that makes it invert against loss in our compensation and
+group-size results. Hessian-weighted reconstruction objectives of this form
+underpin GPTQ~\cite{gptq} and GPTVQ~\cite{gptvq}.
+
+\subsection{The crossed test}
+
+Two calibration corpora crossed with two evaluation corpora, identical recipe,
+storage and evaluated text throughout ($\Delta$NLL against BF16):
+
+\begin{center}\small
+\begin{tabular}{llrr}
+\toprule
+calibration & code & wikitext-2 test & TinyStories \\
+\midrule
+wikitext & scalar & \textbf{0.121115} & 0.183486 \\
+wikitext & VQ8 & \textbf{0.082309} & 0.140296 \\
+TinyStories & scalar & 0.288304 & \textbf{0.036675} \\
+TinyStories & VQ8 & 0.199492 & \textbf{0.029201} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Damage is minimized on the diagonal in all four cells, and the off-diagonal
+penalty is large: calibrating on TinyStories and evaluating on wikitext costs
+$0.288304$ against $0.121115$ matched. This rules out the alternative reading
+of our earlier out-of-domain result --- that TinyStories is intrinsically
+harder for this recipe --- since matched TinyStories costs $0.036675$ against
+matched wikitext's $0.121115$, a factor of $3.3$ the other way. It does
+\emph{not} decompose the mismatched figure into a mismatch component and a
+sensitivity component; no design here does that. VQ8 wins in all four cells,
+removing $20.4\%$ to $32.0\%$ of scalar damage, with its proportional advantage
+largest where damage is largest.
+
+\subsection{The group-size control, read as a factorial}
+
+The unstable group-size contrast has the same character. Moving from g128 to
+g64 changes the grouping \emph{and} refits the shared codebook in the new
+normalized space, so the end-to-end contrast ($+0.000737$,
+$[-0.001213,+0.002710]$) is a diagonal of a $2\times2$, not a main effect. An
+earlier draft read it as ``group size alone moves nothing''; that reading is
+withdrawn. Holding the alphabet fixed, moving to g64 \emph{hurts} by
+$+0.014019$ $[+0.012133,+0.015908]$ with the g128 codebook and by $+0.006568$
+with the g64 codebook; holding the grouping fixed, adopting the g64-fitted
+codebook helps by $-0.005831$ $[-0.007809,-0.003792]$ at g128 and $-0.013281$
+$[-0.015222,-0.011297]$ at g64. Main effects are $+0.010293$ (grouping) and
+$-0.009556$ (codebook) with a $+0.007451$ interaction: two opposed effects of
+similar size, whose near-cancellation is what makes the end-to-end contrast
+small and unstable.
+
+\section{Full coverage and a compressed matmul}
+\label{sec:coverage-runtime}
+
+\subsection{Converting every non-embedding matrix}
+
+All $186$ two-dimensional weights outside the embedding, $497{,}614{,}848$ of
+$752{,}393{,}024$ parameters ($66.1\%$), evaluated on the complete validation
+stream. At ternary rate this costs $+1.000022$ NLL
+$[+0.986485,+1.013520]$ --- perplexity nearly triples --- against $+0.470715$ at
+$2.125$ bits and $+0.171490$ at $2.792$ bits.
+
+Damage across disjoint tensor families is \emph{additive} at this rate: the QKV
+projections alone cost $+0.088512$ and the MLP weights alone $+0.552558$,
+summing to $0.641070$ against a measured $+0.637829$ for converting both, a
+$0.5\%$ discrepancy. The larger jump to full coverage is composition rather than
+breadth --- the tensors no subset covered are the most damaging per parameter
+in the model, $0.302$ NLL per $100$M against $0.209$ for MLP and $0.078$ for
+QKV.
+
+The byte accounting is the more consequential result. The covered matrices
+compress $9.28\times$ ($995 \to 107$ MB), but the model shrinks only
+$2.44\times$: the embedding, which \texttt{tie\_word\_embeddings} also makes the
+output head, stays at BF16 and is then $83\%$ of what remains, putting the
+effective rate at $6.559$ bits/weight while the covered tensors sit at $1.725$.
+\textbf{At these rates the binding constraint is embedding precision, not the
+weight codec.}
+
+\subsection{A compressed matmul on a real projection}
+
+Storage layout is not runtime layout: five base-$6561$ codes in a \texttt{uint64}
+give an optimal $1.600$ bits of index but are not directly indexable, since
+$6561^5 > 2^{63}$ sets the sign bit and neither PyTorch nor Triton has unsigned
+64-bit arithmetic. One code per \texttt{int16} costs $2.000$ bits instead. Nor
+is the runtime activation the stored one: the codes hold $\mathrm{rotate}(W)$,
+so a compressed path must apply the same blockwise Hadamard to its input,
+$y = \mathrm{rotate}(x)\,\widehat{W}^{\top}$.
+
+On \texttt{in\_proj\_qkv} of the 0.8B model quantized with the full recipe, and
+on activations captured from the model, the Triton path's relative error
+against an exact FP32 product is $1.37\times10^{-7}$, against
+$3.41\times10^{-3}$ for the installed BF16 weights that every $\Delta$NLL in
+this paper was measured with. \emph{The kernel is four orders of magnitude more
+faithful to the codec than the weights our quality numbers used}, so those
+numbers are conservative with respect to compressed execution.
+
+Resident bytes fall $7.08\times$ on that tensor and $7.47\times$ at the 27B QKV
+shape, the difference being codebook amortization; peak allocation during a
+product falls $5.00\times$ ($113.5 \to 22.7$ MB). Latency does not improve: at
+batch one the compressed path takes $0.5322$ ms against $0.0188$ ms for cuBLAS,
+and $0.4796$ ms of that --- about $90\%$ --- is the activation rotation, which is
+unfused here. At the larger shape the GEMV comparison alone is $3.1\times$. The
+format is verified, smaller and slower.
 
 \section{Negative results retained from earlier work}
 
@@ -362,18 +503,25 @@ interpretation. Directions survive --- the vector code wins in all eight refits
 on all three primary contrasts --- but a single six-decimal margin from one
 refit is more precise than the procedure warrants, so magnitudes are quoted as
 ranges ($-0.031$ to $-0.038$ for VQ8 against scalar). The scalar group-size
-contrast changes sign across refits and across evaluation domains. The 27B
-intervals carry the same conditioning, with refit variability unmeasured there.
+contrast changes sign across refits and across evaluation domains, and the
+factorial in Section~\ref{sec:calibration} shows why: grouping and codebook are
+opposed effects of similar size, so their end-to-end difference is small and
+unstable. The 27B intervals carry the same conditioning; refit variability
+\emph{is} now measured there (Section~\ref{sec:results}) and is larger than the
+effect.
 
 \textbf{Generalization scope.} The five evaluation configurations in
 Section~\ref{sec:results} are two corpora and three context lengths, not five
-independent replications; the three wikitext-test rows share their text. No
-ordering reversal and no large increase in aggregate damage was observed
-through 2048 tokens, which is not evidence of absence of recurrent-state drift
---- aggregate loss averages over positions, and position-resolved loss was not
-measured. Higher damage out of domain is reported without attributing it to
-calibration mismatch; isolating that needs two calibration domains crossed with
-two evaluation domains, which was not run.
+independent replications; the three wikitext-test rows share their text.
+Position-resolved loss is measured and rises with position for the vector code,
+but position and token content are confounded within a block, so we report
+position-dependent damage and do not identify recurrent-state drift as its
+mechanism; that would need the same tokens evaluated with and without a state
+reset, which was not run. Higher damage out of domain is attributed to
+calibration mismatch on the strength of the crossed design in
+Section~\ref{sec:calibration}, which rules out the alternative reading that
+TinyStories is intrinsically harder for this recipe; it does not decompose the
+mismatched figure into mismatch and sensitivity components.
 
 \begin{thebibliography}{9}
 \bibitem{gptvq} GPTVQ: The Blessing of Dimensionality for LLM Quantization.

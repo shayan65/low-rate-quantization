@@ -1,10 +1,24 @@
-"""Correctness and cost of the compressed matmul paths, on a real tensor.
+"""A synthetic decoder/GEMV microbenchmark at the 27B QKV shape.
 
-Correctness first: both paths are checked against `packed_lowrate.decode`
-followed by a dense product, on a tensor produced by the actual quantizer, not
-on synthetic data. A timing number from an unverified kernel is worse than no
-number, and this project has already been bitten once by evaluating weights
-that were not the stored ones.
+**Scope, stated first because an earlier version of this docstring overstated
+it.** The weights here are Gaussian, not a model's. The codes come from the
+real encoder, but nothing else in the recipe is present: no Hadamard rotation,
+no GPTQ compensation, no real activations, and correctness is checked against
+an FP32 decoded product rather than against the BF16 weights whose loss this
+project reports. What this file measures is a decoder and a GEMV at a realistic
+*shape*. It does not connect any quality number to compressed inference, and it
+cannot support a claim that a kernel runs the converted model.
+
+`bench_real_projection.py` is the run that does that: a real `in_proj_qkv` with
+the real recipe, the required activation rotation inside the timed region, and
+fidelity measured against the installed BF16 weights. Read that one for claims
+about inference; read this one for how the two paths behave as the shape grows.
+
+Correctness first regardless: both paths are checked against
+`packed_lowrate.decode` followed by a dense product before anything is timed. A
+timing number from an unverified kernel is worse than no number, and this
+project has already been bitten once by evaluating weights that were not the
+stored ones.
 
 Then three costs, each measured rather than derived:
 
@@ -42,7 +56,8 @@ import torch
 
 from packed_lowrate import decode, encode_vq, gnorm_fp16
 from packed_matmul import (HAVE_TRITON, matmul_streamed, matmul_triton,
-                           runtime_bits_per_weight, storage_to_runtime)
+                           resident_bytes, runtime_bits_per_weight,
+                           storage_to_runtime)
 from run_rate_sweep import kmeans
 
 
@@ -74,17 +89,17 @@ def main() -> None:
     # a weight tensor with realistic statistics, quantized by the real codec
     W = (torch.randn(a.rows, a.cols, device=dev) * 0.02).to(torch.bfloat16).float()
     u, scale = gnorm_fp16(W, a.group)
-    book = kmeans(u.reshape(-1, a.dim)[::17], a.k).to(torch.float16).float()
+    book = kmeans(u.reshape(-1, a.dim)[::17], a.k).to(torch.float16)
     pts = u.reshape(-1, a.dim)
     from run_rate_sweep import assign
     ci = torch.empty(pts.shape[0], dtype=torch.long, device=dev)
     for i in range(0, pts.shape[0], 2_000_000):
-        ci[i : i + 2_000_000], _ = assign(pts[i : i + 2_000_000], book)
+        ci[i : i + 2_000_000], _ = assign(pts[i : i + 2_000_000], book.float())
     pk = encode_vq(ci, scale, (a.rows, a.cols), a.group, a.dim, a.k)
-    W_ref = decode(pk, book, dev)                      # the reference weights
+    W_ref = decode(pk, book.float(), dev)              # the reference weights
 
     codes = storage_to_runtime(pk.index_bytes, pk.n_codes, a.k, dev)
-    sc = scale.reshape(-1).to(torch.float16).float().to(dev)
+    sc = scale.reshape(-1).to(torch.float16).to(dev)
 
     res = {"shape": [a.rows, a.cols], "dim": a.dim, "k": a.k, "group": a.group}
 
@@ -114,15 +129,17 @@ def main() -> None:
     # ---------------- resident bytes ----------------
     rt = runtime_bits_per_weight(a.rows, a.cols, a.dim, a.group, a.k)
     dense_bytes = a.rows * a.cols * 2
-    rt_bytes = codes.numel() * 2 + sc.numel() * 2 + book.numel() * 2
+    rb = resident_bytes(codes, book, sc)
+    rt_bytes = rb["total"]
     res["resident"] = {
-        "bf16_bytes": dense_bytes, "runtime_bytes": rt_bytes,
+        "bf16_bytes": dense_bytes, "runtime_bytes": rt_bytes, **rb,
         "ratio": dense_bytes / rt_bytes,
         "storage_index_bpw": 1.600, "runtime_bits_per_weight": rt,
     }
     print(json.dumps({"resident_MB": {"bf16": dense_bytes / 1e6,
                                       "compressed": rt_bytes / 1e6},
-                      "shrink": round(dense_bytes / rt_bytes, 2)}), flush=True)
+                      "shrink": round(dense_bytes / rt_bytes, 3),
+                      "dtypes": rb["dtypes"]}), flush=True)
 
     # ---------------- free the harness before measuring memory ----------------
     # Everything above -- the source tensor, the normalized points, the
@@ -143,7 +160,7 @@ def main() -> None:
     # ---- dense arm: only the BF16 weight and the activation are resident ----
     del codes, book, sc
     torch.cuda.empty_cache()
-    bk = book_h.cuda()
+    bk = book_h.cuda().float()
     Wf = decode(pk, bk, dev)                   # rebuild, then drop the FP32 copy
     Wb = Wf.to(torch.bfloat16)
     del Wf, bk
@@ -226,18 +243,25 @@ def main() -> None:
 
     (out / "results.json").write_text(json.dumps(res, indent=2) + "\n")
 
-    L = ["# Compressed matmul: correctness, resident bytes, peak memory, latency", "",
+    L = ["# Synthetic decoder/GEMV microbenchmark at the 27B QKV shape", "",
          f"Shape {a.rows}x{a.cols} (Qwen3.8-27B QKV), dimension {a.dim}, K={a.k}, "
          f"group {a.group}.", "",
+         "**Scope.** Gaussian weights, real encoder, no rotation, no GPTQ, no "
+         "real activations. This measures a decoder and a GEMV at a realistic "
+         "shape; it establishes nothing about running the converted model. See "
+         "`results/real_projection_v1` for a real projection with the real "
+         "recipe and the activation rotation timed.", "",
          "## Storage layout is not runtime layout", "",
          "| layout | bits/weight of index |", "|---|---:|",
          "| storage (5 codes per uint64) | 1.600 |",
          f"| runtime (1 code per int16) | {rt['index']:.3f} |", "",
          f"Resident: {dense_bytes / 1e6:.1f} MB BF16 against "
-         f"{rt_bytes / 1e6:.1f} MB compressed, a factor of "
-         f"{dense_bytes / rt_bytes:.2f}. That includes FP16 group scales "
-         f"({rt['scales']:.3f} bits/weight) and the amortized codebook "
-         f"({rt['codebook_amortized']:.3f}).", "",
+         f"{rt_bytes / 1e6:.3f} MB compressed, a factor of "
+         f"{dense_bytes / rt_bytes:.3f} --- counted from each tensor's own "
+         f"element size ({rb['dtypes']['codes']} codes, "
+         f"{rb['dtypes']['codebook']} codebook, {rb['dtypes']['scales']} "
+         f"scales). An earlier version charged two bytes an element for tables "
+         f"that were in fact FP32, which overstated the reduction as 7.47x.", "",
          "## Correctness", "",
          f"Streamed path against `decode` plus a dense product: relative error "
          f"{rel_s:.2e}.", ""]

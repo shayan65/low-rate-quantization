@@ -11,6 +11,15 @@
   "resident": {
     "bf16_bytes": 104857600,
     "runtime_bytes": 14031376,
+    "codes": 13107200,
+    "codebook": 104976,
+    "scales": 819200,
+    "total": 14031376,
+    "dtypes": {
+      "codes": "torch.int16",
+      "codebook": "torch.float16",
+      "scales": "torch.float16"
+    },
     "ratio": 7.47308033082429,
     "storage_index_bpw": 1.6,
     "runtime_bits_per_weight": {
@@ -22,26 +31,26 @@
   },
   "streamed_tile_sweep": {
     "128": {
-      "baseline": 23547392,
-      "peak": 40627712,
-      "ms": 5.768988298950717
+      "baseline": 22623232,
+      "peak": 39703552,
+      "ms": 6.239522300893441
     },
     "512": {
-      "baseline": 23547392,
-      "peak": 91745792,
-      "ms": 5.436496349284425
+      "baseline": 22623232,
+      "peak": 90821632,
+      "ms": 5.873669701395556
     },
     "2048": {
-      "baseline": 23547392,
-      "peak": 296218112,
-      "ms": 5.303685751277953
+      "baseline": 22623232,
+      "peak": 295293952,
+      "ms": 5.697575298836455
     }
   },
   "peak_bytes": {
     "dense_bf16": 113469440,
-    "streamed": 91745792,
-    "triton": 23588352,
-    "ratio": 1.2367808651104129,
+    "streamed": 90821632,
+    "triton": 22664192,
+    "ratio": 1.2493657898594026,
     "detail": {
       "dense_bf16": {
         "baseline": 113448960,
@@ -49,21 +58,21 @@
         "transient": 20480
       },
       "streamed": {
-        "baseline": 23547392,
-        "peak": 91745792,
+        "baseline": 22623232,
+        "peak": 90821632,
         "transient": 68198400
       },
       "triton": {
-        "baseline": 23547392,
-        "peak": 23588352,
+        "baseline": 22623232,
+        "peak": 22664192,
         "transient": 40960
       }
     },
     "note": "each arm measured with only its own state resident; baseline is what was allocated when the peak counter was reset"
   },
   "latency_ms": {
-    "dense_bf16": 0.13185135321691632,
-    "streamed": 5.437009298475459,
-    "triton": 0.4671830509323627
+    "dense_bf16": 0.13211629702709615,
+    "streamed": 5.874239298282191,
+    "triton": 0.4040333500597626
   }
 }

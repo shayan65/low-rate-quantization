@@ -1,0 +1,50 @@
+{
+  "plan": {
+    "model": "../models/Qwen3.5-0.8B-Base",
+    "layer": 12,
+    "shape": [
+      6144,
+      1024
+    ],
+    "dim": 8,
+    "k": 6561,
+    "group": 128,
+    "recipe": "rotate + shared pooled codebook + GPTQ, as vq8_rot_gptq",
+    "cal_tokens": 65536,
+    "act_rows": 1024,
+    "note": "a real projection with the real recipe; the compressed path rotates its input, and that rotation is timed"
+  },
+  "fidelity": {
+    "installed_bf16_vs_exact": 0.0034143084194511175,
+    "streamed_vs_exact": 7.375682002930262e-07,
+    "triton_vs_exact": 1.374099269924045e-07,
+    "triton_vs_installed": 0.001940171467140317,
+    "verdict": "kernel at or below the BF16 install error"
+  },
+  "resident": {
+    "bf16_bytes": 12582912,
+    "codes": 1572864,
+    "codebook": 104976,
+    "scales": 98304,
+    "total": 1776144,
+    "dtypes": {
+      "codes": "torch.int16",
+      "codebook": "torch.float16",
+      "scales": "torch.float16"
+    },
+    "ratio": 7.084398562278734,
+    "predicted_bits_per_weight": {
+      "index": 2.0,
+      "scales": 0.125,
+      "codebook_amortized": 0.13348388671875,
+      "total": 2.25848388671875
+    }
+  },
+  "latency_ms": {
+    "installed_bf16": 0.018774280324578285,
+    "rotate_only": 0.47964984085410833,
+    "streamed_with_rotation": 0.8476993395015597,
+    "triton_with_rotation": 0.5321705411188304
+  },
+  "seconds": 19.3
+}

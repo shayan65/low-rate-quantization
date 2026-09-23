@@ -1137,7 +1137,7 @@ domain nor the context axis was measured.
 §§12–13 reported three things without causes. Each is cheap to resolve on the
 0.8B model, and each resolution changes what the earlier section should say.
 
-### A. Domain damage is calibration mismatch, and TinyStories is the *less* sensitive corpus
+### A. Domain damage tracks calibration mismatch
 
 §13 found higher damage on TinyStories under a wikitext-calibrated quantizer
 and declined to attribute it, since intrinsic sensitivity was an equally good
@@ -1153,21 +1153,27 @@ settles it. ΔNLL against BF16:
 
 Damage is minimized on the diagonal in every cell, and the off-diagonal
 penalties are large: calibrating on TinyStories and evaluating on wikitext
-costs $0.288304$ against $0.121115$ matched. **Calibration mismatch is the
-cause.**
+costs $0.288304$ against $0.121115$ matched. **Calibration matching accounts
+for the direction of §13's effect**, which was the question.
 
-The alternative is not merely unsupported but refuted. TinyStories is the
-*less* sensitive corpus: matched, it costs $0.036675$ against wikitext's
-$0.121115$, a factor of 3.3 in the opposite direction to the one §13's numbers
-suggested. The high TinyStories figure there was entirely an artifact of
-calibrating elsewhere.
+A later review was right that the original wording went further than this. Two
+sentences are withdrawn. "Intrinsic sensitivity is refuted" claimed too much:
+what these four cells rule out is the specific alternative reading of §13 —
+that TinyStories is harder for this recipe *whatever* it is fitted on — since
+matched TinyStories costs $0.036675$ against matched wikitext's $0.121115$, a
+factor of 3.3 the other way. That is a statement about two corpora, one model
+and one recipe, not a general claim that corpora do not differ in sensitivity.
+And "the high TinyStories figure was entirely an artifact" asserts a
+decomposition that was never performed: the design separates matched from
+mismatched, it does not partition the mismatched number into a mismatch part
+and a sensitivity part.
 
 VQ8 wins in all four cells, removing 20.4% to 32.0% of scalar damage. Its
 proportional advantage is largest where damage is largest (32.0% and 30.8% in
 the two worst cells, 20.4% in the mildest), so the vector code earns most in
 the regimes that hurt most.
 
-### B. Position-resolved loss finds drift, and it is specific to the vector code
+### B. Damage depends on position within the block, and the dependence is specific to the vector code
 
 §13 reported flat aggregate damage through 2048 tokens and correctly refused to
 call that evidence against recurrent-state drift. Resolving loss by position
@@ -1188,6 +1194,14 @@ $0.079553$ to $0.088811$ — about 12% — so VQ8's advantage erodes from
 $0.037845$ to $0.029393$, roughly 22%, across the block. The aggregate hid
 this because it averages the two ends.
 
+**This is position-dependent damage, not identified drift.** The original
+heading called it recurrent-state drift, which the design cannot support: later
+positions hold different tokens as well as more accumulated state, so a
+position effect and a content effect are confounded here, and rising loss with
+position is consistent with drift without identifying it. Separating them needs
+a direct state comparison — the same tokens evaluated with and without a state
+reset — which was not run. §16 of this document retains the weaker claim.
+
 The ordering is preserved at every position, so the headline claim stands. But
 the earlier statement that context extension leaves the result undisturbed is
 now too strong: there *is* a position-dependent effect, it is specific to the
@@ -1195,9 +1209,11 @@ vector code, and it points the same way as the 18% aggregate shrinkage from 128
 to 2048 tokens. Naively extrapolating to much longer contexts is unwarranted on
 five buckets.
 
-Limitation: per-block per-position losses were not stored, so these are means
-without intervals over 127 blocks. A repeat that retains them would let the
-trend be tested rather than read off.
+Limitation, now addressed: per-block per-position losses were not stored, so
+these are means over 127 blocks with no measure of block-to-block spread and no
+intervals. §18 reruns this with the full matrix retained, so the bucket
+contrasts get paired intervals over blocks and the trend can be tested rather
+than read off.
 
 ### C. Weight MSE is anti-correlated with loss inside the scalar family
 
@@ -1217,20 +1233,39 @@ The weight-MSE ordering is the **exact reverse** of the loss ordering across
 all four variants — Spearman $-1.0$. Lower reconstruction error means higher
 loss, monotonically, within this family at fixed rate.
 
-The paired contrasts locate the effect in the codebook rather than the grouping:
+**The original reading of these contrasts was wrong, and is withdrawn.** It
+said: "changing the group size alone moves nothing measurable ($+0.000737$);
+changing which codebook is used moves 0.013 to 0.014 — roughly twenty times as
+much." The $+0.000737$ contrast is `g64 own book` against `g128 own book`, and
+each arm fits its codebook in its own normalized space, so that comparison
+changes grouping *and* codebook together. It is a diagonal of the 2x2, not a
+main effect, and its near-zero value is a cancellation rather than an absence.
 
-| contrast | ΔNLL | 95% CI |
-|---|---:|:--|
-| g64 own vs g128 own | $+0.000737$ | $[-0.001213,+0.002710]$ **includes 0** |
-| g64 with g128's book vs g128 own | $+0.014019$ | $[+0.012133,+0.015908]$ |
-| g64 with g128's book vs g64 own | $+0.013281$ | $[+0.011297,+0.015222]$ |
-| g128 with g64's book vs g128 own | $-0.005831$ | $[-0.007809,-0.003792]$ |
+Read as the factorial it is:
 
-Changing the group size alone moves nothing measurable ($+0.000737$). Changing
-which codebook is used moves 0.013 to 0.014 — roughly twenty times as much.
-So the instability of the g64 contrast is not a story about scale bytes at all;
-it is that a shared three-level alphabet interacts with the group normalization
-in a way that reconstruction error actively mispredicts.
+| contrast | holds fixed | ΔNLL | 95% CI |
+|---|---|---:|:--|
+| grouping, g128 book | codebook | $+0.014019$ | $[+0.012133,+0.015908]$ |
+| grouping, g64 book | codebook | $+0.006568$ | *not computed in this run* |
+| codebook, g128 grouping | grouping | $-0.005831$ | $[-0.007809,-0.003792]$ |
+| codebook, g64 grouping | grouping | $-0.013281$ | $[-0.015222,-0.011297]$ |
+| *diagonal (both change)* | nothing | $+0.000737$ | $[-0.001213,+0.002710]$ |
+
+Main effect of grouping $+0.010293$, main effect of moving to the g64-fitted
+codebook $-0.009556$, interaction $+0.007451$. The two factors are of the
+**same order**, they point in opposite directions, and they interact.
+
+So the corrected statement is: moving from g128 to g64 at a fixed alphabet
+*hurts* — by $0.014$ or $0.007$ depending on which alphabet is held — and
+refitting the codebook in the new normalized space recovers most of that
+damage. Grouping is not irrelevant; the near-zero end-to-end contrast is the
+sum of a harmful grouping change and a compensating codebook refit. What
+survives from the original claim is the part that matters for §12: the
+end-to-end g64 contrast is unstable because it is a small difference between
+two larger opposed effects, and weight MSE mispredicts every one of them.
+
+The fourth contrast never had an interval because it was never computed. §18
+reruns the 2x2 with all six pairwise contrasts and paired intervals.
 
 One tempting number deserves a warning. The best cell, g128 quantization with
 the codebook fitted in g64-normalized space, beats the standard configuration
@@ -1383,11 +1418,16 @@ This does not touch the 0.8B result, where the same eight-refit protocol gives
 supports *direction on average*, not a reliable per-conversion benefit, and the
 paper should not lean on it.
 
-## 17. A whole model, and a kernel that runs it (2026-09-23)
+## 17. A whole model, and a verified compressed matmul (2026-09-23)
 
 Two gaps have been listed as unmeasured since the beginning: no full-coverage
 conversion, and no packed inference path. Both are now measured, and both
 results are worse for the deployment story than the subset experiments implied.
+
+This section has been corrected twice since it was first written. The
+subsections below carry the corrected numbers; "Defects found in this section"
+at the end records what was wrong and in which direction, because two of the
+corrections helped the project and two hurt it.
 
 ### Full coverage costs far more than the subsets suggested
 
@@ -1412,10 +1452,49 @@ assumption), and the norms (56,128).
 | dim-4 K=1625 | 2.7919 | 683.2 | 7.264 | 2.20x | $+0.171490$ | $+18.7\%$ |
 
 Ternary-rate full coverage costs **a full nat** — perplexity nearly triples.
-The 18-projection subset at the same rate cost $+0.077061$ ($+8.0\%$). Coverage
-is 4.4x larger and damage is 13x larger, so damage is markedly super-linear in
-coverage, and no subset result in this document should be read as predicting a
-full conversion.
+
+**A correction to how this was first reported.** The original comparison put
+full-model dim-4 damage against the 18-projection *dim-8* figure ($+0.077061$)
+and concluded that damage is "markedly super-linear in coverage". Both halves
+were wrong: the like-for-like dim-4 subset number is $+0.088512$, and adding
+tensor families changes composition as well as coverage, so nothing about
+super-linearity follows from two points. This project has enough runs at
+identical rate, recipe, BF16 baseline ($3.436710$) and evaluation stream
+($261{,}284$ targets) to test additivity directly.
+
+| target set | params | coverage | ΔNLL at dim-4 K=81 | source |
+|---|---:|---:|---:|---|
+| `in_proj_qkv` (18) | 113,246,208 | 15.1% | $+0.088512$ | `ternary_task_v4` |
+| MLP (72) | 264,241,152 | 35.1% | $+0.552558$ | `mlp_task_v1` |
+| both (90) | 377,487,360 | 50.2% | $+0.637829$ | `mixed_alloc_v1` |
+| all non-embedding (186) | 497,614,848 | 66.1% | $+1.000022$ | `fullmodel_v1` |
+
+The two disjoint families give an additive reference: $0.088512 + 0.552558 =
+0.641070$ against a measured $0.637829$ for converting both together. Damage
+from disjoint tensor families is **additive to within $0.5\%$**, very slightly
+sub-additive. At this coverage there is no super-linearity to find, and the
+original claim is withdrawn.
+
+What the jump to 66.1% shows instead is composition. Damage per covered
+parameter:
+
+| target set | ΔNLL per 100M params |
+|---|---:|
+| `in_proj_qkv` | $0.078$ |
+| MLP | $0.209$ |
+| the remaining 120.1M (attention, `in_proj_z`, `out_proj`) | $0.302$ |
+
+The tensors added last are the most damaging per parameter in the model —
+$3.9\times$ `in_proj_qkv` and $1.4\times$ MLP — so the extra $+0.362$ from
+$50.2\%$ to $66.1\%$ is what those particular tensors cost, not a penalty for
+breadth as such. The correct statement is the weaker and more useful one:
+**converting every non-embedding matrix costs far more than any subset here,
+because the tensors no subset covered are the most sensitive ones.** Whether
+damage stays additive out to full coverage is untested — it would need the
+remaining families measured alone, which was not run.
+
+Each run fits its codebook pooled over its own target set, which is inherent to
+changing coverage rather than a confound that could be removed.
 
 ### Embeddings dominate the compressed model
 
@@ -1444,10 +1523,16 @@ because the project's attention was on the weight codec throughout; on this
 evidence that emphasis was misplaced for deployment purposes, though not for
 the codec question the paper actually answers.
 
-### A compressed matmul: memory yes, latency no
+### A compressed matmul, on a projection the loss numbers actually used
 
-The dimension-8 codec, on the 27B QKV shape (10240 x 5120), with both paths
-verified against the reference decoder before any timing.
+The first version of this subsection rested on `bench_packed_matmul.py`, which
+quantizes **Gaussian** weights at the 27B QKV shape with no rotation, no GPTQ
+and no real activations, checks correctness against an FP32 decoded product,
+and compares latency against BF16. A reviewer was right that this establishes a
+decoder and a GEMV at a realistic shape and nothing about running a converted
+model; the heading "a kernel that runs it" was not earned. That file is now
+labelled a synthetic microbenchmark, and the claim below rests on a new run
+(`results/real_projection_v1`) that uses the real recipe.
 
 **Storage layout is not runtime layout.** The storage packing puts five
 base-6561 codes in a uint64 for 1.600 bits of index, which is optimal and *not
@@ -1457,29 +1542,92 @@ arithmetic. A runtime layout of one code per int16 costs 2.000 bits of index
 instead. Quoting 1.725 bits/weight as a resident footprint, as earlier sections
 did implicitly, is wrong.
 
-| quantity | BF16 | compressed | ratio |
+**And the runtime activation is not the stored one.** The codes represent
+`rotate(W) = W A^T` while the quality runs install `unrotate(dq) = dq A`, so
+$y = x (dq A)^\top = \mathrm{rotate}(x)\, dq^\top$: a compressed path must
+apply the same blockwise Hadamard to its *input*. The synthetic benchmark
+omitted that step entirely, and it turns out to dominate the cost.
+
+#### Does the compressed path compute what the loss numbers measured?
+
+`in_proj_qkv` of Qwen3.5-0.8B at layer 12 ($6144\times1024$), quantized with the
+`vq8_rot_gptq` recipe — rotation, a shared 6561-point dimension-8 codebook
+pooled over all 18 projections, GPTQ against a Hessian from 65,536 calibration
+tokens — and evaluated on activations captured from the model itself.
+
+| comparison | relative error |
+|---|---:|
+| installed BF16 vs exact FP32 | $3.41\times10^{-3}$ |
+| streamed path vs exact FP32 | $7.38\times10^{-7}$ |
+| **Triton kernel vs exact FP32** | $\mathbf{1.37\times10^{-7}}$ |
+| Triton kernel vs installed BF16 | $1.94\times10^{-3}$ |
+
+"Exact" is the FP32 product with the dequantized weights; "installed" is the
+BF16 product with `unrotate(dq)`, which is literally the operation behind every
+ΔNLL in this document. **The kernel is four orders of magnitude more faithful
+to the codec than the BF16 weights the loss was measured with.** Every quality
+number here is therefore conservative with respect to compressed execution: the
+error the kernel adds is negligible beside the error already accepted by
+installing BF16.
+
+#### Memory: the claim holds, after an accounting fix
+
+The resident figure was also wrong, in the project's favour. The benchmark
+charged two bytes an element for the codebook and the scales because FP16 was
+what the design intended, while both tensors were FP32 at runtime — the Triton
+wrapper converted them. The honest number for that code was $7.01\times$, not
+$7.47\times$. Rather than report the smaller number, the tables are now stored
+in FP16 and read in FP16 by the kernel, which promotes them in-register; bytes
+are counted from each tensor's own `element_size`.
+
+| shape | BF16 | compressed | ratio |
 |---|---:|---:|---:|
-| resident bytes, one tensor | 104.9 MB | 14.0 MB | **7.47x** |
-| peak allocation during one product | 113.5 MB | 23.6 MB | **4.81x** |
-| latency, batch 1 (cuBLAS vs Triton) | 0.132 ms | 0.467 ms | **3.5x slower** |
-| latency, streamed PyTorch path | — | 5.437 ms | 41x slower |
+| real `in_proj_qkv`, $6144\times1024$ | 12.583 MB | 1.776 MB | $7.08\times$ |
+| synthetic 27B QKV, $10240\times5120$ | 104.858 MB | 14.031 MB | $7.47\times$ |
 
-Correctness: relative error $3.3\times10^{-7}$ (streamed) and
-$3.5\times10^{-7}$ (Triton) against decode-then-dense.
+The difference between them is codebook amortization: the same 6561-point book
+is charged against a tensor six times smaller.
 
-So the format is decodable at speed but **not** competitive with a tuned BF16
-GEMM at batch one. A first-cut Triton kernel that gathers from a 6561-entry
-codebook loses 3.5x to cuBLAS. That is a real cost of the format and it is
-reported rather than buried; whether a better kernel closes the gap is open,
-and the theoretical traffic reduction (roughly 8x) says there is room, but this
-work does not demonstrate it.
+Peak allocation during one product, at the synthetic shape, each arm measured
+holding only its own state: dense BF16 113.5 MB, Triton 22.7 MB
+($\mathbf{5.00\times}$), streamed 90.8 MB. The streamed path's figure is a
+tile-size choice — 39.7 MB at `tile_cols=128` against 295.3 MB at 2048, with
+latency flat to within $9\%$ — not a property of the format.
 
-### Two defects in this section, found and fixed
+#### Latency: worse than first reported, and for a different reason
 
-Both were defects in the measurement or the description, not in the codec, and
-both are now corrected. They are kept here because the corrected numbers are
-more favourable than the wrong ones, and a record that only ever moves in the
-flattering direction is worth less than one that shows its corrections.
+| path | ms, batch 1 |
+|---|---:|
+| installed BF16 (cuBLAS) | 0.0188 |
+| **the Hadamard rotation alone** | **0.4796** |
+| Triton kernel including rotation | 0.5322 |
+| streamed path including rotation | 0.8477 |
+
+At $6144\times1024$ the compressed path is $28\times$ slower than cuBLAS, far
+worse than the $3.5\times$ the synthetic benchmark suggested — and about $90\%$
+of it is the activation rotation, which that benchmark did not perform. The
+GEMV itself is roughly $0.05$ ms by subtraction, a few times cuBLAS on a
+projection this small, where both are launch-bound.
+
+At the larger synthetic shape the GEMV comparison is $0.132$ ms against
+$0.404$ ms, $3.1\times$. So the kernel gap narrows with size, as a
+memory-bound argument predicts, but the rotation is a fixed additional cost
+that no amount of tensor size amortizes away and that a deployed system would
+have to fuse into the preceding operation. That fusion is not implemented or
+measured here.
+
+**Where this leaves the runtime claim.** The format is decodable at speed, more
+faithful than the BF16 weights the quality results used, and $5\times$ smaller
+at peak. It is not faster, and at small projections it is much slower, mostly
+because of a rotation the earlier benchmark silently omitted. "A kernel that
+runs it" overstated this; "a verified compressed path with a real memory win
+and an unresolved latency cost" is what was established.
+
+### Defects found in this section, and what they cost
+
+Each was a defect in measurement or description rather than in the codec. Two
+corrections moved in the project's favour and two against it, which is the only
+reason this list is worth keeping.
 
 **The peak-allocation comparison was contaminated, and hid a real result.**
 `reset_peak_memory_stats` rebases the peak counter to whatever is allocated at
@@ -1491,27 +1639,39 @@ state (`results/packed_matmul_v2`):
 | path | baseline | peak | transient | peak vs dense |
 |---|---:|---:|---:|---:|
 | dense BF16 | 113.4 MB | 113.5 MB | 0.0 MB | — |
-| streamed, `tile_cols=512` | 23.5 MB | 91.7 MB | 68.2 MB | 1.24x |
-| Triton | 23.5 MB | 23.6 MB | 0.0 MB | **4.81x** |
+| streamed, `tile_cols=512` | 22.6 MB | 90.8 MB | 68.2 MB | 1.25x |
+| Triton | 22.6 MB | 22.7 MB | 0.1 MB | **5.00x** |
 
-The Triton path runs the product in 23.6 MB against dense's 113.5 MB. The
-streamed path looks much worse only because it materializes a decoded FP32
-column tile, and that is a tile-size choice rather than a property of the
-format — a sweep confirms it, with latency essentially flat:
+The streamed path looks worse only because it materializes a decoded FP32
+column tile, which is a tile-size choice rather than a property of the format —
+39.7 MB at `tile_cols=128` against 295.3 MB at 2048, with latency flat to
+within 9%. (A common ~8.5 MB sits in every baseline: the cuBLAS workspace, a
+cost of running any matmul rather than of either format.)
 
-| `tile_cols` | peak | ms |
-|---|---:|---:|
-| 128 | 40.6 MB | 5.769 |
-| 512 | 91.7 MB | 5.436 |
-| 2048 | 296.2 MB | 5.304 |
+**The resident-byte count charged FP16 for FP32 tensors.** The codebook and the
+scales were built as FP16 and immediately promoted, and the Triton wrapper
+converted them again at every call, while the accounting charged two bytes an
+element throughout. The reduction for that code was $7.01\times$, not the
+$7.47\times$ reported. The tables are now genuinely FP16, read as FP16 by the
+kernel and promoted in-register, and bytes come from `element_size` so the
+claim cannot drift from the object again. Keeping FP16 through the *arithmetic*
+is not free, though: the streamed path's error against the reference decoder
+went from $3\times10^{-7}$ to $2\times10^{-4}$ until its tile construction was
+put back in FP32.
 
-So the memory claim is stronger than §17 first reported: the format is
-**4.81x** smaller at peak, not 1.05x, and the earlier figure understated it by
-measuring the benchmark. The latency finding is unchanged — 3.5x slower than
-cuBLAS at batch one — and remains the honest limit of this work.
+**The kernel was never validated on the operation the quality results use.**
+Gaussian weights, no rotation, no GPTQ, correctness against an FP32 decoded
+product. That is a microbenchmark, and calling §17 "a kernel that runs it" was
+not supported by it. The real-projection run above replaces the claim, and it
+cost the latency story: including the activation rotation the compressed path
+is $28\times$ slower than cuBLAS on a real projection, not $3.5\times$.
 
-(A common ~8.5 MB sits in every baseline: the cuBLAS workspace, which is a cost
-of running any matmul rather than of either format.)
+**The streamed kernel accepted tile sizes it could not handle.** It asserted
+only `tile_cols % dim == 0` while slicing scales by whole groups, so
+`tile_cols=64` at `group=128` selected an empty scale slice and crashed inside
+the loop. Reproduced, and the assertion now requires group alignment. The tile
+sweep above used 128, 512 and 2048, all group-aligned, so no reported number
+was affected.
 
 **The vision tower is absent, not included.** The module docstring claimed it
 was counted in the byte total. It was not, and the arithmetic is now checked
