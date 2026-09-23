@@ -1309,3 +1309,76 @@ evaluation. The defensible 27B statement is therefore:
 
 Three refits bound the effect rather than characterize it; the eight-refit
 protocol of §12 at 27B would cost roughly twenty hours and was not run.
+
+## 16. Eight refits at 27B: the effect is smaller than the refit spread (2026-09-23)
+
+§15 bounded 27B refit variability with three refits and said so. Eight refits —
+five calibration draws at seed 0, plus three further seeds at draw 0 —
+characterize it, and the characterization is unfavourable.
+
+| Refit | VQ8 vs scalar | 95% CI | individually significant |
+|---|---:|:--|:--|
+| draw0, seed0 | $-0.006281$ | $[-0.008923,-0.003681]$ | yes |
+| draw1, seed0 | $-0.004014$ | $[-0.006576,-0.001267]$ | yes |
+| draw2, seed0 | $-0.001554$ | $[-0.004194,+0.001195]$ | no |
+| draw3, seed0 | $-0.007049$ | $[-0.009609,-0.004351]$ | yes |
+| draw4, seed0 | $-0.004677$ | $[-0.007409,-0.001916]$ | yes |
+| draw0, seed1 | $-0.001029$ | $[-0.003777,+0.001767]$ | no |
+| draw0, seed2 | $-0.002339$ | $[-0.005052,+0.000417]$ | no |
+| draw0, seed3 | $\mathbf{+0.000185}$ | $[-0.002643,+0.003030]$ | no |
+
+Seven of eight favour the vector code, four of eight reach significance
+individually, and **one refit favours scalar ternary**.
+
+### The comparison that matters
+
+| | 0.8B | 27B |
+|---|---:|---:|
+| mean over 8 refits | $-0.034095$ | $-0.003345$ |
+| range over refits | $0.006748$ | $0.007234$ |
+| **effect / refit range** | **5.05** | **0.46** |
+| sign consistent | 8/8 | 7/8 |
+
+The absolute refit spread is essentially the same at both scales — $0.0067$
+and $0.0072$ — while the effect is an order of magnitude smaller at 27B. At
+0.8B the advantage is five times the spread it sits in; at 27B it is less than
+half of it. **On this 9.36% target subset the 27B effect is smaller than the
+variability induced by refitting the quantizer.**
+
+Reported by axis, since the design is unbalanced (the five draws share seed 0
+and the four seeds share draw 0, so the eight cells are not independent):
+
+| axis | n | mean | sd | negative |
+|---|---:|---:|---:|---:|
+| calibration draw, seed 0 | 5 | $-0.004715$ | $0.002144$ | 5/5 |
+| codebook seed, draw 0 | 4 | $-0.002366$ | $0.002806$ | 3/4 |
+
+The draw axis is the better-behaved one: all five negative, and a one-sample
+$t$ over those five gives $t=-4.92$. The seed axis is where the sign flips. We
+do not pool the eight into a single test, because draw 0 appears four times and
+the cells are not independent; a balanced factorial would be the right design
+and was not run.
+
+### What this does to the 27B claim
+
+§11's frozen full-stream measurement of $-0.007121$ is correct for the
+quantizer it measured, and its interval is tight because the evaluation is
+large. But that quantizer is `draw0, seed0`, and the refit distribution places
+it **near the favourable end** of what refitting produces. A practitioner
+fitting once, with a different seed, could observe $+0.000185$ and conclude
+there is no advantage at all.
+
+The defensible 27B statement is therefore weaker than any previous draft's:
+
+> On the 48 DeltaNet QKV projections of Qwen3.8-27B, averaging over calibration
+> draws, the eight-dimensional code reduces damage relative to learned scalar
+> ternary by roughly $0.003$ to $0.005$ NLL. The effect is smaller than the
+> spread induced by refitting the quantizer: across eight refits it ranged from
+> $-0.007049$ to $+0.000185$, and only half were individually significant. Any
+> single-refit 27B number, including the frozen one reported here, should be
+> read as one draw from that spread.
+
+This does not touch the 0.8B result, where the same eight-refit protocol gives
+8/8 consistency at five times the spread. It does mean the 27B evidence
+supports *direction on average*, not a reliable per-conversion benefit, and the
+paper should not lean on it.

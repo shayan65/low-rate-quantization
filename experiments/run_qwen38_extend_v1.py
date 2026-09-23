@@ -59,6 +59,8 @@ def main() -> None:
     ap.add_argument("--cal-batch", type=int, default=2)
     ap.add_argument("--seconds", type=float, default=28800)
     ap.add_argument("--parts", default="DE")
+    ap.add_argument("--n-draws", type=int, default=2)
+    ap.add_argument("--n-seeds", type=int, default=2)
     a = ap.parse_args()
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -182,9 +184,14 @@ def main() -> None:
         bl = EVALS["wt2_test_128"]
         restore()
         bf1 = evaluate(model, bl, a.eval_batch)
-        REFITS = [("draw0_seed0", slice_cal(wt_tr, a.cal_blocks, 0), 0),
-                  ("draw1_seed0", slice_cal(wt_tr, a.cal_blocks, 256 * a.cal_len), 0),
-                  ("draw0_seed1", slice_cal(wt_tr, a.cal_blocks, 0), 1)]
+        # draws are disjoint slices; seeds vary the k-means init at draw 0.
+        # The 0.8B protocol (§12) is three of each plus a size axis; here we
+        # spend the budget on draws and seeds, which is what §15 showed moves
+        # the 27B contrast.
+        REFITS = [(f"draw{d}_seed0", slice_cal(wt_tr, a.cal_blocks, d * 256 * a.cal_len), 0)
+                  for d in range(a.n_draws)]
+        REFITS += [(f"draw0_seed{s_}", slice_cal(wt_tr, a.cal_blocks, 0), s_)
+                   for s_ in range(1, a.n_seeds)]
         cells, evs = {}, {}
         for rname, cal, seed in REFITS:
             if not B.check(f"E:{rname}", 1200):
