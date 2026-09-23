@@ -1845,6 +1845,12 @@ against $0.140296$ and $0.199492$ for VQ8 — a $36\%$ reduction against the
 better pure condition — and $0.144351$ against $0.183486$ and $0.288304$ for
 scalar, a $21\%$ reduction.
 
+> These are **single-draw** figures. §19 repeats all of it over three disjoint
+> calibration draws and reports means ($0.095211$ against $0.147013$ and
+> $0.191296$ for VQ8, a $35\%$ reduction), with a control that separates domain
+> coverage from sample count. Where the two sections differ numerically, §19 is
+> the one to quote.
+
 The price is on the matched diagonal, and it is small: VQ8 on wikitext goes
 from $0.082309$ matched to $0.089604$ mixed ($+0.0073$), and on TinyStories
 from $0.029201$ to $0.042378$ ($+0.0132$). Half the calibration data per domain
