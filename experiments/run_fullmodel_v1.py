@@ -54,7 +54,13 @@ LADDER = [("r1600_k81", 4, 81), ("r2000_k255", 4, 255), ("r2667_k1625", 4, 1625)
 
 
 def find_all_targets(model, group):
-    """Every 2-D weight except embeddings/head, with its Hadamard block."""
+    """Every 2-D weight except embeddings/head, with its Hadamard block.
+
+    The import is local because `main` binds the heavy dependencies as globals
+    only when it runs; other modules import this function directly, and used to
+    hit a NameError on `largest_pow2_block` for exactly that reason.
+    """
+    from run_mlp_task_v1 import largest_pow2_block
     out = []
     for name, mod in model.named_modules():
         w = getattr(mod, "weight", None)

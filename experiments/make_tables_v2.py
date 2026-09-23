@@ -37,6 +37,9 @@ RUNS = {
     "mech2": ("mechanism_v2", "0.8B, calibration mixture and the g64 factorial"),
     "inter": ("interaction_v1", "0.8B, frozen-artifact coverage interaction"),
     "mix": ("calib_mix_v2", "0.8B, calibration mixture, 3 draws + budget control"),
+    "embed": ("embed_precision_v1", "0.8B, embedding precision x weight rate"),
+    "e2e": ("endtoend_v1", "0.8B, served compressed model"),
+    "hnoise": ("hessian_noise_v1", "0.8B, Hessian sampling noise"),
 }
 
 
@@ -468,6 +471,83 @@ def mixture_table():
     return "\n".join(L)
 
 
+def embedding_table():
+    """Embedding precision crossed with weight rate: the byte-allocation table."""
+    r = load("embed")
+    if r is None or not r.get("cells"):
+        return ""
+    pl = r["plan"]
+    L = [r"\begin{table}[t]", r"\centering", r"\small",
+         r"\begin{tabular}{llrrrr}", r"\toprule",
+         r"Weights & Embedding & model MB & eff.\ bpw & shrink & $\Delta$NLL \\",
+         r"\midrule"]
+    last = None
+    for k, v in r["cells"].items():
+        w, e = k.split("|")
+        if last is not None and w != last:
+            L.append(r"\midrule")
+        last = w
+        L.append(f"{esc(w)} & {esc(e)} & {v['model_bytes'] / 1e6:.1f} & "
+                 f"{v['effective_bits_per_weight']:.3f} & "
+                 f"{v['model_shrink_vs_bf16']:.2f}$\\times$ & "
+                 f"${v['delta_nll']:+.6f}$ \\\\")
+    c = r["cells"]
+    dom_a, dom_b = c["r1600_k81|bf16"], c["r2667_k1625|int4_g128"]
+    L += [r"\bottomrule", r"\end{tabular}",
+          r"\caption{Where a byte is best spent. The embedding is "
+          f"{pl['embed_params']:,} parameters, tied to the output head, so "
+          r"quantizing it perturbs both the input lookup and every logit; its "
+          r"quantizer here is deliberately naive (per-row or per-group scaling, "
+          r"no rotation, no compensation), which makes the comparison "
+          r"conservative against the weight codec. Marginal cost in $\Delta$NLL "
+          r"per 100\,MB saved: $0.000098$ for BF16$\to$INT8 on the embedding "
+          r"against $0.020873$ for BF16$\to$2.792 bits on the weights and "
+          r"$2.127315$ for 2.125$\to$1.725 bits. Note the dominance: "
+          f"{esc('r2667_k1625|int4_g128')} is {dom_b['model_bytes'] / 1e6:.1f}\\,MB "
+          f"at ${dom_b['delta_nll']:+.6f}$ against "
+          f"{esc('r1600_k81|bf16')} at {dom_a['model_bytes'] / 1e6:.1f}\\,MB and "
+          f"${dom_a['delta_nll']:+.6f}$ --- half the size and a fifth of the "
+          r"damage. Source: "
+          f"\\texttt{{{esc(RUNS['embed'][0])}}}.}}",
+          r"\label{tab:embed}", r"\end{table}", ""]
+    return "\n".join(L)
+
+
+def endtoend_table():
+    """The served compressed model: quality, resident bytes, decode step."""
+    r = load("e2e")
+    if r is None:
+        return ""
+    q, m, lat = r["quality"], r["resident"], r["latency_ms"]
+    pl = r["plan"]
+    L = [r"\begin{table}[t]", r"\centering", r"\small",
+         r"\begin{tabular}{lrr}", r"\toprule",
+         r"Quantity & BF16 & served compressed \\", r"\midrule",
+         f"NLL over {pl['eval_targets']:,} targets & {q['decoded_bf16_nll']:.6f} & "
+         f"{q['compressed_served_nll']:.6f} \\\\",
+         f"resident (allocator) & {m['bf16_bytes'] / 1e6:.1f}\\,MB & "
+         f"{m['compressed_bytes'] / 1e6:.1f}\\,MB \\\\",
+         f"decode step & {lat['bf16_decode_step']:.1f}\\,ms & "
+         f"{lat['compressed_decode_step']:.1f}\\,ms \\\\",
+         r"\bottomrule", r"\end{tabular}",
+         r"\caption{All " + str(pl["tensors"]) + r" non-embedding matrices "
+         r"replaced by modules holding only int16 codes, an FP16 codebook and "
+         r"FP16 group scales, with the rotation fused; the dense weights are "
+         r"dropped, so what is reported here is what the allocator and the "
+         r"evaluation loop actually saw. The served model reproduces the "
+         r"decoded-BF16 loss to "
+         f"${q['delta']:.2e}$ (CI ${fmt_ci(q['ci'])[1:-1]}$), so it is the model "
+         r"the rest of this paper measured. Resident bytes come from "
+         r"\texttt{torch.cuda.memory\_allocated}, and the "
+         f"{m['shrink']:.2f}$\\times$ is below the {2.20:.2f}$\\times$ derived "
+         r"from payload counts at this rate because the served layout spends "
+         r"2.000 bits of index where the file spends 1.600. Decode figures are "
+         r"dominated by an unfused recurrent path in both arms. Source: "
+         f"\\texttt{{{esc(RUNS['e2e'][0])}}}.}}",
+         r"\label{tab:e2e}", r"\end{table}", ""]
+    return "\n".join(L)
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     files = {
@@ -477,6 +557,8 @@ def main():
         "tab_interaction.tex": interaction_table(),
         "tab_calibration.tex": calibration_table(),
         "tab_mixture.tex": mixture_table(),
+        "tab_embed.tex": embedding_table(),
+        "tab_e2e.tex": endtoend_table(),
         "tab_g64.tex": g64_table(),
         "tab_rate.tex": rate_table(),
         "tab_v4_arms.tex": arm_table(

@@ -1,0 +1,31 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{llrrrr}
+\toprule
+Weights & Embedding & model MB & eff.\ bpw & shrink & $\Delta$NLL \\
+\midrule
+bf16 & bf16 & 1504.8 & 16.000 & 1.00$\times$ & $+0.000000$ \\
+bf16 & fp8\_e4m3 & 1251.0 & 13.302 & 1.20$\times$ & $+0.001434$ \\
+bf16 & int8\_g128 & 1254.5 & 13.339 & 1.20$\times$ & $+0.000244$ \\
+bf16 & int4\_g128 & 1127.3 & 11.987 & 1.33$\times$ & $+0.032871$ \\
+\midrule
+r1600\_k81 & bf16 & 616.9 & 6.559 & 2.44$\times$ & $+1.000022$ \\
+r1600\_k81 & fp8\_e4m3 & 363.1 & 3.860 & 4.14$\times$ & $+1.000291$ \\
+r1600\_k81 & int8\_g128 & 366.5 & 3.897 & 4.11$\times$ & $+1.000814$ \\
+r1600\_k81 & int4\_g128 & 239.4 & 2.546 & 6.29$\times$ & $+1.053793$ \\
+\midrule
+r2000\_k255 & bf16 & 641.7 & 6.823 & 2.34$\times$ & $+0.470715$ \\
+r2000\_k255 & fp8\_e4m3 & 388.0 & 4.125 & 3.88$\times$ & $+0.471673$ \\
+r2000\_k255 & int8\_g128 & 391.4 & 4.162 & 3.84$\times$ & $+0.470934$ \\
+r2000\_k255 & int4\_g128 & 264.3 & 2.810 & 5.69$\times$ & $+0.514113$ \\
+\midrule
+r2667\_k1625 & bf16 & 683.2 & 7.264 & 2.20$\times$ & $+0.171490$ \\
+r2667\_k1625 & fp8\_e4m3 & 429.4 & 4.566 & 3.50$\times$ & $+0.172940$ \\
+r2667\_k1625 & int8\_g128 & 432.9 & 4.603 & 3.48$\times$ & $+0.171893$ \\
+r2667\_k1625 & int4\_g128 & 305.8 & 3.251 & 4.92$\times$ & $+0.208926$ \\
+\bottomrule
+\end{tabular}
+\caption{Where a byte is best spent. The embedding is 254,279,680 parameters, tied to the output head, so quantizing it perturbs both the input lookup and every logit; its quantizer here is deliberately naive (per-row or per-group scaling, no rotation, no compensation), which makes the comparison conservative against the weight codec. Marginal cost in $\Delta$NLL per 100\,MB saved: $0.000098$ for BF16$\to$INT8 on the embedding against $0.020873$ for BF16$\to$2.792 bits on the weights and $2.127315$ for 2.125$\to$1.725 bits. Note the dominance: r2667\_k1625|int4\_g128 is 305.8\,MB at $+0.208926$ against r1600\_k81|bf16 at 616.9\,MB and $+1.000022$ --- half the size and a fifth of the damage. Source: \texttt{embed\_precision\_v1}.}
+\label{tab:embed}
+\end{table}

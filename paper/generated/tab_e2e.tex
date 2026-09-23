@@ -1,0 +1,15 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lrr}
+\toprule
+Quantity & BF16 & served compressed \\
+\midrule
+NLL over 32,768 targets & 3.398479 & 3.398463 \\
+resident (allocator) & 1504.8\,MB & 783.2\,MB \\
+decode step & 85.6\,ms & 99.4\,ms \\
+\bottomrule
+\end{tabular}
+\caption{All 186 non-embedding matrices replaced by modules holding only int16 codes, an FP16 codebook and FP16 group scales, with the rotation fused; the dense weights are dropped, so what is reported here is what the allocator and the evaluation loop actually saw. The served model reproduces the decoded-BF16 loss to $-1.59e-05$ (CI $[-0.000458, +0.000428]$), so it is the model the rest of this paper measured. Resident bytes come from \texttt{torch.cuda.memory\_allocated}, and the 1.92$\times$ is below the 2.20$\times$ derived from payload counts at this rate because the served layout spends 2.000 bits of index where the file spends 1.600. Decode figures are dominated by an unfused recurrent path in both arms. Source: \texttt{endtoend\_v1}.}
+\label{tab:e2e}
+\end{table}

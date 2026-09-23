@@ -1,0 +1,238 @@
+{
+  "plan": {
+    "model": "../models/Qwen3.5-0.8B-Base",
+    "layers": [
+      0,
+      1,
+      2,
+      4,
+      5,
+      6,
+      8,
+      9,
+      10,
+      12,
+      13,
+      14,
+      16,
+      17,
+      18,
+      20,
+      21,
+      22
+    ],
+    "eval_targets": 261284,
+    "reference_tokens": 524288,
+    "sizes": [
+      "16k",
+      "32k",
+      "65k",
+      "131k"
+    ],
+    "draws": 4,
+    "note": "codebooks are deterministic Lloyd fits over weights, so the Hessian is the only thing that varies"
+  },
+  "bf16": {
+    "nll": 3.4367098761642176
+  },
+  "reference_contrast": {
+    "delta": -0.002714246309343249,
+    "ci": [
+      -0.004586615724510301,
+      -0.0008189307019860989
+    ]
+  },
+  "cells": {
+    "16k|d0": {
+      "tokens": 16384,
+      "hessian_rel_dev": 0.20472218468785286,
+      "cholinv_rel_dev": 0.37078312204943764,
+      "contrast": 0.005035010225250325,
+      "contrast_ci": [
+        0.0029826243712043343,
+        0.007192563549428488
+      ],
+      "contrast_dev_from_reference": 0.007749256534593574
+    },
+    "16k|d1": {
+      "tokens": 16384,
+      "hessian_rel_dev": 0.23205174505710602,
+      "cholinv_rel_dev": 0.3744092269076241,
+      "contrast": 0.0018726423102397582,
+      "contrast_ci": [
+        -0.00010717834631496223,
+        0.003980830066584506
+      ],
+      "contrast_dev_from_reference": 0.004586888619583007
+    },
+    "16k|d2": {
+      "tokens": 16384,
+      "hessian_rel_dev": 0.4860778682761722,
+      "cholinv_rel_dev": 0.4443299389547772,
+      "contrast": -0.004234360684241878,
+      "contrast_ci": [
+        -0.006255287498264805,
+        -0.002048322384064907
+      ],
+      "contrast_dev_from_reference": -0.001520114374898629
+    },
+    "16k|d3": {
+      "tokens": 16384,
+      "hessian_rel_dev": 0.3041679412126541,
+      "cholinv_rel_dev": 0.3989309353960885,
+      "contrast": 0.0022444285655280893,
+      "contrast_ci": [
+        -7.884348174680304e-06,
+        0.004377221314832666
+      ],
+      "contrast_dev_from_reference": 0.004958674874871338
+    },
+    "32k|d0": {
+      "tokens": 32768,
+      "hessian_rel_dev": 0.1486007339424557,
+      "cholinv_rel_dev": 0.2745744486649831,
+      "contrast": -0.0024064078143899437,
+      "contrast_ci": [
+        -0.004428703083395225,
+        -0.0004575498962262398
+      ],
+      "contrast_dev_from_reference": 0.0003078384949533053
+    },
+    "32k|d1": {
+      "tokens": 32768,
+      "hessian_rel_dev": 0.2935567821065585,
+      "cholinv_rel_dev": 0.3219529589017232,
+      "contrast": -0.0073014347506643595,
+      "contrast_ci": [
+        -0.009233107494284475,
+        -0.005395275456717633
+      ],
+      "contrast_dev_from_reference": -0.004587188441321111
+    },
+    "32k|d2": {
+      "tokens": 32768,
+      "hessian_rel_dev": 0.18443007063534525,
+      "cholinv_rel_dev": 0.3030219491985109,
+      "contrast": 0.00745860102551843,
+      "contrast_ci": [
+        0.005482952712681843,
+        0.00944757104649273
+      ],
+      "contrast_dev_from_reference": 0.010172847334861679
+    },
+    "32k|d3": {
+      "tokens": 32768,
+      "hessian_rel_dev": 0.20745355760057768,
+      "cholinv_rel_dev": 0.31349526511298287,
+      "contrast": -0.0006233918809366301,
+      "contrast_ci": [
+        -0.0027189690952240885,
+        0.0014575490787726683
+      ],
+      "contrast_dev_from_reference": 0.002090854428406619
+    },
+    "65k|d0": {
+      "tokens": 65536,
+      "hessian_rel_dev": 0.14600043950809372,
+      "cholinv_rel_dev": 0.22664819326665667,
+      "contrast": -0.0018154856816332554,
+      "contrast_ci": [
+        -0.0037936945937274034,
+        0.0001722186030284511
+      ],
+      "contrast_dev_from_reference": 0.0008987606277099935
+    },
+    "65k|d1": {
+      "tokens": 65536,
+      "hessian_rel_dev": 0.13949729088279936,
+      "cholinv_rel_dev": 0.24155421886179182,
+      "contrast": -0.005171041403530641,
+      "contrast_ci": [
+        -0.007023317130857398,
+        -0.00328568845110504
+      ],
+      "contrast_dev_from_reference": -0.0024567950941873917
+    },
+    "65k|d2": {
+      "tokens": 65536,
+      "hessian_rel_dev": 0.12939705699682236,
+      "cholinv_rel_dev": 0.23671377450227737,
+      "contrast": -0.004638204622618325,
+      "contrast_ci": [
+        -0.00654382775162764,
+        -0.0027451749918930525
+      ],
+      "contrast_dev_from_reference": -0.001923958313275076
+    },
+    "65k|d3": {
+      "tokens": 65536,
+      "hessian_rel_dev": 0.15967027677430046,
+      "cholinv_rel_dev": 0.24210628039307064,
+      "contrast": -0.0011804381284243881,
+      "contrast_ci": [
+        -0.003188342345187567,
+        0.0008726663176111812
+      ],
+      "contrast_dev_from_reference": 0.0015338081809188608
+    },
+    "131k|d0": {
+      "tokens": 131072,
+      "hessian_rel_dev": 0.10808824375271797,
+      "cholinv_rel_dev": 0.18757884783877266,
+      "contrast": 0.002668754813686558,
+      "contrast_ci": [
+        0.0007146236910059778,
+        0.0047185177479640685
+      ],
+      "contrast_dev_from_reference": 0.005383001123029807
+    },
+    "131k|d1": {
+      "tokens": 131072,
+      "hessian_rel_dev": 0.09357494736711185,
+      "cholinv_rel_dev": 0.18739524566464955,
+      "contrast": 0.0002459912971626288,
+      "contrast_ci": [
+        -0.0016198870951236954,
+        0.002075314703137031
+      ],
+      "contrast_dev_from_reference": 0.0029602376065058777
+    },
+    "131k|d2": {
+      "tokens": 131072,
+      "hessian_rel_dev": 0.14740472121371162,
+      "cholinv_rel_dev": 0.20424207631084654,
+      "contrast": 0.0018837313930091248,
+      "contrast_ci": [
+        -5.5852748198081795e-06,
+        0.0037786067317148253
+      ],
+      "contrast_dev_from_reference": 0.004597977702352374
+    },
+    "131k|d3": {
+      "tokens": 131072,
+      "hessian_rel_dev": 0.12189141143527296,
+      "cholinv_rel_dev": 0.20241788691944546,
+      "contrast": 0.00461176021682963,
+      "contrast_ci": [
+        0.002637751226938323,
+        0.006626385637174936
+      ],
+      "contrast_dev_from_reference": 0.007326006526172879
+    }
+  },
+  "predictions": {
+    "p1_hessian_slope_vs_tokens": -0.4682100556359524,
+    "p1_cholinv_slope_vs_tokens": -0.34263341810756376,
+    "p1_expected_slope": -0.5,
+    "p2_contrast_range_by_size": {
+      "16k": 0.009269370909492203,
+      "32k": 0.01476003577618279,
+      "65k": 0.003990603275106253,
+      "131k": 0.004365768919667001
+    },
+    "p2_contrast_sd_slope_vs_tokens": -0.49433065012354704,
+    "p3_within_size_correlation": -0.14244356673051412,
+    "p3_n_pairs": 16
+  },
+  "seconds": 1176.0
+}

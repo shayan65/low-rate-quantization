@@ -2171,3 +2171,236 @@ nested sizes on one draw.
 falsification is clean because the prediction was specific; the replacement is
 an interpretation of the same six numbers and has not been tested against
 anything.
+
+## 21. Where the bytes should go: the embedding, not the codec (2026-09-23)
+
+§17 ended with a conjecture it explicitly marked unmeasured — that halving the
+embedding to FP8 would save more bytes than moving the covered tensors from
+2.667 bits to ternary, and cost far less quality. It is now measured, and the
+answer is more extreme than the conjecture.
+
+The two axes crossed: the §17 weight ladder over all 186 non-embedding matrices,
+against four embedding precisions. The embedding is **tied** to the output head,
+so quantizing it perturbs the input lookup *and* every logit. Its quantizer is
+deliberately naive — per-row scaling for FP8, per-group symmetric integers
+otherwise, no rotation, no compensation — which makes the comparison
+conservative against the weight codec, which has both.
+
+| weights | embedding | model MB | eff. bpw | shrink | ΔNLL |
+|---|---|---:|---:|---:|---:|
+| BF16 | BF16 | 1504.8 | 16.000 | 1.00x | $0$ |
+| BF16 | INT8-g128 | 1254.5 | 13.339 | 1.20x | $+0.000244$ |
+| BF16 | FP8-e4m3 | 1251.0 | 13.302 | 1.20x | $+0.001434$ |
+| BF16 | INT4-g128 | 1127.3 | 11.987 | 1.33x | $+0.032871$ |
+| 2.792 bpw | BF16 | 683.2 | 7.264 | 2.20x | $+0.171490$ |
+| 2.792 bpw | INT8-g128 | 432.9 | 4.603 | 3.48x | $+0.171893$ |
+| 2.792 bpw | INT4-g128 | 305.8 | 3.251 | 4.92x | $+0.208926$ |
+| 2.125 bpw | BF16 | 641.7 | 6.823 | 2.34x | $+0.470715$ |
+| 1.725 bpw | BF16 | 616.9 | 6.559 | 2.44x | $+1.000022$ |
+| 1.725 bpw | INT4-g128 | 239.4 | 2.546 | 6.29x | $+1.053793$ |
+
+### The exchange rate is not close
+
+Marginal cost of each move, in ΔNLL per 100 MB saved:
+
+| move | MB saved | ΔNLL | per 100 MB |
+|---|---:|---:|---:|
+| embedding BF16 → INT8-g128 | 250.3 | $+0.000244$ | $0.000098$ |
+| embedding BF16 → FP8-e4m3 | 253.8 | $+0.001434$ | $0.000565$ |
+| embedding BF16 → INT4-g128 | 377.4 | $+0.032871$ | $0.008709$ |
+| weights BF16 → 2.792 bpw | 821.6 | $+0.171490$ | $0.020873$ |
+| weights 2.792 → 2.125 bpw | 41.5 | $+0.299226$ | $0.721380$ |
+| weights 2.125 → 1.725 bpw | 24.9 | $+0.529306$ | $2.127315$ |
+
+**Quantizing the embedding to INT8 is 213 times cheaper per byte than the first
+step of the weight codec, and 21,700 times cheaper than its last step.** §17's
+conjecture is confirmed with room to spare: FP8 on the embedding saves
+$253.8$ MB against $66.4$ MB for the 2.792→1.725 weight move, and costs
+$+0.001434$ against $+0.828532$ — $3.8\times$ the bytes at $578\times$ less
+damage.
+
+### The sub-two-bit regime is off the frontier
+
+The sharpest way to put it is a direct dominance:
+
+| configuration | model MB | ΔNLL |
+|---|---:|---:|
+| ternary weights + BF16 embedding | 616.9 | $+1.000022$ |
+| **2.792-bit weights + INT4 embedding** | **305.8** | **$+0.208926$** |
+
+The second model is **half the size and takes a fifth of the damage**. Every
+sub-2-bit configuration measured here is dominated in both axes at once by a
+configuration that spends more bits on weights and fewer on the embedding.
+**On this model, at whole-model byte budgets, the entire low-rate weight regime
+this project studies is off the efficient frontier.**
+
+That is an uncomfortable finding and it is the correct one to report. It does
+not invalidate the codec results: dim-8 VQ still beats scalar ternary at matched
+bytes, GPTQ still removes 68–69% of the damage, and those comparisons are
+between weight codecs at fixed coverage. What it invalidates is the implicit
+premise that driving the weight rate down is the way to make *this model*
+smaller.
+
+### The qualification that decides how far this travels
+
+**This conclusion is a function of the embedding's parameter share, and that
+share is a property of small models with large vocabularies.** Here the
+embedding is $254{,}279{,}680$ of $752{,}393{,}024$ parameters — $33.8\%$ — on a
+$248{,}320$-token vocabulary. The 27B checkpoint has the same vocabulary at
+hidden size $5120$ and does *not* tie its head, so its embedding and head are
+about $2\times1.27$B of $27.78$B parameters, roughly $9\%$, and the arithmetic
+inverts: there the weight codec governs the byte budget and the embedding cannot
+pay for it.
+
+So the honest reading is not "embedding precision beats weight quantization" but
+"**the tensor worth attacking is whichever one holds the bytes, and at 0.8B that
+is not the one this project attacked.**" The result explains §17 — full coverage
+shrank the model only $2.44\times$ because $83\%$ of what remained was one
+tensor — and it says the 27B direction was the right one for the codec question
+even though the 27B evidence is weak.
+
+Scope: one model, one corpus, one naive embedding quantizer, no attempt to
+apply rotation or compensation to the embedding, and no measurement at 27B where
+the share argument predicts the opposite conclusion.
+
+## 22. Testing §20's replacement explanation: two predictions hold, the sharpest fails (2026-09-23)
+
+§20 falsified the cancellation account of the unstable g64 contrast and replaced
+it with an interpretation: since both codebooks there are deterministic fits
+over weights, the Hessian is the only thing varying across refits, so GPTQ's
+compensation statistics must themselves be noisy enough to move the contrast.
+That was an interpretation of six numbers. This project has withdrawn enough
+interpretations to know better than to leave it there, so it was given three
+falsifiable predictions and tested against a reference Hessian estimated from
+524,288 tokens of separate text, with four disjoint draws at each of four
+calibration sizes.
+
+| tokens | mean ‖ΔH‖/‖H‖ | mean ‖ΔU‖/‖U‖ | contrast range | contrast sd |
+|---:|---:|---:|---:|---:|
+| 16,384 | 0.30675 | 0.39711 | 0.009269 | 0.003906 |
+| 32,768 | 0.20851 | 0.30326 | 0.014760 | 0.006139 |
+| 65,536 | 0.14364 | 0.23676 | 0.003991 | 0.001996 |
+| 131,072 | 0.11774 | 0.19541 | 0.004366 | 0.001813 |
+
+**Prediction 1 — the Hessian's deviation should fall as $N^{-1/2}$. Holds.**
+Log-log slope $-0.468$ against the $-0.5$ of finite-sample noise. The
+compensation operator $\mathrm{chol}^{-1}(H)$ falls more slowly, $-0.343$,
+which is what inversion does to error in the small eigenvalues, and is a reason
+to expect GPTQ to be noisier than its input statistics.
+
+**Prediction 2 — the contrast's spread should fall with $N$ too. Holds, and
+tightly.** Log-log slope of the within-size standard deviation is $-0.494$,
+almost exactly $-1/2$ and almost exactly the Hessian's own slope. If the
+contrast's instability were driven by something other than calibration sampling
+there is no reason for those two exponents to agree.
+
+**Prediction 3 — draws with a more deviant Hessian should give a more deviant
+contrast. Fails.** The within-size correlation between compensation-operator
+deviation and $|$contrast deviation$|$ is $-0.142$ over 16 draws: no
+relationship, and if anything the wrong sign.
+
+### What the failure means, and why it is not a retraction
+
+Predictions 1 and 2 are about magnitude scaling and they hold. Prediction 3 asks
+whether a *scalar* measure of Hessian error predicts the contrast, and it does
+not — which §18's own identity explains. The mismatch penalty is
+$\operatorname{tr}[E(H_{\text{test}}-H_{\text{cal}})E^{\top}]$: it depends on how
+the Hessian error is **oriented** relative to the weight error, not on how large
+it is. Two draws with identical $\lVert \Delta H \rVert_F$ can land anywhere.
+Prediction 3 measured the one quantity the identity says should not predict
+anything, and got the answer the identity implies.
+
+So the replacement explanation survives in a narrowed form, stated as what was
+tested rather than as what is plausible: **the g64 contrast's refit-to-refit
+spread scales with calibration size exactly as finite-sample Hessian noise
+does, and no scalar measure of Hessian error predicts which way an individual
+refit will land.** The sharper test — whether
+$\operatorname{tr}[E(H_d - H_{\text{ref}})E^{\top}]$ predicts the per-draw
+contrast, using the actual weight errors — needs $E$ retained per draw and was
+not run.
+
+### One thing the design surfaced that was not predicted
+
+Calibration size does not only add noise; it moves the answer. All four draws at
+65,536 tokens give a negative contrast, all four at 131,072 give a positive one,
+and the 524,288-token reference gives $-0.002714$. A quantity whose *sign*
+depends on calibration size in this way is not converging to a stable value over
+this range, which is a stronger statement than §12's "calibration size changes
+the experimental condition" and independently supports the paper's refusal to
+quote this contrast as a recipe recommendation.
+
+## 23. A model that actually runs on compressed weights (2026-09-23)
+
+Every quality number in this project was produced by decoding packed bytes into
+BF16 weights, installing those, and measuring loss. That is the right way to
+measure a codec, and it is why "no runtime claim" has been in the paper's
+boundary list from the beginning: at inference the model still occupied its
+dense footprint, and "the packed weights would fit" was arithmetic about bytes
+on disk.
+
+All 186 non-embedding matrices are now **replaced** by modules that hold only
+int16 codes, an FP16 codebook and FP16 group scales, with the Hadamard rotation
+fused into the single Triton kernel of §17. The dense weights are dropped.
+Dimension 4, $K=1625$, 2.792 covered bits/weight.
+
+### Does the served model compute what the paper measured?
+
+| model | NLL over 32,768 targets |
+|---|---:|
+| decoded BF16 — what every earlier number used | 3.398479 |
+| compressed, served | 3.398463 |
+
+Difference $-1.59\times10^{-5}$, 95% CI $[-4.58\times10^{-4}, +4.28\times10^{-4}]$.
+**The served model is the model the paper measured**, to well inside the
+evaluation's own noise. This is the check that could most easily have been
+faked by reporting "close enough"; it is a paired comparison on identical
+blocks against the exact weights the loss numbers came from.
+
+### What it weighs
+
+| model | resident | |
+|---|---:|---:|
+| BF16 | 1504.8 MB | |
+| compressed | 783.2 MB | **1.92x** |
+
+Measured with `torch.cuda.memory_allocated`, so this is the entire model —
+including the BF16 embedding, which is the majority of what remains — and not a
+payload count. It is **lower than §17's derived $2.20\times$ at the same rate**,
+and the gap is exactly the storage-versus-runtime distinction §17 insisted on:
+the served layout spends 2.000 bits of index per weight where the packed file
+spends 1.600. A figure derived from payload bytes would have overstated the
+served model by 15%.
+
+> An earlier attempt at this table reported $0.85\times$ — the compressed model
+> measuring *larger* than the dense one — because the target list still held
+> references to the original `nn.Linear` modules, so their weights were never
+> freed. The same class of harness contamination as §17's peak-allocation
+> defect, caught the same way: by measuring the allocator instead of trusting
+> the arithmetic.
+
+### What a token costs
+
+| model | ms per decode step |
+|---|---:|
+| BF16 | 85.638 |
+| compressed | 99.364 |
+
+A factor of $1.16$. Both figures are dominated by this model's Python-level
+recurrent fallback — 86 ms per token for a 0.8B model is not a serving number,
+and the installed `transformers` reports that the fused linear-attention path is
+unavailable — so this measures the *increment* the compressed weights add to an
+unoptimized decode loop, not a serving comparison. Taken with §17's isolated
+projection measurement ($3.0\times$ on the GEMV once the rotation is fused), the
+consistent reading is that the format costs a small multiple on the projections
+and that multiple is diluted by everything else in the step.
+
+### Scope
+
+The embedding, the norms, the KV cache and the recurrent state stay BF16. Both
+kernels are tuned only far enough to be correct. This is a model whose covered
+weights are served compressed, on one GPU, at batch one, and nothing here is a
+serving stack.
+
+What it does settle: the project can no longer be accused of reporting byte
+counts for a model that never ran. It ran, it weighed what the allocator says it
+weighed, and it computed the same loss.

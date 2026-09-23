@@ -58,43 +58,74 @@ def hadamard_matrix(r: int, device="cuda", dtype=torch.float32) -> torch.Tensor:
 if HAVE_TRITON:
 
     @triton.jit
-    def _rht_kernel(x_ptr, s_ptr, y_ptr, h_ptr, NBLK, R: tl.constexpr,
-                    SCALE: tl.constexpr):
-        """One program per (row, Hadamard block): sign flip then H @ X @ H."""
+    def _rht_kernel(x_ptr, s_ptr, y_ptr, h1_ptr, h2_ptr, NBLK,
+                    R1: tl.constexpr, R2: tl.constexpr, SCALE: tl.constexpr):
+        """One program per (row, block): sign flip then H1 @ X @ H2.
+
+        A block of R1*R2 elements is viewed as an R1 x R2 tile. The radix-2
+        FWHT in natural order is a Kronecker product, so the square case
+        (R1 == R2) and the rectangular one are the same formula; 512-wide
+        blocks factor as 32 x 16, which is why this is not fixed at 32 x 32.
+        """
         pid = tl.program_id(0)
         row = pid // NBLK
         blk = pid % NBLK
-        i = tl.arange(0, R)
-        idx = i[:, None] * R + i[None, :]
-        base = row * NBLK * R * R + blk * R * R
+        i = tl.arange(0, R1)
+        j = tl.arange(0, R2)
+        idx = i[:, None] * R2 + j[None, :]
+        base = row * NBLK * R1 * R2 + blk * R1 * R2
         x = tl.load(x_ptr + base + idx)
-        s = tl.load(s_ptr + blk * R * R + idx)       # signs indexed by column
-        h = tl.load(h_ptr + idx)
-        y = tl.dot(h, x * s, input_precision="ieee")
-        y = tl.dot(y, h, input_precision="ieee")
+        s = tl.load(s_ptr + blk * R1 * R2 + idx)     # signs indexed by column
+        h1 = tl.load(h1_ptr + i[:, None] * R1 + i[None, :])
+        h2 = tl.load(h2_ptr + j[:, None] * R2 + j[None, :])
+        y = tl.dot(h1, x * s, input_precision="ieee")
+        y = tl.dot(y, h2, input_precision="ieee")
         tl.store(y_ptr + base + idx, y * SCALE)
+
+
+def factor_block(blk: int) -> tuple[int, int]:
+    """Split a power-of-two block into R1 x R2 with both at least 16.
+
+    `tl.dot` needs each dimension to be at least 16, so 256 -> 16x16,
+    512 -> 32x16, 1024 -> 32x32, 2048 -> 64x32, 4096 -> 64x64.
+    """
+    assert blk & (blk - 1) == 0, f"blk={blk} is not a power of two"
+    assert blk >= 256, f"blk={blk} is too small to factor with both sides >= 16"
+    r2 = 1 << ((blk.bit_length() - 1) // 2)
+    return blk // r2, r2
+
+
+class FusedRotation:
+    """Cached Hadamard factors for one block size, so a forward pass allocates none."""
+
+    def __init__(self, blk: int, device="cuda"):
+        self.blk = blk
+        self.r1, self.r2 = factor_block(blk)
+        self.h1 = hadamard_matrix(self.r1, device)
+        self.h2 = hadamard_matrix(self.r2, device)
+        self.scale = 1.0 / blk ** 0.5
+
+    @torch.no_grad()
+    def __call__(self, x: torch.Tensor, signs: torch.Tensor) -> torch.Tensor:
+        rows, cols = x.shape
+        assert cols % self.blk == 0, f"cols={cols} not a multiple of {self.blk}"
+        x = x.contiguous().float()
+        y = torch.empty_like(x)
+        _rht_kernel[(rows * (cols // self.blk),)](
+            x, signs.contiguous().float(), y, self.h1, self.h2,
+            cols // self.blk, R1=self.r1, R2=self.r2, SCALE=self.scale)
+        return y
 
 
 @torch.no_grad()
 def rotate_fused(x: torch.Tensor, signs: torch.Tensor, blk: int,
-                 hmat: torch.Tensor | None = None) -> torch.Tensor:
+                 rot: "FusedRotation | None" = None) -> torch.Tensor:
     """Randomized Hadamard rotation of the last axis, in one kernel.
 
     `x` is (rows, cols) with `cols` a multiple of `blk`; `signs` is (cols,).
     Equivalent to `run_ternary_task_v4.rotate(x, signs, blk)`.
     """
     assert HAVE_TRITON, "triton unavailable"
-    rows, cols = x.shape
-    assert cols % blk == 0, f"cols={cols} is not a multiple of blk={blk}"
-    r = int(round(blk ** 0.5))
-    assert r * r == blk and (r & (r - 1)) == 0, (
-        f"blk={blk} must be a square power of two (256, 1024, 4096); "
-        "other block sizes need a rectangular factorization")
-    if hmat is None:
-        hmat = hadamard_matrix(r, x.device, torch.float32)
-    x = x.contiguous().float()
-    y = torch.empty_like(x)
-    _rht_kernel[(rows * (cols // blk),)](
-        x, signs.contiguous().float(), y, hmat, cols // blk,
-        R=r, SCALE=1.0 / blk ** 0.5)
-    return y
+    if rot is None or rot.blk != blk:
+        rot = FusedRotation(blk, x.device)
+    return rot(x, signs)

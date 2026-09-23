@@ -1,0 +1,329 @@
+{
+  "plan": {
+    "model": "../models/Qwen3.5-0.8B-Base",
+    "tied_embedding": true,
+    "embed_params": 254279680,
+    "covered_params": 497614848,
+    "other_params": 498496,
+    "total_params": 752393024,
+    "bf16_model_bytes": 1504786048,
+    "eval_targets": 261284,
+    "note": "embedding quantization is deliberately naive: per-row or per-group scaling, no rotation, no compensation"
+  },
+  "bf16": {
+    "nll": 3.4367098761642176
+  },
+  "embedding_variants": {
+    "bf16": {
+      "bytes": 508559360,
+      "bits_per_param": 16.0
+    },
+    "fp8_e4m3": {
+      "bytes": 254776320,
+      "bits_per_param": 8.015625
+    },
+    "int8_g128": {
+      "bytes": 258252800,
+      "bits_per_param": 8.125
+    },
+    "int4_g128": {
+      "bytes": 131112960,
+      "bits_per_param": 4.125
+    }
+  },
+  "cells": {
+    "bf16|bf16": {
+      "weight_bytes": 995229696,
+      "embed_bytes": 508559360,
+      "model_bytes": 1504786048,
+      "model_shrink_vs_bf16": 1.0,
+      "effective_bits_per_weight": 16.0,
+      "covered_bpw": 16.0,
+      "embed_bits": 16.0,
+      "nll": 3.4367098761642176,
+      "delta_nll": 0.0,
+      "delta_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "bf16|fp8_e4m3": {
+      "weight_bytes": 995229696,
+      "embed_bytes": 254776320,
+      "model_bytes": 1251003008,
+      "model_shrink_vs_bf16": 1.2028636529065804,
+      "effective_bits_per_weight": 13.301590717566249,
+      "covered_bpw": 16.0,
+      "embed_bits": 8.015625,
+      "nll": 3.438143776605576,
+      "delta_nll": 0.0014339004413583822,
+      "delta_ci": [
+        0.001076143260927942,
+        0.0018100177614589483
+      ]
+    },
+    "bf16|int8_g128": {
+      "weight_bytes": 995229696,
+      "embed_bytes": 258252800,
+      "model_bytes": 1254479488,
+      "model_shrink_vs_bf16": 1.1995302134425971,
+      "effective_bits_per_weight": 13.33855522828452,
+      "covered_bpw": 16.0,
+      "embed_bits": 8.125,
+      "nll": 3.436954290039298,
+      "delta_nll": 0.0002444138750803404,
+      "delta_ci": [
+        6.151743626389151e-05,
+        0.0004238352331355382
+      ]
+    },
+    "bf16|int4_g128": {
+      "weight_bytes": 995229696,
+      "embed_bytes": 131112960,
+      "model_bytes": 1127339648,
+      "model_shrink_vs_bf16": 1.3348116077258732,
+      "effective_bits_per_weight": 11.986710264873482,
+      "covered_bpw": 16.0,
+      "embed_bits": 4.125,
+      "nll": 3.4695812354462534,
+      "delta_nll": 0.03287135928203577,
+      "delta_ci": [
+        0.031549163600745125,
+        0.03419050931656085
+      ]
+    },
+    "r1600_k81|bf16": {
+      "weight_bytes": 107299560,
+      "embed_bytes": 508559360,
+      "model_bytes": 616855912,
+      "model_shrink_vs_bf16": 2.439444963931869,
+      "effective_bits_per_weight": 6.558869020029617,
+      "covered_bpw": 1.7250218385766496,
+      "embed_bits": 16.0,
+      "nll": 4.436731593209296,
+      "delta_nll": 1.0000217170450783,
+      "delta_ci": [
+        0.986485121987115,
+        1.013519560630463
+      ]
+    },
+    "r1600_k81|fp8_e4m3": {
+      "weight_bytes": 107299560,
+      "embed_bytes": 254776320,
+      "model_bytes": 363072872,
+      "model_shrink_vs_bf16": 4.1445840877916105,
+      "effective_bits_per_weight": 3.860459737595866,
+      "covered_bpw": 1.7250218385766496,
+      "embed_bits": 8.015625,
+      "nll": 4.437000972237218,
+      "delta_nll": 1.0002910960730005,
+      "delta_ci": [
+        0.986681220396601,
+        1.013811211797138
+      ]
+    },
+    "r1600_k81|int8_g128": {
+      "weight_bytes": 107299560,
+      "embed_bytes": 258252800,
+      "model_bytes": 366549352,
+      "model_shrink_vs_bf16": 4.105275428232104,
+      "effective_bits_per_weight": 3.8974242483141364,
+      "covered_bpw": 1.7250218385766496,
+      "embed_bits": 8.125,
+      "nll": 4.437523921032691,
+      "delta_nll": 1.000814044868473,
+      "delta_ci": [
+        0.9872531925757315,
+        1.014303768436115
+      ]
+    },
+    "r1600_k81|int4_g128": {
+      "weight_bytes": 107299560,
+      "embed_bytes": 131112960,
+      "model_bytes": 239409512,
+      "model_shrink_vs_bf16": 6.285406270741657,
+      "effective_bits_per_weight": 2.545579284903099,
+      "covered_bpw": 1.7250218385766496,
+      "embed_bits": 4.125,
+      "nll": 4.490503295009835,
+      "delta_nll": 1.053793418845617,
+      "delta_ci": [
+        1.0399559318526135,
+        1.067294989155587
+      ]
+    },
+    "r2000_k255|bf16": {
+      "weight_bytes": 132180984,
+      "embed_bytes": 508559360,
+      "model_bytes": 641737336,
+      "model_shrink_vs_bf16": 2.3448628645786007,
+      "effective_bits_per_weight": 6.823426752026877,
+      "covered_bpw": 2.125032796449032,
+      "embed_bits": 16.0,
+      "nll": 3.9074253366037337,
+      "delta_nll": 0.47071546043951606,
+      "delta_ci": [
+        0.462434318983458,
+        0.4787517583772667
+      ]
+    },
+    "r2000_k255|fp8_e4m3": {
+      "weight_bytes": 132180984,
+      "embed_bytes": 254776320,
+      "model_bytes": 387954296,
+      "model_shrink_vs_bf16": 3.878771451985674,
+      "effective_bits_per_weight": 4.125017469593126,
+      "covered_bpw": 2.125032796449032,
+      "embed_bits": 8.015625,
+      "nll": 3.908382469557192,
+      "delta_nll": 0.4716725933929742,
+      "delta_ci": [
+        0.4634018458280529,
+        0.47972277325260465
+      ]
+    },
+    "r2000_k255|int8_g128": {
+      "weight_bytes": 132180984,
+      "embed_bytes": 258252800,
+      "model_bytes": 391430776,
+      "model_shrink_vs_bf16": 3.844322266576198,
+      "effective_bits_per_weight": 4.161981980311396,
+      "covered_bpw": 2.125032796449032,
+      "embed_bits": 8.125,
+      "nll": 3.907643541188397,
+      "delta_nll": 0.4709336650241793,
+      "delta_ci": [
+        0.46268207720691457,
+        0.47895927969711116
+      ]
+    },
+    "r2000_k255|int4_g128": {
+      "weight_bytes": 132180984,
+      "embed_bytes": 131112960,
+      "model_bytes": 264290936,
+      "model_shrink_vs_bf16": 5.693672551827506,
+      "effective_bits_per_weight": 2.8101370169003586,
+      "covered_bpw": 2.125032796449032,
+      "embed_bits": 4.125,
+      "nll": 3.950823309278425,
+      "delta_nll": 0.5141134331142072,
+      "delta_ci": [
+        0.5055858933114167,
+        0.5223515026185283
+      ]
+    },
+    "r2667_k1625|bf16": {
+      "weight_bytes": 173660632,
+      "embed_bytes": 508559360,
+      "model_bytes": 683216984,
+      "model_shrink_vs_bf16": 2.202500937827974,
+      "effective_bits_per_weight": 7.264469097469995,
+      "covered_bpw": 2.7918882677713026,
+      "embed_bits": 16.0,
+      "nll": 3.608199556700841,
+      "delta_nll": 0.17148968053662328,
+      "delta_ci": [
+        0.16718517232398333,
+        0.1758600577244163
+      ]
+    },
+    "r2667_k1625|fp8_e4m3": {
+      "weight_bytes": 173660632,
+      "embed_bytes": 254776320,
+      "model_bytes": 429433944,
+      "model_shrink_vs_bf16": 3.504115287169754,
+      "effective_bits_per_weight": 4.566059815036244,
+      "covered_bpw": 2.7918882677713026,
+      "embed_bits": 8.015625,
+      "nll": 3.6096501296602526,
+      "delta_nll": 0.17294025349603492,
+      "delta_ci": [
+        0.16860147382961926,
+        0.17731242845549058
+      ]
+    },
+    "r2667_k1625|int8_g128": {
+      "weight_bytes": 173660632,
+      "embed_bytes": 258252800,
+      "model_bytes": 432910424,
+      "model_shrink_vs_bf16": 3.4759755473109144,
+      "effective_bits_per_weight": 4.6030243257545145,
+      "covered_bpw": 2.7918882677713026,
+      "embed_bits": 8.125,
+      "nll": 3.6086030182409425,
+      "delta_nll": 0.1718931420767249,
+      "delta_ci": [
+        0.16759321855376347,
+        0.17626094668811726
+      ]
+    },
+    "r2667_k1625|int4_g128": {
+      "weight_bytes": 173660632,
+      "embed_bytes": 131112960,
+      "model_bytes": 305770584,
+      "model_shrink_vs_bf16": 4.921291081420703,
+      "effective_bits_per_weight": 3.2511793623434766,
+      "covered_bpw": 2.7918882677713026,
+      "embed_bits": 4.125,
+      "nll": 3.6456363620338457,
+      "delta_nll": 0.20892648586962803,
+      "delta_ci": [
+        0.20431118195833806,
+        0.21355373915114326
+      ]
+    }
+  },
+  "frontier": [
+    {
+      "cell": "r1600_k81|int4_g128",
+      "model_bytes": 239409512,
+      "delta_nll": 1.053793418845617
+    },
+    {
+      "cell": "r2000_k255|int4_g128",
+      "model_bytes": 264290936,
+      "delta_nll": 0.5141134331142072
+    },
+    {
+      "cell": "r2667_k1625|int4_g128",
+      "model_bytes": 305770584,
+      "delta_nll": 0.20892648586962803
+    },
+    {
+      "cell": "r2667_k1625|fp8_e4m3",
+      "model_bytes": 429433944,
+      "delta_nll": 0.17294025349603492
+    },
+    {
+      "cell": "r2667_k1625|int8_g128",
+      "model_bytes": 432910424,
+      "delta_nll": 0.1718931420767249
+    },
+    {
+      "cell": "r2667_k1625|bf16",
+      "model_bytes": 683216984,
+      "delta_nll": 0.17148968053662328
+    },
+    {
+      "cell": "bf16|int4_g128",
+      "model_bytes": 1127339648,
+      "delta_nll": 0.03287135928203577
+    },
+    {
+      "cell": "bf16|fp8_e4m3",
+      "model_bytes": 1251003008,
+      "delta_nll": 0.0014339004413583822
+    },
+    {
+      "cell": "bf16|int8_g128",
+      "model_bytes": 1254479488,
+      "delta_nll": 0.0002444138750803404
+    },
+    {
+      "cell": "bf16|bf16",
+      "model_bytes": 1504786048,
+      "delta_nll": 0.0
+    }
+  ],
+  "seconds": 569.9
+}

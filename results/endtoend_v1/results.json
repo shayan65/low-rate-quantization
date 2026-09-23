@@ -1,0 +1,36 @@
+{
+  "plan": {
+    "model": "../models/Qwen3.5-0.8B-Base",
+    "scope": "all",
+    "tensors": 186,
+    "dim": 4,
+    "k": 1625,
+    "group": 128,
+    "covered_params": 497614848,
+    "total_params": 752393024,
+    "eval_blocks": 256,
+    "eval_targets": 32768,
+    "note": "covered weights served compressed; embedding, norms, KV cache and recurrent state stay BF16"
+  },
+  "resident": {
+    "bf16_bytes": 1504808960,
+    "compressed_bytes": 783163392,
+    "shrink": 1.9214495664271294,
+    "measured_by": "torch.cuda.memory_allocated"
+  },
+  "quality": {
+    "decoded_bf16_nll": 3.398478623945266,
+    "compressed_served_nll": 3.3984627472236753,
+    "delta": -1.587672159075737e-05,
+    "ci": [
+      -0.00045784249668940903,
+      0.00042795107001438674
+    ],
+    "agrees": true
+  },
+  "latency_ms": {
+    "bf16_decode_step": 85.63831564970315,
+    "compressed_decode_step": 99.36389295035042,
+    "ratio": 1.160273788625067
+  }
+}
