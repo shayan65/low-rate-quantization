@@ -37,20 +37,30 @@ in the record rather than deleted.
 | path | contents |
 |---|---|
 | `paper/main.tex` | the manuscript; builds with `tectonic main.tex` |
-| `paper/generated/` | every table, generated from `results/` — never hand-written |
+| `paper/fig_method.tex` | the method diagram (TikZ, hand-written) |
+| `paper/generated/` | every table and figure, generated from `results/` — never hand-written |
 | `paper/ternary_proposal.md` | the running record, §§1–23, including withdrawn claims |
-| `experiments/` | runners and kernels; each file's docstring states its scope |
+| `experiments/` | the 35 runners, kernels and tests the paper rests on |
+| `experiments/archive/` | 53 scripts from abandoned directions, kept for the negative results |
+| `paper/archive/` | superseded drafts and table fragments |
 | `results/` | saved JSON and summaries for every run the paper cites |
 
-## Reproducing the tables
+## Reproducing the tables and figures
 
 ```bash
-cd experiments && python make_tables_v2.py
+cd experiments && python make_tables_v2.py && python make_figures_v1.py
 ```
 
-It reads `results/*/results.json` and refuses to emit a table whose sources
-disagree on the BF16 baseline or the evaluation stream. Every row names the run
-it came from.
+Both read `results/*/results.json`. The table generator refuses to emit a table
+whose sources disagree on the BF16 baseline or the evaluation stream, and every
+row and every series names the run it came from. Nothing in either is typed in
+by hand.
+
+Building the paper needs only `main.tex`, `fig_method.tex` and `generated/`:
+
+```bash
+cd paper && tectonic main.tex
+```
 
 ## Notes on reading the record
 

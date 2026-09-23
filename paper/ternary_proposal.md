@@ -3,7 +3,7 @@
 **Revised:** 2026-09-21, following implementation review.
 **Status:** historical rate hypothesis failed its gate. A corrected, bounded
 Qwen3.5-0.8B feasibility experiment is authorized; 27B deployment remains gated.
-**Previous draft:** `ternary_proposal_pre_review_20260921.md` is retained as a
+**Previous draft:** `archive/ternary_proposal_pre_review_20260921.md` is retained as a
 historical record, including claims withdrawn below.
 
 ## 1. Question and scope
