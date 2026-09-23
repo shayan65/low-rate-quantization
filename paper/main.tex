@@ -69,11 +69,14 @@ Concretely:
 \item \textbf{Dimension.} A shared 6561-point eight-dimensional codebook beats a
 learned three-level scalar code at near-equal payload bytes, on two tensor
 families of a 0.8B model and on the QKV projections of a 27B model
-(Table~\ref{tab:primary}). Eight dimensions earn their place: on the frozen
-27B run they beat four by $0.004034$ (CI $[0.002715, 0.005334]$), more than half
-of the eight-dimensional code's entire advantage over scalar. A 512-block pilot
-had suggested the opposite, with four dimensions capturing $95.4\%$ of the gain;
-that estimate did not survive the full stream.
+(Table~\ref{tab:primary}). Eight dimensions earn their place at 0.8B, where the
+margin over four keeps its sign in all eight refits ($0.005101$ to $0.018548$).
+At 27B the frozen run gives $0.004034$ (CI $[0.002715, 0.005334]$), but that is
+a single refit and we did not measure this contrast across refits there; given
+that the larger VQ8-against-scalar contrast varies six-fold over three 27B
+refits, the 27B dimensionality margin should be treated as unreplicated. A
+512-block pilot had suggested the opposite ordering, with four dimensions
+capturing $95.4\%$ of the gain; that estimate did not survive the full stream.
 \item \textbf{Compensation dominates the codec.} Error compensation is worth
 $68$--$69\%$ of the damage against the codec's $6$--$32\%$, and it improves loss
 while degrading weight MSE.
@@ -200,7 +203,8 @@ $0.93261$ --- the vector code wins while storing $6.7\%$ \emph{fewer} bytes. A
 
 On the frozen confirmation, dimension-8 beats dimension-4 by $-0.004034$
 $[-0.005334,-0.002715]$ --- more than half of dimension-8's entire advantage
-over the scalar code. The 512-block pilot had dimension-4 capturing $95.4\%$ of
+over the scalar code, though on a single refit; at 0.8B the same contrast keeps
+its sign across all eight refits. The 512-block pilot had dimension-4 capturing $95.4\%$ of
 the gain, with dimension-8 ahead by only $0.000181$; that reading did not
 survive the complete stream. The difference is not sampling: the pilot's blocks
 and the remaining $1{,}530$ agree with each other, and BF16 loss on the pilot's
