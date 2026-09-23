@@ -49,8 +49,16 @@ no knee across a $2.4\times$ range of stored bytes. Coverage matters more
 again --- MLP weights are $2.79\times$ more damaging per parameter than the
 projections --- yet a Hessian-derived per-tensor ranking built to exploit that
 performs \emph{worse than random selection} of the same byte budget, the second
-forward-side ranking failure we record. Converting \emph{every} non-embedding
-matrix ($66.1\%$ of parameters) costs $+1.000022$ NLL at ternary rate and
+forward-side ranking failure we record. The largest lever we find costs no bytes at all: the
+calibration distribution. Crossing two calibration corpora with two evaluation
+corpora shows damage minimized on the diagonal in every cell, and a
+prespecified 50/50 mixture at the \emph{same} token budget cuts worst-domain
+damage below either pure condition over three disjoint calibration draws
+($0.095211$ against $0.147013$ and $0.191296$ for the vector code), at
+identical storage; a half-budget control shows this is coverage of activation
+directions rather than sample count. Converting \emph{every}
+non-embedding matrix ($66.1\%$ of parameters) costs $+1.000022$ NLL at ternary
+rate and
 shrinks the model only $2.44\times$, because a tied BF16 embedding is then
 $83\%$ of what remains: at these rates the binding constraint is embedding
 precision, not the weight codec. A compressed matmul on a real projection reproduces
@@ -104,6 +112,13 @@ projections the eight-dimensional code's advantage survives refitting over
 calibration draws and seeds, held-out text, a second domain, and context
 extension through 2048 tokens. Its magnitude varies across those conditions,
 and finer scalar grouping shows no consistent benefit in any of them.
+\item \textbf{Calibration is the lever that costs nothing}
+(Section~\ref{sec:calibration}). Damage is minimized when calibration and
+evaluation domains match, and a prespecified $50/50$ mixture at the same token
+budget reduces worst-domain damage below either pure condition. Unlike
+dimension, rate and coverage, this is paid for in neither bytes nor
+calibration tokens. We give the identity that explains why mismatch has an
+effect and why weight MSE cannot see it.
 \end{enumerate}
 
 \section{What this paper does not establish}
@@ -354,6 +369,7 @@ Two calibration corpora crossed with two evaluation corpora, identical recipe,
 storage and evaluated text throughout (Table~\ref{tab:calibration}).
 
 \input{generated/tab_calibration}
+\input{generated/tab_mixture}
 
 Damage is minimized on the diagonal in all four cells, and the off-diagonal
 penalty is large: calibrating on TinyStories and evaluating on wikitext costs
@@ -380,18 +396,31 @@ text either is evaluated on. Because the crossed cells were inspected before
 this condition was designed, we report it as an \emph{exploratory
 intervention}.
 
-The mixture's worst-domain damage is lower than either pure condition's, for
-both codes, at identical storage: $0.089604$ for VQ8 against $0.140296$ and
-$0.199492$ (a $36\%$ reduction against the better pure condition), and
-$0.144351$ for scalar against $0.183486$ and $0.288304$ ($21\%$). The price
-falls on the matched diagonal and is small --- VQ8 on wikitext moves from
-$0.082309$ to $0.089604$, and on TinyStories from $0.029201$ to $0.042378$.
-Half the calibration data per domain costs far less than being calibrated on
-the wrong domain. VQ8 beats scalar in all six cells.
+Over three disjoint calibration draws (Table~\ref{tab:mixture}) the mixture's
+worst-domain damage is lower than either pure condition's, for both codes, at
+identical storage: mean $0.095211$ for VQ8 against $0.147013$ and $0.191296$, a
+$35\%$ reduction against the better pure condition, and $0.143482$ for scalar
+against $0.190325$ and $0.282648$ ($25\%$). The price falls on the matched
+domain and is small --- against the half-budget wikitext condition the mixture
+gives up $0.007311$ on wikitext and gains $0.113104$ on TinyStories, a
+sixteen-to-one trade, and all sixteen mixed-versus-pure contrasts keep their
+sign across all three draws.
 
-This is two corpora, one model, one recipe and one split; it does not establish
-that mixing is optimal or that $50/50$ is the right weighting. It does show
-that the one lever in this study that costs no bytes is actionable.
+\textbf{This is domain coverage, not sample count.} The mixture averages two
+$32{,}768$-token Hessian estimates while each pure condition uses one
+$65{,}536$-token estimate, so we ran the control: halving the wikitext budget
+costs $+0.008921$, while spending that same halved budget on a second domain
+instead gains $-0.060724$. Coverage is worth about seven times what sample
+count is worth at this budget, and in the opposite direction. This is
+consistent with the mixture leaving a direction unprotected only when both
+domains do, though we inspected no directions and do not claim the mechanism is
+demonstrated.
+
+Judged by this paper's own yardstick, the gain is $4.2\times$ the mixture's
+refit range for VQ8 and $16.8\times$ for scalar --- the range of the 0.8B codec
+result ($5.05\times$), not the 27B one ($0.46\times$). This remains one model,
+one recipe, two corpora and one split; it does not establish that mixing is
+optimal or that $50/50$ is the right weighting.
 
 \subsection{The group-size control, read as a factorial}
 
@@ -424,6 +453,7 @@ $2.125$ bits and $+0.171490$ at $2.792$ bits.
 
 \input{generated/tab_fullmodel}
 \input{generated/tab_additivity}
+\input{generated/tab_interaction}
 
 Damage across disjoint tensor families is \emph{approximately} additive at this
 rate (Table~\ref{tab:additivity}), and we measured the residual directly. The
@@ -435,7 +465,7 @@ removes that confound: with bit-identical weights in every arm that includes a
 tensor, QKV alone costs $+0.085350$, MLP alone $+0.548660$, both $+0.637829$,
 and the interaction $L_{AB}-L_A-L_B+L_{\mathrm{BF16}}$ is $+0.003818$
 $[+0.000769,+0.006835]$ --- small, but excluding zero, so damage is slightly
-\emph{super}-additive. An earlier draft called damage ``markedly super-linear in
+\emph{super}-additive (Table~\ref{tab:interaction}). An earlier draft called damage ``markedly super-linear in
 coverage'' (wrong by orders of magnitude) and a later one called it ``additive''
 (wrong in sign); the measured answer is a small positive interaction. The jump
 to full coverage is largely composition, though we cannot attribute all of it to

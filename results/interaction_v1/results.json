@@ -1,0 +1,60 @@
+{
+  "plan": {
+    "model": "../models/Qwen3.5-0.8B-Base",
+    "dim": 4,
+    "k": 81,
+    "group": 128,
+    "qkv_tensors": 18,
+    "qkv_params": 113246208,
+    "mlp_tensors": 72,
+    "mlp_params": 264241152,
+    "cal_tokens": 65536,
+    "eval_targets": 261284,
+    "mean_bits_per_weight": 1.7250095912388386,
+    "note": "one codebook and one quantization pass shared by all three arms; every tensor carries bit-identical weights in every arm that includes it"
+  },
+  "bf16": {
+    "nll": 3.4367098761642176
+  },
+  "arms": {
+    "A_qkv": {
+      "tensors": 18,
+      "nll": 3.522060133067274,
+      "delta_nll": 0.0853502569030562,
+      "delta_ci": [
+        0.0825224992321025,
+        0.0882160188747394
+      ]
+    },
+    "B_mlp": {
+      "tensors": 72,
+      "nll": 3.9853703419461155,
+      "delta_nll": 0.5486604657818979,
+      "delta_ci": [
+        0.5403112509466416,
+        0.5571424426090007
+      ]
+    },
+    "AB_both": {
+      "tensors": 90,
+      "nll": 4.074539061114303,
+      "delta_nll": 0.637829184950085,
+      "delta_ci": [
+        0.6284462810615695,
+        0.6473234352865028
+      ]
+    }
+  },
+  "interaction": {
+    "value": 0.0038184622651307462,
+    "ci": [
+      0.0007691218456605506,
+      0.006835207903597404
+    ],
+    "additive_reference": 0.6340107226849541,
+    "measured_both": 0.637829184950085,
+    "excludes_zero": true,
+    "definition": "L_AB - L_A - L_B + L_BF16, paired over evaluation blocks"
+  },
+  "seconds": 146.1
+}

@@ -1,0 +1,23 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{llrrr}
+\toprule
+Calibration & code & tokens & mean worst-domain & range over draws \\
+\midrule
+wikitext & scalar3 & 65,536 & $0.190325$ & $0.013840$ \\
+TinyStories & scalar3 & 65,536 & $0.282648$ & $0.014387$ \\
+\textbf{mixed 50/50} & scalar3 & 65,536 & $0.143482$ & $0.002791$ \\
+wikitext, half budget & scalar3 & 32,768 & $0.196346$ & $0.033205$ \\
+TinyStories, half budget & scalar3 & 32,768 & $0.288453$ & $0.014421$ \\
+\midrule
+wikitext & vq8 & 65,536 & $0.147013$ & $0.011311$ \\
+TinyStories & vq8 & 65,536 & $0.191296$ & $0.017389$ \\
+\textbf{mixed 50/50} & vq8 & 65,536 & $0.095211$ & $0.012307$ \\
+wikitext, half budget & vq8 & 32,768 & $0.155934$ & $0.021888$ \\
+TinyStories, half budget & vq8 & 32,768 & $0.206481$ & $0.023870$ \\
+\bottomrule
+\end{tabular}
+\caption{Worst-domain damage by calibration condition, 3 disjoint calibration draws each, from \texttt{calib\_mix\_v2}. The half-budget rows are the control that separates domain coverage from sample count: for the vector code, halving the wikitext budget costs $+0.008921$ while spending that same halved budget on a second domain instead gains $-0.060724$, so coverage is worth about seven times what sample count is worth here. The $50/50$ split is prespecified, not tuned; the line of work is exploratory because the crossed cells were inspected first.}
+\label{tab:mixture}
+\end{table}

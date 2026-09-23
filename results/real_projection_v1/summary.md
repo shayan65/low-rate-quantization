@@ -8,12 +8,14 @@ The compressed path rotates its input, since the stored codes are in the rotated
 
 | comparison | relative error |
 |---|---:|
-| installed bf16 vs exact | 3.41e-03 |
-| streamed vs exact | 7.38e-07 |
-| triton vs exact | 1.37e-07 |
-| triton vs installed | 1.94e-03 |
+| installed bf16 vs exact | 3.55e-03 |
+| streamed vs exact | 1.08e-07 |
+| triton vs exact | 2.71e-07 |
+| triton vs installed | 3.54e-03 |
 
-**kernel at or below the BF16 install error.**
+All paths scored on the same 256 activation rows with the same denominator.
+
+This is **operator fidelity** to the quantized FP32 reference. It does not establish that the kernel's end-to-end language-model loss is lower than decoded BF16 execution's: BF16 rounding can reinforce or partially cancel quantization error, and the downstream layers need not respond monotonically to local numerical error. That comparison is unmeasured.
 
 ## Resident bytes
 
@@ -31,9 +33,9 @@ Reduction: **7.08x**.
 
 | path | ms |
 |---|---:|
-| installed bf16 | 0.0188 |
-| rotate only | 0.4796 |
-| streamed with rotation | 0.8477 |
-| triton with rotation | 0.5322 |
+| installed bf16 | 0.0186 |
+| rotate only | 0.4710 |
+| streamed with rotation | 0.8399 |
+| triton with rotation | 0.5146 |
 
 The rotation is a required part of the compressed path and is inside the timed region; it is also reported alone so its share is visible.

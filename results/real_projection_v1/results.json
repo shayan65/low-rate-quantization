@@ -15,11 +15,12 @@
     "note": "a real projection with the real recipe; the compressed path rotates its input, and that rotation is timed"
   },
   "fidelity": {
-    "installed_bf16_vs_exact": 0.0034143084194511175,
-    "streamed_vs_exact": 7.375682002930262e-07,
-    "triton_vs_exact": 1.374099269924045e-07,
-    "triton_vs_installed": 0.001940171467140317,
-    "verdict": "kernel at or below the BF16 install error"
+    "rows_scored": 256,
+    "installed_bf16_vs_exact": 0.003549412125721574,
+    "streamed_vs_exact": 1.0843859143960799e-07,
+    "triton_vs_exact": 2.7109649636258837e-07,
+    "triton_vs_installed": 0.0035420951899141073,
+    "note": "all rows scored identically; this is operator fidelity to the quantized FP32 reference, not an end-to-end quality comparison against decoded BF16 execution"
   },
   "resident": {
     "bf16_bytes": 12582912,
@@ -41,10 +42,10 @@
     }
   },
   "latency_ms": {
-    "installed_bf16": 0.018774280324578285,
-    "rotate_only": 0.47964984085410833,
-    "streamed_with_rotation": 0.8476993395015597,
-    "triton_with_rotation": 0.5321705411188304
+    "installed_bf16": 0.01864986028522253,
+    "rotate_only": 0.4709728015586734,
+    "streamed_with_rotation": 0.83993247942999,
+    "triton_with_rotation": 0.5146072409115732
   },
-  "seconds": 19.3
+  "seconds": 19.2
 }

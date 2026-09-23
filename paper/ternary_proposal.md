@@ -1891,7 +1891,15 @@ one: **finer grouping hurts at a fixed alphabet, refitting the alphabet in the
 finer normalized space helps by about as much, and the two nearly cancel.** The
 original conclusion — that the instability is a codebook story and not a
 grouping story — was drawn from the one contrast in the table that confounds
-them.
+them. The cancellation is close to exact along one path through the factorial:
+$+0.014019$ (change grouping, book fixed) $-0.013281$ (adapt book, grouping
+fixed) $= +0.000738$, against the measured diagonal of $+0.000737$.
+
+**What this still does not show.** Cancellation explains why the end-to-end
+contrast is *small*; it does not establish that these opposing effects are what
+make it *change sign* across refits. That needs the factorial repeated over
+refits, which is not run. For this single fit the decomposition is well
+supported; the connection to §12's sign instability remains a hypothesis.
 
 ### Position-resolved damage, with the intervals that change the answer
 
@@ -1963,3 +1971,86 @@ tokens as well as more accumulated recurrent state. **This is
 position-dependent damage, not identified drift**, and separating them needs
 the same tokens evaluated with and without a state reset, which is not run
 here.
+
+## 19. The mixture with draws, contrasts, and a sample-count control (2026-09-23)
+
+§18 reported the mixture from one calibration draw, gave worst-domain damage
+without an interval, and discarded per-block losses so no direct mixed-versus-
+pure contrast could be formed. A review asked for all three, and named a
+confound worth removing: **the 50/50 mixture averages two 32,768-token Hessian
+estimates while each pure condition uses one 65,536-token estimate**, so
+"mixing helps" and "two smaller estimates of different things beat one larger
+estimate of one thing" were not separated.
+
+Five conditions, three **disjoint** calibration draws each, per-block losses
+retained (`results/calib_mix_v2`). The `_half` arms spend the mixture's
+per-domain budget on a single domain, which is the control.
+
+Worst-domain ΔNLL, by draw:
+
+| condition | tokens | code | by draw | mean | range |
+|---|---:|---|---|---:|---:|
+| wikitext | 65,536 | VQ8 | 0.140296, 0.149136, 0.151607 | 0.147013 | 0.011311 |
+| tinystories | 65,536 | VQ8 | 0.199492, 0.182104, 0.192293 | 0.191296 | 0.017389 |
+| **mixed 50/50** | 32,768 + 32,768 | VQ8 | 0.089604, 0.094118, 0.101910 | **0.095211** | 0.012307 |
+| wikitext half | 32,768 | VQ8 | 0.142857, 0.160200, 0.164745 | 0.155934 | 0.021888 |
+| tinystories half | 32,768 | VQ8 | 0.213931, 0.190821, 0.214691 | 0.206481 | 0.023870 |
+
+### The control separates coverage from sample count, decisively
+
+Two differences, both means over three draws, for the vector code:
+
+* **halving the wikitext budget costs $+0.008921$** (65,536 → 32,768 tokens of
+  one domain);
+* **spending that same halved budget on a second domain instead gains
+  $-0.060724$** (wikitext-half → mixed).
+
+So at this budget domain coverage is worth about **seven times** what sample
+count is worth, and in the opposite direction. The mixture does not win because
+two half-size estimates beat one full-size estimate; it wins despite each
+estimate being half-size. The scalar code gives the same answer ($+0.006021$
+against $-0.052864$).
+
+This is consistent with the mechanism §18 sketched — the mixture's Hessian
+leaves a direction unprotected only if *both* domains leave it unprotected —
+without demonstrating it, since no directions were inspected.
+
+### Direct contrasts, paired within each draw
+
+All sixteen mixed-versus-pure contrasts keep their sign across all three draws.
+The shape of the trade, for VQ8:
+
+| contrast | evaluated on | mean Δ | range over draws |
+|---|---|---:|---:|
+| mixed vs wikitext-half | wikitext | $+0.007311$ | 0.010504 |
+| mixed vs wikitext-half | TinyStories | $-0.113104$ | 0.019177 |
+| mixed vs tinystories-half | TinyStories | $+0.017898$ | 0.013396 |
+| mixed vs tinystories-half | wikitext | $-0.111270$ | 0.027624 |
+
+Against the matched half-budget condition the mixture gives up $0.007$ on the
+home domain and gains $0.113$ on the other — a sixteen-to-one trade. That
+asymmetry, not a small average improvement, is why worst-domain damage falls.
+
+### Measured against this project's own yardstick
+
+§16 judged the 27B codec result by effect ÷ refit range and found $0.46$,
+which is why the paper does not lean on it. The same yardstick here: the
+mixture's gain over the best pure condition is $0.051803$ against a refit range
+of $0.012307$, a ratio of **4.2** for VQ8 and **16.8** for scalar. That is in
+the range of the 0.8B codec result ($5.05$), not the 27B one. The mixture is
+also the most *stable* condition for the scalar code, with a refit range of
+$0.002791$ against $0.013840$ for pure wikitext.
+
+### What this still does not establish
+
+One model, one recipe, two corpora, one split. It does not show that 50/50 is
+the right weighting, that mixing is optimal, that the result survives more
+domains, or that the direction-coverage mechanism is the operative one. The
+50/50 split remained prespecified rather than tuned, but the line of work is
+exploratory: the crossed cells were inspected before any of it was designed.
+
+What it does establish, on three disjoint draws with a control that separates
+the obvious alternative: **at fixed storage and fixed calibration budget, a
+practitioner who does not know the deployment domain pays substantially less by
+mixing calibration than by choosing one domain and hoping.** That is the only
+result in this project that costs nothing to adopt.

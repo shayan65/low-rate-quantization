@@ -35,6 +35,8 @@ RUNS = {
     "gen": ("generalization_v1", "0.8B, fixed quantizer, varied evaluation"),
     "full": ("fullmodel_v1", "0.8B, every non-embedding matrix"),
     "mech2": ("mechanism_v2", "0.8B, calibration mixture and the g64 factorial"),
+    "inter": ("interaction_v1", "0.8B, frozen-artifact coverage interaction"),
+    "mix": ("calib_mix_v2", "0.8B, calibration mixture, 3 draws + budget control"),
 }
 
 
@@ -386,13 +388,91 @@ def g64_table():
     return "\n".join(L)
 
 
+def interaction_table():
+    """Coverage interaction with the codec held bit-identical across arms."""
+    r = load("inter")
+    if r is None or "interaction" not in r:
+        return ""
+    pl, it = r["plan"], r["interaction"]
+    lab = {"A_qkv": "A --- \\texttt{in\\_proj\\_qkv}",
+           "B_mlp": "B --- MLP", "AB_both": "AB --- both"}
+    par = {"A_qkv": pl["qkv_params"], "B_mlp": pl["mlp_params"],
+           "AB_both": pl["qkv_params"] + pl["mlp_params"]}
+    L = [r"\begin{table}[t]", r"\centering", r"\small",
+         r"\begin{tabular}{lrrrl}", r"\toprule",
+         r"Arm & tensors & params & $\Delta$NLL & 95\% CI \\", r"\midrule"]
+    for k, v in r["arms"].items():
+        L.append(f"{lab.get(k, esc(k))} & {v['tensors']} & {par[k]:,} & "
+                 f"${v['delta_nll']:+.6f}$ & {fmt_ci(v['delta_ci'])} \\\\")
+    L += [r"\midrule",
+          f"interaction & & & ${it['value']:+.6f}$ & {fmt_ci(it['ci'])} \\\\",
+          r"\bottomrule", r"\end{tabular}",
+          r"\caption{Does coverage damage compose additively? One Hessian "
+          r"capture, one codebook fitted over all 90 tensors and one "
+          f"quantization pass at {pl['mean_bits_per_weight']:.4f} bits/weight, "
+          r"then the dequantized weights installed in three combinations, so "
+          r"every tensor carries bit-identical weights in every arm that "
+          r"includes it. The interaction is "
+          r"$L_{AB}-L_A-L_B+L_{\mathrm{BF16}}$, bootstrapped over the same "
+          f"resampled blocks. It excludes zero, so damage is slightly "
+          f"\\emph{{super}}-additive --- though at ${it['value']:.6f}$ against a "
+          f"total of ${it['measured_both']:.6f}$ it is "
+          f"{it['value'] / it['measured_both'] * 100:.1f}\\% of the effect, so "
+          r"``approximately additive'' remains a fair description. From "
+          f"\\texttt{{{esc(RUNS['inter'][0])}}}.}}",
+          r"\label{tab:interaction}", r"\end{table}", ""]
+    return "\n".join(L)
+
+
+def mixture_table():
+    """Worst-domain damage by calibration condition, with the budget control."""
+    r = load("mix")
+    if r is None or "worst_domain_by_draw" not in r:
+        return ""
+    tok = r["plan"]["cal_tokens"]
+    order = ["wikitext", "tinystories", "mixed50", "wikitext_half",
+             "tinystories_half"]
+    pretty = {"wikitext": "wikitext", "tinystories": "TinyStories",
+              "mixed50": r"\textbf{mixed 50/50}",
+              "wikitext_half": "wikitext, half budget",
+              "tinystories_half": "TinyStories, half budget"}
+    L = [r"\begin{table}[t]", r"\centering", r"\small",
+         r"\begin{tabular}{llrrr}", r"\toprule",
+         r"Calibration & code & tokens & mean worst-domain & range over draws \\",
+         r"\midrule"]
+    for arm in ("scalar3", "vq8"):
+        for c in order:
+            v = r["worst_domain_by_draw"].get(f"{c}|{arm}")
+            if v is None:
+                continue
+            L.append(f"{pretty[c]} & {arm} & {tok[c]:,} & "
+                     f"${v['mean']:.6f}$ & ${v['range']:.6f}$ \\\\")
+        if arm == "scalar3":
+            L.append(r"\midrule")
+    L += [r"\bottomrule", r"\end{tabular}",
+          r"\caption{Worst-domain damage by calibration condition, "
+          f"{r['plan']['draws']} disjoint calibration draws each, from "
+          f"\\texttt{{{esc(RUNS['mix'][0])}}}. The half-budget rows are the "
+          r"control that separates domain coverage from sample count: for the "
+          r"vector code, halving the wikitext budget costs $+0.008921$ while "
+          r"spending that same halved budget on a second domain instead gains "
+          r"$-0.060724$, so coverage is worth about seven times what sample "
+          r"count is worth here. The $50/50$ split is prespecified, not tuned; "
+          r"the line of work is exploratory because the crossed cells were "
+          r"inspected first.}",
+          r"\label{tab:mixture}", r"\end{table}", ""]
+    return "\n".join(L)
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     files = {
         "tab_coverage.tex": coverage_table(),
         "tab_fullmodel.tex": fullmodel_table(),
         "tab_additivity.tex": additivity_table(),
+        "tab_interaction.tex": interaction_table(),
         "tab_calibration.tex": calibration_table(),
+        "tab_mixture.tex": mixture_table(),
         "tab_g64.tex": g64_table(),
         "tab_rate.tex": rate_table(),
         "tab_v4_arms.tex": arm_table(

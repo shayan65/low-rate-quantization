@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lrrrl}
+\toprule
+Arm & tensors & params & $\Delta$NLL & 95\% CI \\
+\midrule
+A --- \texttt{in\_proj\_qkv} & 18 & 113,246,208 & $+0.085350$ & $[+0.082522, +0.088216]$ \\
+B --- MLP & 72 & 264,241,152 & $+0.548660$ & $[+0.540311, +0.557142]$ \\
+AB --- both & 90 & 377,487,360 & $+0.637829$ & $[+0.628446, +0.647323]$ \\
+\midrule
+interaction & & & $+0.003818$ & $[+0.000769, +0.006835]$ \\
+\bottomrule
+\end{tabular}
+\caption{Does coverage damage compose additively? One Hessian capture, one codebook fitted over all 90 tensors and one quantization pass at 1.7250 bits/weight, then the dequantized weights installed in three combinations, so every tensor carries bit-identical weights in every arm that includes it. The interaction is $L_{AB}-L_A-L_B+L_{\mathrm{BF16}}$, bootstrapped over the same resampled blocks. It excludes zero, so damage is slightly \emph{super}-additive --- though at $0.003818$ against a total of $0.637829$ it is 0.6\% of the effect, so ``approximately additive'' remains a fair description. From \texttt{interaction\_v1}.}
+\label{tab:interaction}
+\end{table}
