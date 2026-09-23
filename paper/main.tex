@@ -28,7 +28,9 @@ reduces damage relative to a learned three-level scalar code by $0.036118$ NLL
 (paired block bootstrap $[0.033768, 0.038414]$) at $0.43\%$ more payload bytes,
 and the direction reproduces on the 48 corresponding projections of a 27B
 checkpoint over its complete validation stream ($0.007121$,
-$[0.005725, 0.008513]$, $0.019\%$ more bytes). The advantage keeps its sign
+$[0.005725, 0.008513]$, $0.019\%$ more bytes) --- though that 27B figure is one
+fitted quantizer, and three refits there span $0.001$ to $0.006$ on a smaller
+evaluation, with one of the three not separable from zero. The advantage keeps its sign
 under eight refits of the quantizer, on held-out text, on a second domain, and
 at contexts to 2048 tokens; its magnitude varies across those conditions
 ($0.031$ to $0.038$ across refits), and we quote ranges rather than single
@@ -263,6 +265,14 @@ as, and in several cases larger than, the text-bootstrap half-width, so
 magnitudes are quoted as ranges rather than single margins. VQ8's advantage
 grows monotonically with calibration size ($-0.033335$ at 16k tokens to
 $-0.037809$ at 131k), which is a condition effect rather than noise.
+
+\textbf{At 27B} the ordering transfers on both axes --- a second corpus
+($-0.008768$) and 2048-token context ($-0.005542$), both excluding zero --- but
+refit variability matters more there than at 0.8B. Changing only the codebook
+seed moves the contrast by $0.005057$ at 0.8B and $0.005026$ at 27B, the same
+absolute amount, while the effect itself is about six times smaller at 27B. In
+one refit of three the advantage was not separable from zero. Refit variability
+does not shrink with scale; the effect does.
 
 \textbf{Varying the evaluation} (Table~\ref{tab:gen}). One fitted quantizer
 evaluated on the never-used wikitext-2 test split, on TinyStories, and at

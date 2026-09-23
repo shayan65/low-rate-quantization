@@ -1249,3 +1249,63 @@ the honest test is the §12 protocol applied to these four variants.
 * §12's hypothesis is upheld in a stronger form — the local objective is not
   merely imperfectly aligned with loss here, it is inverted — and relocated
   from the scale derivation to the codebook.
+
+## 15. The 27B axes that were stated as limitations (2026-09-22)
+
+§11 measured one fitted quantizer, on one corpus, at one context length, and
+listed the rest as unmeasured. `run_qwen38_extend_v1.py` measures them. Both
+parts use a 512-block prefix rather than the complete stream — justified by
+§11's prefix/remainder agreement, and paid for in wider intervals.
+
+### D. Domain and context transfer at 27B
+
+| Evaluation | BF16 | scalar | VQ8 | VQ8 vs scalar | 95% CI |
+|---|---:|---:|---:|---:|:--|
+| wikitext-2 test, 128 | 2.626645 | 0.008636 | 0.002581 | $-0.006056$ | $[-0.008697,-0.003446]$ |
+| TinyStories, 128 | 1.962926 | 0.022162 | 0.013393 | $-0.008768$ | $[-0.010684,-0.006899]$ |
+| wikitext-2 test, 2048 | 1.932252 | 0.011318 | 0.005776 | $-0.005542$ | $[-0.010030,-0.000981]$ |
+
+The ordering transfers on both axes: all three intervals exclude zero, the
+second corpus included. The TinyStories column is again the more damaged one
+under wikitext calibration ($0.022162$ against $0.008636$), matching the 0.8B
+pattern that §14 attributed to calibration mismatch — though the 2x2 that
+established the attribution was not repeated here.
+
+### E. Refit variability at 27B, and why it matters more than at 0.8B
+
+Three refits, same 512-block evaluation, varying one calibration draw and one
+codebook seed:
+
+| Refit | VQ8 vs scalar | 95% CI | |
+|---|---:|:--|:--|
+| draw0, seed0 | $-0.006056$ | $[-0.008697,-0.003446]$ | excludes 0 |
+| draw1, seed0 | $-0.004014$ | $[-0.006576,-0.001267]$ | excludes 0 |
+| draw0, seed1 | $-0.001029$ | $[-0.003777,+0.001767]$ | **includes 0** |
+
+The point estimate varies six-fold across three refits, and **one of the three
+does not distinguish the vector code from scalar ternary at all.**
+
+The cross-scale comparison is the part worth carrying into the paper. Changing
+only the codebook seed moves the contrast by $0.005057$ at 0.8B and $0.005026$
+at 27B — the same absolute amount to three decimal places. But the effect being
+measured is roughly six times smaller at 27B ($\approx 0.006$ against
+$\approx 0.036$). **Refit variability does not shrink with scale; the effect
+does.** At 0.8B that variability is a modest fraction of the result; at 27B, on
+this 9.36% target subset, it is comparable to the whole of it.
+
+### Consequence for the 27B claim
+
+§11's frozen full-stream margin of $-0.007121$ $[-0.008513,-0.005725]$ is
+correct as measured, and its interval is genuinely tight because the evaluation
+is large. But it is **one refit**, and should be read as one draw from a spread
+that these three refits bound at $-0.001029$ to $-0.006056$ on a smaller
+evaluation. The defensible 27B statement is therefore:
+
+> On the 48 DeltaNet QKV projections of Qwen3.8-27B, the eight-dimensional code
+> reduced damage relative to learned scalar ternary in every configuration
+> measured — two corpora, two context lengths, three refits — but the magnitude
+> varies several-fold with the fitted quantizer, and in one refit of three the
+> advantage was not separable from zero at this evaluation size.
+
+Three refits bound the effect rather than characterize it; the eight-refit
+protocol of §12 at 27B would cost roughly twenty hours and was not run.
