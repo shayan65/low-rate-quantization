@@ -106,12 +106,18 @@ def fig_bytes():
     # visible bar; it is folded into the first and stated in the caption.
     small = {"covered": pl["covered_params"] + pl["other_params"],
              "embedding": pl["embed_params"]}
-    # counted from the 27B checkpoint index; the head is untied there, so the
-    # embedding is charged twice
-    big = {"covered": 27781427952 - 2542796800, "embedding": 2542796800}
+    # Counted from the 27B safetensors headers, on the same basis as the 0.8B
+    # bar beside it: the text tower only. The full checkpoint is 27,781,427,952
+    # parameters, of which the vision encoder is 460,730,096 and the
+    # multi-token-prediction head 424,699,392; neither is on the path this
+    # study quantizes, and charging the 27B bar for them while the 0.8B bar
+    # (counted from `plan`, which is text-only) goes uncharged would make the
+    # two shares incomparable -- an earlier version of this figure did exactly
+    # that. The head is untied here, so the embedding is charged twice.
+    big = {"covered": 24353201664, "embedding": 2542796800}
 
     fig, ax = plt.subplots(figsize=(5.4, 1.6))
-    labels = ["Qwen3.5-0.8B\n752.4M params", "Qwen3.8-27B\n27.78B params"]
+    labels = ["Qwen3.5-0.8B\n752.4M params", "Qwen3.8-27B\n26.90B params"]
     order = [("covered", "everything the weight codec covers", COOL),
              ("embedding", "embedding (and head)", ACCENT)]
     for i, d in enumerate([small, big]):

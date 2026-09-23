@@ -18,7 +18,7 @@ in the record rather than deleted.
   first step of the weight codec and `2.127315` for its last. A model with
   2.792-bit weights and an INT4 embedding is half the size and takes a fifth of
   the damage of one with ternary weights and a BF16 embedding. This follows from
-  parameter shares (the embedding is 33.8% of the 0.8B checkpoint, 9.15% of the
+  parameter shares (the embedding is 33.8% of the 0.8B text tower, 9.45% of the
   27B one), so it inverts with scale.
 - **Calibration is a lever that costs no bytes.** Damage is minimized when
   calibration and evaluation domains match; a prespecified 50/50 mixture at the

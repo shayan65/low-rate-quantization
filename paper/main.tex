@@ -23,40 +23,33 @@ and no claim of a new algorithm.
 \end{center}
 
 \begin{abstract}
-We report a controlled study of post-training weight quantization below two bits
-in a hybrid linear-attention language model, asking which factors move validation
-loss under storage measured from bytes actually written. Three findings are worth
-more than the codec comparisons that motivated the study. First, \textbf{byte
-allocation dominates codec design at this scale}: quantizing the tied embedding
-costs $0.000098$ NLL per 100\,MB saved against $0.020873$ for the first step of
-the weight codec and $2.127315$ for its last, so a model with 2.792-bit weights
-and an INT4 embedding is half the size and takes a fifth of the damage of one
-with ternary weights and a BF16 embedding. Every sub-two-bit configuration we
-measure is off the efficient frontier for whole-model size --- a statement about
-parameter shares, since the embedding is $33.8\%$ of this checkpoint but
-$9.15\%$ of the 27B one. Second, \textbf{the calibration distribution is a lever
-that costs no bytes}: damage is minimized when calibration and evaluation domains
-match, and a prespecified $50/50$ mixture at the same token budget cuts
-worst-domain damage below either pure condition over three disjoint draws
-($0.095211$ against $0.147013$ and $0.191296$), with a half-budget control
-showing this is coverage of activation directions rather than sample count.
-Third, \textbf{the codec results hold but are smaller than the above}: a shared
-eight-dimensional codebook beats a learned three-level scalar code by $0.036118$
-NLL $[0.033768, 0.038414]$ at $0.43\%$ more payload bytes on 0.8B DeltaNet
-projections and keeps its sign under eight refits; GPTQ-style compensation
-removes $68$--$69\%$ of the damage, roughly three times the codec's contribution,
-while \emph{raising} plain weight MSE; index rate then dominates compensation and
-coverage dominates rate, yet a Hessian-derived per-tensor ranking built to
-exploit coverage is worse than random selection. The direction reproduces on a
-27B checkpoint, but eight refits there span $-0.007049$ to $+0.000185$ and the
-effect is smaller than the spread refitting induces ($0.46\times$ the refit range
-against $5.05\times$ at 0.8B), so we report it as a direction on average and lean
-on it nowhere. Finally, the converted model is \textbf{served on compressed
-weights}: all 186 non-embedding matrices replaced by code-and-codebook modules
-reproduce the decoded-BF16 loss to $1.6\times10^{-5}$ at $1.92\times$ less
-resident memory by the allocator, and $3.0\times$ cuBLAS latency on an isolated
-projection once the required Hadamard rotation is fused. We claim no new
-algorithm, and we separate what is established from what is not.
+We study post-training weight quantization below two bits in a hybrid
+linear-attention language model, with storage measured from bytes written.
+Three findings outrank the codec comparisons that motivated it. First,
+\textbf{byte allocation dominates codec design at this scale}: quantizing the
+tied embedding costs $0.000098$ NLL per 100\,MB saved against $0.020873$ and
+$2.127315$ for the codec's first and last steps, so 2.792-bit weights with an
+INT4 embedding are half the size and a fifth of the damage of ternary weights
+with a BF16 embedding, and every sub-two-bit configuration we measure is off the
+whole-model-size frontier. That is a statement about
+parameter shares ($33.8\%$ of this text tower, $9.45\%$ of the 27B one), so it
+inverts with scale. Second, \textbf{the calibration distribution is a lever that
+costs no bytes}: a prespecified $50/50$ domain mixture at equal token budget cuts
+worst-domain damage below either pure condition on three disjoint draws; a
+half-budget control shows the mechanism is direction coverage, not sample count.
+Third, \textbf{the codec results hold but are smaller}: on 0.8B DeltaNet
+projections a shared eight-dimensional codebook beats a learned three-level
+scalar code by $0.036118$ NLL $[0.033768, 0.038414]$ at $0.43\%$ more payload
+bytes, keeping its sign under eight refits; GPTQ-style compensation removes
+$68$--$69\%$ of the damage while \emph{raising} plain weight MSE; rate then
+dominates compensation and coverage dominates rate, yet a Hessian-derived
+ranking built to exploit coverage loses to random selection. The direction
+reproduces at 27B, smaller than the refit spread. Finally, the converted model is \textbf{served on compressed
+weights}: all 186 non-embedding matrices become code-and-codebook modules,
+reproducing decoded-BF16 loss to $1.6\times10^{-5}$ at $1.92\times$ less
+resident memory and $3.0\times$ cuBLAS latency once the Hadamard rotation is
+fused. We claim no new algorithm and separate what is established from what is
+not.
 \end{abstract}
 
 \section{Scope and contributions}
@@ -144,7 +137,7 @@ thinly, and three results that the literature's framing tends to hide.
 
 \textbf{The architecture.} Published low-rate results concentrate on dense
 attention transformers. The recurrent projections of a hybrid linear-attention
-model have a different error-propagation structure --- a quantized
+model~\cite{deltanet} have a different error-propagation structure --- a quantized
 \texttt{in\_proj\_qkv} perturbs a recurrent state rather than a one-shot
 attention map --- and we find effects there that a transformer study would not
 surface, including damage that depends on position within a block.
@@ -173,7 +166,7 @@ and the reader should not have to reconstruct the boundary.
 \item \textbf{No general claim that embeddings should be quantized before
 weights.} Our byte-allocation result is measured on one 0.8B checkpoint, with
 one naive embedding quantizer, on one corpus. It follows from the embedding's
-$33.8\%$ parameter share, and we show that share is $9.15\%$ on the 27B
+$33.8\%$ parameter share, and we show that share is $9.45\%$ on the 27B
 checkpoint, where the same arithmetic points the other way --- but we did not
 measure embedding quantization at 27B, so the inversion is an argument about
 bytes, not a result. Nor did we try rotation or error compensation on the
@@ -206,6 +199,31 @@ reject zero is not evidence of no effect.
 
 All arms share one protocol, and the properties below are the ones earlier
 versions of this work got wrong.
+
+\textbf{Models.} Both checkpoints are
+\texttt{Qwen3\_5ForConditionalGeneration} multimodal models whose text tower is
+a hybrid: for every one full-attention layer there are three linear-attention
+layers of the delta-rule family~\cite{deltanet}, each with a short causal
+convolution, $16$ key heads of width $128$ and a gated output. The 0.8B
+checkpoint (\texttt{Qwen3.5-0.8B-Base}) has $24$ text layers, $18$ linear and
+$6$ full, hidden size $1024$, a $248{,}320$-token vocabulary and a tied output
+head. The 27B checkpoint (\texttt{Qwen3.8-27B}) has $64$ text layers, $48$
+linear and $16$ full, hidden size $5120$, the same vocabulary and an
+\emph{untied} head. Our targets are the projections of the linear-attention
+layers, which is why the 27B run covers exactly the $48$ layers the
+configuration marks \texttt{linear\_attention}.
+
+\textbf{What ``the model'' counts.} Every parameter count, share and
+whole-model size in this paper is the \emph{text tower}. The vision encoder
+($100{,}592{,}896$ parameters at 0.8B, $460{,}730{,}096$ at 27B) and the
+multi-token-prediction head ($20{,}452{,}864$ and $424{,}699{,}392$) are
+excluded, because neither is on the path this study quantizes or evaluates;
+that leaves $752{,}393{,}024$ and $26{,}895{,}998{,}464$ parameters
+respectively, counted from the \texttt{safetensors} headers. No arm touches the
+excluded tensors, so the basis changes shares and sizes but no comparison in
+this paper. We state it because an earlier draft did not: it quoted the 0.8B
+embedding share against the text tower and the 27B share against the full
+checkpoint, which are not the same denominator.
 
 \textbf{Storage is measured, not derived.} Every codec serializes to packed
 bytes --- five trits per byte, or $c$ base-$K$ codes per \texttt{uint64} with
@@ -376,8 +394,8 @@ does not shrink with scale; the effect does, so the 27B result is reported as
 a direction on average and the paper does not lean on it.
 
 \textbf{Varying the evaluation} (Table~\ref{tab:gen}). One fitted quantizer
-evaluated on the never-used wikitext-2 test split, on TinyStories, and at
-$512$ and $2048$ token contexts. All three primary contrasts exclude zero in
+evaluated on the never-used wikitext-2~\cite{wikitext} test split, on
+TinyStories~\cite{tinystories}, and at $512$ and $2048$ token contexts. All three primary contrasts exclude zero in
 every configuration. Through 2048 tokens there is no ordering reversal and no
 large increase in aggregate damage, though VQ8's advantage does shrink about
 $18\%$ from the 128-token setting; aggregate loss averages over positions, so
@@ -429,8 +447,14 @@ and two quantizers with identical $\lVert E \rVert_F$ can differ arbitrarily
 in \eqref{eq:mismatch}. Plain weight MSE is exactly $\lVert E \rVert_F^2$ up
 to a constant and therefore cannot see the difference at all --- which is the
 same blindness that makes it invert against loss in our compensation and
-group-size results. Hessian-weighted reconstruction objectives of this form
-underpin GPTQ~\cite{gptq} and GPTVQ~\cite{gptvq}.
+group-size results. The bound~\eqref{eq:bound} is loose --- it discards the
+orientation that is the whole point, and is attained only when $E$ concentrates
+on the leading eigenvector of $H_{\mathrm{test}} - H_{\mathrm{cal}}$ --- but it
+does say that the two ways to reduce mismatch damage are to shrink the error or
+to move the calibration moments toward the test ones, and only the second is
+free. That is the lever the rest of this section exploits. Hessian-weighted
+reconstruction objectives of this form underpin GPTQ~\cite{gptq} and
+GPTVQ~\cite{gptvq}.
 
 \subsection{The crossed test}
 
@@ -557,7 +581,9 @@ low-rate literature generally --- addresses the blue bar. At 0.8B the embedding
 is a third of the model and the codec cannot reach it; at 27B, where the head is
 untied and the embedding is charged twice, the same vocabulary occupies under a
 tenth. Norms and convolutions ($0.07\%$ at 0.8B) are folded into the blue bar.
-Counted from the checkpoint indices.}
+Both bars are the text tower, counted from the \texttt{safetensors} headers;
+the vision encoder and the multi-token-prediction head are excluded from both,
+so the two shares are on one basis.}
 \label{fig:bytes}
 \end{figure}
 
@@ -614,11 +640,14 @@ measured is off the efficient frontier for whole-model size.} This does not
 weaken the codec comparisons, which hold coverage and bytes fixed; it withdraws
 the implicit premise that driving the weight rate down is how to make this model
 smaller. It is also a statement about parameter shares rather than about
-codecs: the embedding is $33.8\%$ of this checkpoint on a $248{,}320$-token
-vocabulary, while on the 27B checkpoint --- same vocabulary, hidden size $5120$,
-untied head --- embedding and head together are $2{,}542{,}796{,}800$ of
-$27{,}781{,}427{,}952$ parameters, $9.15\%$ counted from the checkpoint index,
-and the arithmetic inverts. Nothing here measures the embedding's quality cost
+codecs: the embedding is $254{,}279{,}680$ of this text tower's
+$752{,}393{,}024$ parameters, $33.8\%$ on a $248{,}320$-token vocabulary, while
+on the 27B checkpoint --- same vocabulary, hidden size $5120$, untied head ---
+embedding and head together are $2{,}542{,}796{,}800$ of
+$26{,}895{,}998{,}464$, $9.45\%$, and the arithmetic inverts. Both shares are
+quoted against the text tower; against the full checkpoints, vision encoder and
+multi-token-prediction head included, they are $29.1\%$ and $9.15\%$, which
+moves the two figures together rather than apart. Nothing here measures the embedding's quality cost
 at 27B, so that inversion is an argument about bytes and not a result.
 
 \begin{figure}[t]
@@ -790,6 +819,42 @@ Section~\ref{sec:calibration}, which rules out the alternative reading that
 TinyStories is intrinsically harder for this recipe; it does not decompose the
 mismatched figure into mismatch and sensitivity components.
 
+\section{What we would do next}
+
+The study set out to compare codecs below two bits and ended up establishing
+that, on this model, the comparison was being run on the wrong axis. Three
+things follow, and we state them as directions rather than as results.
+
+\textbf{The allocation question is the open one.} Our byte-allocation finding
+rests on a naive embedding quantizer and on parameter shares that invert with
+scale. What it does not settle is where the frontier actually lies once the
+embedding gets the same treatment the weights get --- rotation, error
+compensation, a fitted codebook --- and whether the crossed grid still shows
+dominance rather than a trade-off when it does. That experiment is cheap
+relative to anything in this paper and we did not run it.
+
+\textbf{The calibration lever should be pushed until it stops.} A $50/50$
+mixture of two domains beats both pure conditions on worst-domain damage at
+equal token budget, and the half-budget control says the mechanism is coverage
+of activation directions. Nothing here identifies how many directions are
+needed, whether the gain continues past two domains, or whether a corpus can be
+selected \emph{for} coverage --- by a spectral criterion on $H_{\mathrm{cal}}$,
+say --- rather than assembled by hand. The identity in
+Section~\ref{sec:calibration} suggests the criterion but does not supply it.
+
+\textbf{The negative results are the transferable part.} A Hessian-derived
+per-tensor ranking lost to random allocation; weight MSE inverted against loss;
+a polar code beat only an under-tuned control; a self-consistent calibration
+loop was unnecessary. Each was caught by a control rather than by inspection,
+and each had looked right beforehand. We report them at the same length as the
+positive findings because the ratio of the two is the honest summary of what a
+single-GPU study of this kind produces.
+
+The one methodological commitment we would keep unchanged is measuring storage
+from bytes actually written and reading weights back from those bytes before
+evaluating them. It cost this work several headline numbers
+(Section~\ref{sec:protocol}), all of which were wrong.
+
 \section*{Availability}
 
 A single generator script produces every table in this paper directly from the
@@ -798,25 +863,40 @@ table whose sources disagree on the BF16 baseline or on the evaluation stream. T
 study --- including the sections withdrawn or corrected along the way --- are at
 \url{https://github.com/shayan65/low-rate-quantization}.
 
-\begin{thebibliography}{9}
-\bibitem{gptvq} GPTVQ: The Blessing of Dimensionality for LLM Quantization.
+\begin{thebibliography}{99}
+\bibitem{gptvq} M.~van~Baalen, A.~Kuzmin, I.~Koryakovskiy, M.~Nagel,
+  P.~Couperus, C.~Bastoul, E.~Mahurin, T.~Blankevoort and P.~Whatmough. GPTVQ:
+  The Blessing of Dimensionality for LLM Quantization. 2024.
   \url{https://arxiv.org/abs/2402.15319}
-\bibitem{quipsharp} QuIP\#: Even Better LLM Quantization with Hadamard
-  Incoherence and Lattice Codebooks. \url{https://arxiv.org/abs/2402.04396}
-\bibitem{gptq} GPTQ: Accurate Post-Training Quantization for Generative
-  Pre-trained Transformers. \url{https://arxiv.org/abs/2210.17323}
-\bibitem{quip} QuIP: 2-Bit Quantization of Large Language Models With
-  Guarantees. \url{https://arxiv.org/abs/2307.13304}
-\bibitem{aqlm} Extreme Compression of Large Language Models via Additive
-  Quantization. \url{https://arxiv.org/abs/2401.06118}
-\bibitem{gptaq} GPTAQ: Efficient Finetuning-Free Quantization for Asymmetric
-  Calibration. \url{https://arxiv.org/abs/2504.02692}
+\bibitem{quipsharp} A.~Tseng, J.~Chee, Q.~Sun, V.~Kuleshov and C.~De~Sa.
+  QuIP\#: Even Better LLM Quantization with Hadamard Incoherence and Lattice
+  Codebooks. ICML, 2024. \url{https://arxiv.org/abs/2402.04396}
+\bibitem{gptq} E.~Frantar, S.~Ashkboos, T.~Hoefler and D.~Alistarh. GPTQ:
+  Accurate Post-Training Quantization for Generative Pre-trained Transformers.
+  ICLR, 2023. \url{https://arxiv.org/abs/2210.17323}
+\bibitem{quip} J.~Chee, Y.~Cai, V.~Kuleshov and C.~De~Sa. QuIP: 2-Bit
+  Quantization of Large Language Models With Guarantees. 2023.
+  \url{https://arxiv.org/abs/2307.13304}
+\bibitem{aqlm} V.~Egiazarian, A.~Panferov, D.~Kuznedelev, E.~Frantar,
+  A.~Babenko and D.~Alistarh. Extreme Compression of Large Language Models via
+  Additive Quantization. ICML, 2024. \url{https://arxiv.org/abs/2401.06118}
+\bibitem{gptaq} Y.~Li, R.~Yin, D.~Lee, S.~Xiao and P.~Panda. GPTAQ: Efficient
+  Finetuning-Free Quantization for Asymmetric Calibration. ICML, 2025.
+  \url{https://arxiv.org/abs/2504.02692}
 \bibitem{quarot} S.~Ashkboos, A.~Mohtashami, M.~L.~Croci, B.~Li, P.~Cameron,
   M.~Jaggi, D.~Alistarh, T.~Hoefler and J.~Hensman. QuaRot: Outlier-Free 4-Bit
-  Inference in Rotated LLMs. \url{https://arxiv.org/abs/2404.00456}
+  Inference in Rotated LLMs. 2024. \url{https://arxiv.org/abs/2404.00456}
 \bibitem{calibdata} M.~Williams and N.~Aletras. On the Impact of Calibration
-  Data in Post-training Quantization and Pruning.
+  Data in Post-training Quantization and Pruning. 2023.
   \url{https://arxiv.org/abs/2311.09755}
+\bibitem{deltanet} S.~Yang, B.~Wang, Y.~Zhang, Y.~Shen and Y.~Kim.
+  Parallelizing Linear Transformers with the Delta Rule over Sequence Length.
+  2024. \url{https://arxiv.org/abs/2406.06484}
+\bibitem{wikitext} S.~Merity, C.~Xiong, J.~Bradbury and R.~Socher. Pointer
+  Sentinel Mixture Models. 2016. \url{https://arxiv.org/abs/1609.07843}
+\bibitem{tinystories} R.~Eldan and Y.~Li. TinyStories: How Small Can Language
+  Models Be and Still Speak Coherent English? 2023.
+  \url{https://arxiv.org/abs/2305.07759}
 \end{thebibliography}
 
 \end{document}

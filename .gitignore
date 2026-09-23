@@ -19,3 +19,6 @@ output/
 *.log
 
 # built PDF is regenerable but small; keep it for circulation
+
+# assembled by paper/make_arxiv.sh; rebuild rather than version it
+paper/arxiv-submission.tar.gz
