@@ -6,73 +6,53 @@
 \usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
 \newtheorem{proposition}{Proposition}
 \setlength{\emergencystretch}{3em}
-\title{Low-Rate Quantization in Hybrid Language Models:\\
-Codebook Dimension, Error Compensation, and Coverage}
+\title{Low-Rate Quantization of a Hybrid Language Model:\\
+What Moves Loss, and Where the Bytes Actually Are}
 \author{Shayan Hemmatiyan}
-\date{September 22, 2026}
+\date{September 23, 2026}
 \begin{document}
 \maketitle
-\begin{center}\small\textbf{Status: working draft. Not submission ready.}\\
-No quantum-hardware, quantum-advantage, or quantization-aware-training result is
-reported. A full-coverage conversion and a verified compressed matmul are now
-reported (\S\ref{sec:coverage-runtime}); no end-to-end quantized deployment is.
+\begin{center}\small
+Controlled post-training quantization study on one 0.8B and one 27B hybrid
+linear-attention checkpoint. No quantization-aware training, no serving stack,
+and no claim of a new algorithm.
 \end{center}
 
 \begin{abstract}
-We report a controlled study of post-training weight quantization below two
-bits in a hybrid linear-attention language model, asking which factors move
-validation loss under measured storage budgets: codebook dimension, error
-compensation, index rate, and which tensors are converted at all. On the
-DeltaNet QKV projections of a 0.8B model a shared eight-dimensional codebook
-reduces damage relative to a learned three-level scalar code by $0.036118$ NLL
-(paired block bootstrap $[0.033768, 0.038414]$) at $0.43\%$ more payload bytes,
-and the direction reproduces on the 48 corresponding projections of a 27B
-checkpoint over its complete validation stream ($0.007121$,
-$[0.005725, 0.008513]$, $0.019\%$ more bytes) --- but that 27B figure is one
-fitted quantizer, and eight refits there span $-0.007049$ to $+0.000185$, with
-only half individually significant and one favouring the scalar code. At 27B
-the effect is \emph{smaller than the spread induced by refitting}
-($0.46\times$ the refit range, against $5.05\times$ at 0.8B), so the 27B
-evidence supports direction on average rather than a reliable per-conversion
-benefit. \emph{At 0.8B}, and only there, the advantage keeps its sign
-under eight refits of the quantizer, on held-out text, on a second domain, and
-at contexts to 2048 tokens; its magnitude varies across those conditions
-($0.031$ to $0.038$ across refits), and we quote ranges rather than single
-margins because the spread across refits is of the same order as the
-text-bootstrap interval. Two factors dominate the codec choice. GPTQ-style
-error compensation removes $68$--$69\%$ of the damage on both tensor families,
-roughly three times what the codec contributes, while \emph{raising} plain
-weight MSE --- inverting a proxy that earlier work, including our own earlier
-drafts, relied on. Index rate dominates in turn: from $1.6$ to $4.0$ bits
-damage falls approximately exponentially, halving about every $0.47$ bits, with
-no knee across a $2.4\times$ range of stored bytes. Coverage matters more
-again --- MLP weights are $2.79\times$ more damaging per parameter than the
-projections --- yet a Hessian-derived per-tensor ranking built to exploit that
-performs \emph{worse than random selection} of the same byte budget, the second
-forward-side ranking failure we record. The largest lever we find costs no bytes at all: the
-calibration distribution. Crossing two calibration corpora with two evaluation
-corpora shows damage minimized on the diagonal in every cell, and a
-prespecified 50/50 mixture at the \emph{same} token budget cuts worst-domain
-damage below either pure condition over three disjoint calibration draws
-($0.095211$ against $0.147013$ and $0.191296$ for the vector code), at
-identical storage; a half-budget control shows this is coverage of activation
-directions rather than sample count. Converting \emph{every}
-non-embedding matrix ($66.1\%$ of parameters) costs $+1.000022$ NLL at ternary
-rate and
-shrinks the model only $2.44\times$, because a tied BF16 embedding is then
-$83\%$ of what remains: at these rates the binding constraint is embedding
-precision, not the weight codec. A compressed matmul on a real projection reproduces
-the quantized FP32 operator four orders of magnitude more closely than the BF16
-weights our loss numbers were measured with, and peaks at $5.00\times$ less
-memory, but is $3.0\times$ slower than cuBLAS at batch one once the activation
-rotation the format requires is fused into a single kernel; served end to end,
-the converted model reproduces its decoded-BF16 loss to $1.6\times10^{-5}$ and
-weighs $1.92\times$ less by the allocator. The largest byte-for-byte lever we
-find, however, is not the codec at all: at this model's parameter shares,
-quantizing the tied embedding is two to four orders of magnitude cheaper per
-byte saved, and every sub-two-bit configuration we measure is off the efficient
-frontier for whole-model size. These are two checkpoints and two corpora; we establish neither
-end-to-end deployment nor a new algorithm.
+We report a controlled study of post-training weight quantization below two bits
+in a hybrid linear-attention language model, asking which factors move validation
+loss under storage measured from bytes actually written. Three findings are worth
+more than the codec comparisons that motivated the study. First, \textbf{byte
+allocation dominates codec design at this scale}: quantizing the tied embedding
+costs $0.000098$ NLL per 100\,MB saved against $0.020873$ for the first step of
+the weight codec and $2.127315$ for its last, so a model with 2.792-bit weights
+and an INT4 embedding is half the size and takes a fifth of the damage of one
+with ternary weights and a BF16 embedding. Every sub-two-bit configuration we
+measure is off the efficient frontier for whole-model size --- a statement about
+parameter shares, since the embedding is $33.8\%$ of this checkpoint but
+$9.15\%$ of the 27B one. Second, \textbf{the calibration distribution is a lever
+that costs no bytes}: damage is minimized when calibration and evaluation domains
+match, and a prespecified $50/50$ mixture at the same token budget cuts
+worst-domain damage below either pure condition over three disjoint draws
+($0.095211$ against $0.147013$ and $0.191296$), with a half-budget control
+showing this is coverage of activation directions rather than sample count.
+Third, \textbf{the codec results hold but are smaller than the above}: a shared
+eight-dimensional codebook beats a learned three-level scalar code by $0.036118$
+NLL $[0.033768, 0.038414]$ at $0.43\%$ more payload bytes on 0.8B DeltaNet
+projections and keeps its sign under eight refits; GPTQ-style compensation
+removes $68$--$69\%$ of the damage, roughly three times the codec's contribution,
+while \emph{raising} plain weight MSE; index rate then dominates compensation and
+coverage dominates rate, yet a Hessian-derived per-tensor ranking built to
+exploit coverage is worse than random selection. The direction reproduces on a
+27B checkpoint, but eight refits there span $-0.007049$ to $+0.000185$ and the
+effect is smaller than the spread refitting induces ($0.46\times$ the refit range
+against $5.05\times$ at 0.8B), so we report it as a direction on average and lean
+on it nowhere. Finally, the converted model is \textbf{served on compressed
+weights}: all 186 non-embedding matrices replaced by code-and-codebook modules
+reproduce the decoded-BF16 loss to $1.6\times10^{-5}$ at $1.92\times$ less
+resident memory by the allocator, and $3.0\times$ cuBLAS latency on an isolated
+projection once the required Hadamard rotation is fused. We claim no new
+algorithm, and we separate what is established from what is not.
 \end{abstract}
 
 \section{Scope and contributions}
@@ -87,9 +67,32 @@ thinly: rates below two bits, on the recurrent projections of a hybrid model,
 with storage measured from bytes that are actually written and weights that are
 actually read back.
 
-Concretely:
+Concretely, and in order of how much they move a deployment decision rather
+than of how much work they took:
 
 \begin{enumerate}
+\item \textbf{Byte allocation dominates codec design at this scale}
+(Section~\ref{sec:coverage-runtime}). Crossing the weight-rate ladder with four
+embedding precisions, the marginal cost of a saved byte differs by four orders
+of magnitude between the two axes, and a configuration with higher-rate weights
+and a coarser embedding dominates every sub-two-bit configuration in both size
+and loss. The embedding quantizer we use is deliberately naive, which makes the
+comparison conservative against the codec. The conclusion follows from parameter
+shares and therefore inverts with scale, which we state quantitatively rather
+than leaving as a caveat.
+\item \textbf{Calibration is the lever that costs nothing}
+(Section~\ref{sec:calibration}). Damage is minimized when calibration and
+evaluation domains match, and a prespecified $50/50$ mixture at the same token
+budget reduces worst-domain damage below either pure condition on three disjoint
+draws; a half-budget control separates domain coverage from sample count. Unlike
+dimension, rate and coverage, this is paid for in neither bytes nor calibration
+tokens. We give the identity that explains why mismatch has an effect and why
+weight MSE cannot see it.
+\item \textbf{The converted model is served on compressed weights}
+(Section~\ref{sec:coverage-runtime}), reproducing its decoded-BF16 loss to
+$1.6\times10^{-5}$ at a resident footprint measured from the allocator, which is
+below what payload arithmetic predicts because the served index layout is wider
+than the stored one.
 \item \textbf{Dimension.} A shared 6561-point eight-dimensional codebook beats a
 learned three-level scalar code at near-equal payload bytes, on two tensor
 families of a 0.8B model and on the QKV projections of a 27B model
@@ -118,14 +121,44 @@ projections the eight-dimensional code's advantage survives refitting over
 calibration draws and seeds, held-out text, a second domain, and context
 extension through 2048 tokens. Its magnitude varies across those conditions,
 and finer scalar grouping shows no consistent benefit in any of them.
-\item \textbf{Calibration is the lever that costs nothing}
-(Section~\ref{sec:calibration}). Damage is minimized when calibration and
-evaluation domains match, and a prespecified $50/50$ mixture at the same token
-budget reduces worst-domain damage below either pure condition. Unlike
-dimension, rate and coverage, this is paid for in neither bytes nor
-calibration tokens. We give the identity that explains why mismatch has an
-effect and why weight MSE cannot see it.
 \end{enumerate}
+
+\section{Related work and what is new here}
+
+Every technique this paper uses is established. Hessian-weighted error
+compensation is GPTQ~\cite{gptq} and its asymmetric refinement~\cite{gptaq};
+incoherence processing by random Hadamard rotation is QuIP~\cite{quip} and
+QuIP\#~\cite{quipsharp}, and QuaRot~\cite{quarot} applies the same idea to
+activations for 4-bit inference; multi-dimensional codebooks are
+GPTVQ~\cite{gptvq} and, in additive form, AQLM~\cite{aqlm}. Our block extension
+of GPTQ to vector codes (Section~\ref{sec:method}) is a routine generalization
+that collapses to textbook scalar GPTQ at dimension one, which we verify
+bit-exactly; we treat it as implementation.
+
+What we contribute is controlled evidence in a setting the literature covers
+thinly, and three results that the literature's framing tends to hide.
+
+\textbf{The architecture.} Published low-rate results concentrate on dense
+attention transformers. The recurrent projections of a hybrid linear-attention
+model have a different error-propagation structure --- a quantized
+\texttt{in\_proj\_qkv} perturbs a recurrent state rather than a one-shot
+attention map --- and we find effects there that a transformer study would not
+surface, including damage that depends on position within a block.
+
+\textbf{Calibration sensitivity is usually a robustness check; here it is the
+headline.} Williams and Aletras~\cite{calibdata} show that calibration choice
+materially changes post-training quantization and pruning outcomes. We take that
+further in one specific direction: because the calibration set costs no stored
+bytes, its effect is not a confound to be controlled but a free parameter to be
+optimized, and we show a prespecified fixed-budget mixture beats every pure
+condition on worst-domain damage.
+
+\textbf{Byte accounting for the whole model, not the covered tensors.} Low-rate
+papers report bits per weight over the tensors they convert. That number is the
+right one for comparing codecs and the wrong one for sizing a model. Measuring
+the whole checkpoint --- and then measuring the served model from the
+allocator --- is what surfaces the result that at this scale the embedding, not
+the codec, governs the byte budget.
 
 \section{What this paper does not establish}
 
@@ -133,6 +166,14 @@ We separate these from the results because earlier drafts of this work did not,
 and the reader should not have to reconstruct the boundary.
 
 \begin{itemize}
+\item \textbf{No general claim that embeddings should be quantized before
+weights.} Our byte-allocation result is measured on one 0.8B checkpoint, with
+one naive embedding quantizer, on one corpus. It follows from the embedding's
+$33.8\%$ parameter share, and we show that share is $9.15\%$ on the 27B
+checkpoint, where the same arithmetic points the other way --- but we did not
+measure embedding quantization at 27B, so the inversion is an argument about
+bytes, not a result. Nor did we try rotation or error compensation on the
+embedding, so its ladder is a floor rather than a characterization.
 \item \textbf{No serving stack.} A full-coverage conversion is served on
 compressed weights and measured from the allocator
 (\S\ref{sec:coverage-runtime}), but the embedding, norms, KV cache and
@@ -541,8 +582,10 @@ the implicit premise that driving the weight rate down is how to make this model
 smaller. It is also a statement about parameter shares rather than about
 codecs: the embedding is $33.8\%$ of this checkpoint on a $248{,}320$-token
 vocabulary, while on the 27B checkpoint --- same vocabulary, hidden size $5120$,
-untied head --- embedding and head together are roughly $9\%$, and the
-arithmetic inverts.
+untied head --- embedding and head together are $2{,}542{,}796{,}800$ of
+$27{,}781{,}427{,}952$ parameters, $9.15\%$ counted from the checkpoint index,
+and the arithmetic inverts. Nothing here measures the embedding's quality cost
+at 27B, so that inversion is an argument about bytes and not a result.
 
 \input{generated/tab_embed}
 
@@ -600,10 +643,13 @@ model is the model this paper measured. Its resident footprint, taken from the
 allocator rather than from a payload count, is $783.2$\,MB against $1504.8$, a
 factor of $1.92$ --- \emph{below} the $2.20\times$ the byte arithmetic gives at
 this rate, because the served layout spends 2.000 bits of index where the file
-spends 1.600. A single decode step costs $99.4$\,ms against $85.6$\,ms, but both
-are dominated by an unfused recurrent path in this checkpoint's implementation,
-so that ratio measures the increment on an unoptimized loop rather than a
-serving comparison.
+spends 1.600. A single decode step costs $99.4$\,ms against $85.6$\,ms. Both
+figures are dominated by an unfused recurrent path --- the installed library
+reports that the fast linear-attention kernel is unavailable, and $85.6$\,ms per
+token for a 0.8B model is not a serving number --- so the $1.16\times$ ratio is
+the increment compressed weights add to an unoptimized loop and nothing more. We
+do not report a decode-throughput claim; the interpretable latency measurement
+is the isolated projection above.
 
 \input{generated/tab_e2e}
 
@@ -696,6 +742,15 @@ Section~\ref{sec:calibration}, which rules out the alternative reading that
 TinyStories is intrinsically harder for this recipe; it does not decompose the
 mismatched figure into mismatch and sensitivity components.
 
+\section*{Availability}
+
+A single generator script produces every table in this paper directly from the
+saved run artifacts. It reads the JSON each run wrote, and it refuses to emit a
+table whose sources disagree on the BF16 baseline or on the evaluation stream. The runners, the saved results and the running record of the
+study --- including the sections withdrawn or corrected along the way --- are in
+the accompanying repository.\footnote{Repository URL to be inserted on
+submission.}
+
 \begin{thebibliography}{9}
 \bibitem{gptvq} GPTVQ: The Blessing of Dimensionality for LLM Quantization.
   \url{https://arxiv.org/abs/2402.15319}
@@ -709,6 +764,12 @@ mismatched figure into mismatch and sensitivity components.
   Quantization. \url{https://arxiv.org/abs/2401.06118}
 \bibitem{gptaq} GPTAQ: Efficient Finetuning-Free Quantization for Asymmetric
   Calibration. \url{https://arxiv.org/abs/2504.02692}
+\bibitem{quarot} S.~Ashkboos, A.~Mohtashami, M.~L.~Croci, B.~Li, P.~Cameron,
+  M.~Jaggi, D.~Alistarh, T.~Hoefler and J.~Hensman. QuaRot: Outlier-Free 4-Bit
+  Inference in Rotated LLMs. \url{https://arxiv.org/abs/2404.00456}
+\bibitem{calibdata} M.~Williams and N.~Aletras. On the Impact of Calibration
+  Data in Post-training Quantization and Pruning.
+  \url{https://arxiv.org/abs/2311.09755}
 \end{thebibliography}
 
 \end{document}
