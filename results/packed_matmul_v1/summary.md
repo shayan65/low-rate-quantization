@@ -1,3 +1,8 @@
+> **Superseded in part by `results/packed_matmul_v2` (2026-09-23).** The peak
+> allocation section below is invalid: the FP32 reference stayed resident
+> through both measurements, so both peaks include it. Correctness, resident
+> bytes and latency are unaffected and reproduce in v2.
+
 # Compressed matmul: correctness, resident bytes, peak memory, latency
 
 Shape 10240x5120 (Qwen3.8-27B QKV), dimension 8, K=6561, group 128.

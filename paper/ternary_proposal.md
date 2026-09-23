@@ -1391,8 +1391,19 @@ results are worse for the deployment story than the subset experiments implied.
 
 ### Full coverage costs far more than the subsets suggested
 
-Every 2-D weight except embeddings and the LM head: 186 tensors, 497,614,848
-of 752,393,024 parameters (66.1%), evaluated on the complete validation stream.
+Every 2-D weight except the embedding: 186 tensors, 497,614,848 of 752,393,024
+parameters (66.1%), evaluated on the complete validation stream. That is *every*
+matrix outside the embedding, not a selection from them.
+
+What "the model" means here, since the first writeup of this run got it wrong.
+The checkpoint holds 873,438,784 parameters in three pieces — the language
+model (752,393,024), a vision tower (100,592,896) and a multi-token-prediction
+head (20,452,864) — and `AutoModelForCausalLM` instantiates only the first, so
+the other two are never loaded and enter no byte total below. What stays BF16
+inside the loaded model is the embedding (254,279,680, which
+`tie_word_embeddings` also makes the output head), the depthwise causal
+convolutions (442,368, which are 3-D and outside this codec's shape
+assumption), and the norms (56,128).
 
 | Arm | covered bpw | model MB | effective bpw | shrink | ΔNLL | perplexity |
 |---|---:|---:|---:|---:|---:|---:|
@@ -1410,19 +1421,23 @@ full conversion.
 
 The byte accounting is the more useful surprise:
 
-| Arm | converted tensors | embeddings + head | embeddings' share |
+| Arm | converted tensors | untouched BF16 | untouched share |
 |---|---:|---:|---:|
 | dim-4 K=81 | 107.3 MB | 509.6 MB | **82.6%** |
 | dim-4 K=1625 | 173.7 MB | 509.6 MB | 74.6% |
 
+Of that 509.6 MB, 508.6 MB is the embedding alone; the convolutions and norms
+together are 1.0 MB and do not matter.
+
 The weight matrices compress 9.28x at ternary rate — 995 MB to 107 MB, which
 is what the codec work bought. The *model* shrinks only 2.44x, because the
-254.8M-parameter embedding and head matrices stay at BF16 and then account for
-83% of what remains. Effective rate over the whole model is 6.559 bits/weight
-even with the covered tensors at 1.725.
+254.3M-parameter embedding stays at BF16 and then accounts for 83% of what
+remains. Effective rate over the whole model is 6.559 bits/weight even with the
+covered tensors at 1.725. The embedding is tied, so it is already charged once
+and used twice; there is no second copy to remove.
 
 **At low rates the binding constraint is embedding precision, not the weight
-codec.** Halving the embeddings to FP8 would save more bytes than moving the
+codec.** Halving the embedding to FP8 would save more bytes than moving the
 covered tensors from 2.667 bits to ternary, and would cost an unmeasured but
 probably far smaller amount of quality. That comparison was never run here
 because the project's attention was on the weight codec throughout; on this
@@ -1445,8 +1460,9 @@ did implicitly, is wrong.
 | quantity | BF16 | compressed | ratio |
 |---|---:|---:|---:|
 | resident bytes, one tensor | 104.9 MB | 14.0 MB | **7.47x** |
-| latency, batch 1 (cuBLAS vs Triton) | 0.132 ms | 0.466 ms | **3.5x slower** |
-| latency, streamed PyTorch path | — | 5.408 ms | 41x slower |
+| peak allocation during one product | 113.5 MB | 23.6 MB | **4.81x** |
+| latency, batch 1 (cuBLAS vs Triton) | 0.132 ms | 0.467 ms | **3.5x slower** |
+| latency, streamed PyTorch path | — | 5.437 ms | 41x slower |
 
 Correctness: relative error $3.3\times10^{-7}$ (streamed) and
 $3.5\times10^{-7}$ (Triton) against decode-then-dense.
@@ -1458,17 +1474,52 @@ reported rather than buried; whether a better kernel closes the gap is open,
 and the theoretical traffic reduction (roughly 8x) says there is room, but this
 work does not demonstrate it.
 
-### Two measurement defects in this section
+### Two defects in this section, found and fixed
 
-**The peak-allocation comparison is contaminated.** Dense 811.7 MB against
-streamed 775.1 MB is a 4.5% difference, far short of what streaming should
-give, because the benchmark keeps the dense FP32 reference tensor alive for
-correctness checking throughout. The resident-bytes figure (7.47x) is sound;
-the peak figure measures the harness, not the method, and should be rerun
-without the reference resident.
+Both were defects in the measurement or the description, not in the codec, and
+both are now corrected. They are kept here because the corrected numbers are
+more favourable than the wrong ones, and a record that only ever moves in the
+flattering direction is worth less than one that shows its corrections.
 
-**The vision tower is absent, not included.** The module docstring claims it is
-counted in the byte total. It is not: the checkpoint holds 873.4M parameters
-but `AutoModelForCausalLM` loads 752.4M, and the missing 121.0M is the vision
-tower, which this class does not instantiate. Coverage is 66.1% of the loaded
-text model, and every byte figure above is for that model.
+**The peak-allocation comparison was contaminated, and hid a real result.**
+`reset_peak_memory_stats` rebases the peak counter to whatever is allocated at
+the moment it is called, and the first benchmark held the 210 MB FP32 reference
+through both arms. Dense 811.7 MB against streamed 775.1 MB — a 1.05x ratio —
+was a property of the harness. Measured with each arm holding only its own
+state (`results/packed_matmul_v2`):
+
+| path | baseline | peak | transient | peak vs dense |
+|---|---:|---:|---:|---:|
+| dense BF16 | 113.4 MB | 113.5 MB | 0.0 MB | — |
+| streamed, `tile_cols=512` | 23.5 MB | 91.7 MB | 68.2 MB | 1.24x |
+| Triton | 23.5 MB | 23.6 MB | 0.0 MB | **4.81x** |
+
+The Triton path runs the product in 23.6 MB against dense's 113.5 MB. The
+streamed path looks much worse only because it materializes a decoded FP32
+column tile, and that is a tile-size choice rather than a property of the
+format — a sweep confirms it, with latency essentially flat:
+
+| `tile_cols` | peak | ms |
+|---|---:|---:|
+| 128 | 40.6 MB | 5.769 |
+| 512 | 91.7 MB | 5.436 |
+| 2048 | 296.2 MB | 5.304 |
+
+So the memory claim is stronger than §17 first reported: the format is
+**4.81x** smaller at peak, not 1.05x, and the earlier figure understated it by
+measuring the benchmark. The latency finding is unchanged — 3.5x slower than
+cuBLAS at batch one — and remains the honest limit of this work.
+
+(A common ~8.5 MB sits in every baseline: the cuBLAS workspace, which is a cost
+of running any matmul rather than of either format.)
+
+**The vision tower is absent, not included.** The module docstring claimed it
+was counted in the byte total. It was not, and the arithmetic is now checked
+rather than asserted: 752,393,024 (language model) + 100,592,896 (vision tower)
++ 20,452,864 (MTP head) = 873,438,784, and `AutoModelForCausalLM` instantiates
+only the first. The earlier note that "the missing 121.0M is the vision tower"
+was itself imprecise — 100.6M of it is, and the other 20.5M is the
+multi-token-prediction head. Coverage is 66.1% of the loaded text model and
+every byte figure above is for that model. The runner now computes the
+BF16 leftovers by category and asserts they sum to the untouched total, so this
+particular description cannot drift from the run again.

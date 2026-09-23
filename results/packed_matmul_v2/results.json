@@ -1,0 +1,69 @@
+{
+  "shape": [
+    10240,
+    5120
+  ],
+  "dim": 8,
+  "k": 6561,
+  "group": 128,
+  "streamed_rel_err": 3.2702641306059377e-07,
+  "triton_rel_err": 3.488281663521775e-07,
+  "resident": {
+    "bf16_bytes": 104857600,
+    "runtime_bytes": 14031376,
+    "ratio": 7.47308033082429,
+    "storage_index_bpw": 1.6,
+    "runtime_bits_per_weight": {
+      "index": 2.0,
+      "scales": 0.125,
+      "codebook_amortized": 0.01601806640625,
+      "total": 2.14101806640625
+    }
+  },
+  "streamed_tile_sweep": {
+    "128": {
+      "baseline": 23547392,
+      "peak": 40627712,
+      "ms": 5.768988298950717
+    },
+    "512": {
+      "baseline": 23547392,
+      "peak": 91745792,
+      "ms": 5.436496349284425
+    },
+    "2048": {
+      "baseline": 23547392,
+      "peak": 296218112,
+      "ms": 5.303685751277953
+    }
+  },
+  "peak_bytes": {
+    "dense_bf16": 113469440,
+    "streamed": 91745792,
+    "triton": 23588352,
+    "ratio": 1.2367808651104129,
+    "detail": {
+      "dense_bf16": {
+        "baseline": 113448960,
+        "peak": 113469440,
+        "transient": 20480
+      },
+      "streamed": {
+        "baseline": 23547392,
+        "peak": 91745792,
+        "transient": 68198400
+      },
+      "triton": {
+        "baseline": 23547392,
+        "peak": 23588352,
+        "transient": 40960
+      }
+    },
+    "note": "each arm measured with only its own state resident; baseline is what was allocated when the peak counter was reset"
+  },
+  "latency_ms": {
+    "dense_bf16": 0.13185135321691632,
+    "streamed": 5.437009298475459,
+    "triton": 0.4671830509323627
+  }
+}

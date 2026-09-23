@@ -19,6 +19,18 @@ on this shape is a well-tuned library call; a first-cut Triton kernel that
 gathers from a codebook is not. Reporting that honestly is the point: it
 separates "the format stores fewer bytes", which is established, from "the
 format is faster to run", which is not.
+
+**A note on how the peak is measured, because the first version of this file
+got it wrong.** `reset_peak_memory_stats` rebases the peak to whatever is
+allocated at the moment it is called, so anything the harness is holding enters
+both arms' figures. The original kept the FP32 reference weights (210 MB) alive
+from the correctness check through both measurements; the two peaks came out
+811.7 MB and 775.1 MB, 4.5% apart, and that 4.5% was a property of the
+benchmark rather than of either path. Here each arm is measured with only the
+state it actually needs resident -- the reference is freed first, and the
+codebook and scales are parked on the host while the dense arm runs -- and each
+arm reports its baseline, its peak, and the transient above baseline, so the
+accounting can be checked rather than trusted.
 """
 
 import argparse
@@ -52,7 +64,7 @@ def main() -> None:
     ap.add_argument("--dim", type=int, default=8)
     ap.add_argument("--k", type=int, default=6561)
     ap.add_argument("--group", type=int, default=128)
-    ap.add_argument("--out", default="../results/packed_matmul_v1")
+    ap.add_argument("--out", default="../results/packed_matmul_v2")
     a = ap.parse_args()
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -112,39 +124,105 @@ def main() -> None:
                                       "compressed": rt_bytes / 1e6},
                       "shrink": round(dense_bytes / rt_bytes, 2)}), flush=True)
 
-    # ---------------- peak allocation during a product ----------------
-    Wb = W_ref.to(torch.bfloat16)
+    # ---------------- free the harness before measuring memory ----------------
+    # Everything above -- the source tensor, the normalized points, the
+    # assignment indices, the FP32 reference -- exists only to build and check
+    # the codes. Leaving any of it resident lands in both arms' peaks and makes
+    # them look alike; see the module docstring.
+    book_h, sc_h = book.cpu(), sc.cpu()
     xb = x1.to(torch.bfloat16)
-    torch.cuda.empty_cache(); torch.cuda.reset_peak_memory_stats()
+    del W, u, pts, ci, W_ref, ref1, ys, scale
+    torch.cuda.empty_cache()
+
+    def clean_baseline():
+        torch.cuda.synchronize()
+        torch.cuda.empty_cache()
+        torch.cuda.reset_peak_memory_stats()
+        return torch.cuda.memory_allocated()
+
+    # ---- dense arm: only the BF16 weight and the activation are resident ----
+    del codes, book, sc
+    torch.cuda.empty_cache()
+    bk = book_h.cuda()
+    Wf = decode(pk, bk, dev)                   # rebuild, then drop the FP32 copy
+    Wb = Wf.to(torch.bfloat16)
+    del Wf, bk
+    torch.cuda.empty_cache()
+    base_dense = clean_baseline()
     _ = xb @ Wb.T
     torch.cuda.synchronize()
     peak_dense = torch.cuda.max_memory_allocated()
-    del Wb
-    torch.cuda.empty_cache(); torch.cuda.reset_peak_memory_stats()
+    t_dense = timed(lambda: xb @ Wb.T) if ok else None
+    del Wb, _
+    torch.cuda.empty_cache()
+
+    # ---- compressed arms: only codes, codebook and scales are resident ----
+    codes = storage_to_runtime(pk.index_bytes, pk.n_codes, a.k, dev)
+    book, sc = book_h.cuda(), sc_h.cuda()
+    base_stream = clean_baseline()
     _ = matmul_streamed(codes, book, sc, x1, a.rows, a.cols, a.dim, a.group)
     torch.cuda.synchronize()
     peak_stream = torch.cuda.max_memory_allocated()
-    res["peak_bytes"] = {"dense_bf16": peak_dense, "streamed": peak_stream,
-                         "ratio": peak_dense / max(peak_stream, 1)}
-    print(json.dumps({"peak_MB": {"dense": peak_dense / 1e6,
-                                  "streamed": peak_stream / 1e6}}), flush=True)
+    del _
+
+    peaks = {"dense_bf16": {"baseline": base_dense, "peak": peak_dense,
+                            "transient": peak_dense - base_dense},
+             "streamed": {"baseline": base_stream, "peak": peak_stream,
+                          "transient": peak_stream - base_stream}}
+
+    # The streamed path's peak is a tile-size choice, not a property of the
+    # format. Claimed in the writeup, so measured here.
+    tiles = {}
+    for tc in (128, 512, 2048):
+        b = clean_baseline()
+        _ = matmul_streamed(codes, book, sc, x1, a.rows, a.cols, a.dim, a.group,
+                            tile_cols=tc)
+        torch.cuda.synchronize()
+        tiles[tc] = {"baseline": b, "peak": torch.cuda.max_memory_allocated(),
+                     "ms": timed(lambda: matmul_streamed(codes, book, sc, x1, a.rows,
+                                                         a.cols, a.dim, a.group,
+                                                         tile_cols=tc))}
+        del _
+    res["streamed_tile_sweep"] = tiles
+    print(json.dumps({"tile_sweep": {k: {"peak_MB": round(v["peak"] / 1e6, 1),
+                                         "ms": round(v["ms"], 3)}
+                                     for k, v in tiles.items()}}), flush=True)
+
+    xv = x1[0].contiguous()
+    run_triton = (HAVE_TRITON and "triton_error" not in res
+                  and res.get("triton_rel_err", 1) < 1e-4)
+    if run_triton:
+        base_tri = clean_baseline()
+        _ = matmul_triton(codes, book, sc, xv, a.rows, a.cols, a.dim, a.group)
+        torch.cuda.synchronize()
+        peak_tri = torch.cuda.max_memory_allocated()
+        peaks["triton"] = {"baseline": base_tri, "peak": peak_tri,
+                           "transient": peak_tri - base_tri}
+        del _
+
+    res["peak_bytes"] = {**{k: v["peak"] for k, v in peaks.items()},
+                         "ratio": peak_dense / max(peak_stream, 1),
+                         "detail": peaks,
+                         "note": "each arm measured with only its own state "
+                                 "resident; baseline is what was allocated when "
+                                 "the peak counter was reset"}
+    print(json.dumps({"peak_MB": {k: round(v["peak"] / 1e6, 1)
+                                  for k, v in peaks.items()},
+                      "baseline_MB": {k: round(v["baseline"] / 1e6, 1)
+                                      for k, v in peaks.items()}}), flush=True)
 
     # ---------------- latency at batch one ----------------
     if ok:
-        Wb = W_ref.to(torch.bfloat16)
-        t_dense = timed(lambda: xb @ Wb.T)
         t_stream = timed(lambda: matmul_streamed(codes, book, sc, x1, a.rows,
                                                  a.cols, a.dim, a.group))
         res["latency_ms"] = {"dense_bf16": t_dense, "streamed": t_stream}
-        if HAVE_TRITON and "triton_error" not in res and res.get("triton_rel_err", 1) < 1e-4:
-            xv = x1[0].contiguous()
+        if run_triton:
             res["latency_ms"]["triton"] = timed(
                 lambda: matmul_triton(codes, book, sc, xv, a.rows, a.cols,
                                       a.dim, a.group))
         print(json.dumps({"latency_ms": {k: round(v, 3)
                                          for k, v in res["latency_ms"].items()}}),
               flush=True)
-        del Wb
 
     (out / "results.json").write_text(json.dumps(res, indent=2) + "\n")
 
@@ -168,7 +246,36 @@ def main() -> None:
     elif "triton_error" in res:
         L.append(f"Triton path: **not available** ({res['triton_error']}).")
     L += ["", "## Peak allocation during one product", "",
-          f"Dense BF16 {peak_dense / 1e6:.1f} MB, streamed {peak_stream / 1e6:.1f} MB.", ""]
+          "Each arm is measured with only its own state resident: the FP32 "
+          "reference is freed first, and the codebook and scales are parked on "
+          "the host while the dense arm runs. `baseline` is what was allocated "
+          "when the peak counter was reset, so `transient` is what the product "
+          "itself asked for.", "",
+          "| path | baseline MB | peak MB | transient MB | peak vs dense |",
+          "|---|---:|---:|---:|---:|"]
+    for kk, v in peaks.items():
+        r = "--" if kk == "dense_bf16" else f"{peak_dense / max(v['peak'], 1):.2f}x"
+        L.append(f"| {kk} | {v['baseline'] / 1e6:.1f} | {v['peak'] / 1e6:.1f} | "
+                 f"{v['transient'] / 1e6:.1f} | {r} |")
+    L += ["",
+          "The dense arm's transient is near zero because cuBLAS reuses a "
+          "workspace already allocated during the correctness check; that "
+          "workspace (~8.5 MB) sits in every baseline here and is a cost of "
+          "running any matmul, not of either format.", "",
+          "The two compressed arms differ in what they do with the weights they "
+          "never store. The Triton kernel reads codes and accumulates, so its "
+          "transient is nil and its peak is essentially its resident footprint. "
+          "The streamed path materializes one decoded FP32 column tile at a "
+          "time, and at `tile_cols=512` those tiles cost more than the "
+          "compressed weights themselves -- its peak is a property of that "
+          "tile size, not of the format:", "",
+          "| tile_cols | peak MB | ms |", "|---|---:|---:|"]
+    for tc, v in tiles.items():
+        L.append(f"| {tc} | {v['peak'] / 1e6:.1f} | {v['ms']:.3f} |")
+    L += ["",
+          "An earlier version of this benchmark held the FP32 reference through "
+          "both measurements and reported 811.7 MB against 775.1 MB, a 1.05x "
+          "ratio that described the harness rather than either path.", ""]
     if "latency_ms" in res:
         L += ["## Latency, batch one", "", "| path | ms |", "|---|---:|"]
         for kk, v in res["latency_ms"].items():

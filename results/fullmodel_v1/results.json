@@ -8,7 +8,13 @@
     "untouched_params": 254778176,
     "eval_targets": 261284,
     "bf16_model_bytes": 1504786048,
-    "note": "embeddings and LM head stay BF16; the vision tower is counted in bytes but not exercised by a text evaluation"
+    "note": "every ratio is against the language model that AutoModelForCausalLM instantiates; the checkpoint's vision tower and MTP head are not loaded and are in no byte total here. The embedding stays BF16 and is tied to the output head.",
+    "untouched_breakdown": {
+      "embedding": 254279680,
+      "norms_and_biases_1d": 56128,
+      "non_matrix_weights": 442368
+    },
+    "note_as_run": "embeddings and LM head stay BF16; the vision tower is counted in bytes but not exercised by a text evaluation"
   },
   "bf16": {
     "nll": 3.4367098761642176
@@ -66,5 +72,14 @@
       "seconds": 54.87206042103935
     }
   },
-  "seconds": 212.6
+  "seconds": 212.6,
+  "corrections": [
+    {
+      "date": "2026-09-23",
+      "field": "plan.note and summary.md prose",
+      "was": "embeddings and LM head stay BF16; the vision tower is counted in bytes but not exercised by a text evaluation",
+      "why": "wrong: AutoModelForCausalLM instantiates only the 752,393,024-parameter language model, so the checkpoint's vision tower (100,592,896) and MTP head (20,452,864) were never loaded and are in no byte total. Verified against the safetensors index: 752,393,024 + 100,592,896 + 20,452,864 = 873,438,784.",
+      "measurements_changed": "none -- every number in this file is as produced by the run"
+    }
+  ]
 }
