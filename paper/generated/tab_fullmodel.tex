@@ -1,0 +1,15 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lrrrrl}
+\toprule
+Arm & covered bpw & model MB & effective bpw & shrink & $\Delta$NLL \\
+\midrule
+\texttt{r1600\_k81} & 1.7250 & 616.9 & 6.559 & 2.44$\times$ & $+1.000022$ $[+0.986485, +1.013520]$ \\
+\texttt{r2000\_k255} & 2.1250 & 641.7 & 6.823 & 2.34$\times$ & $+0.470715$ $[+0.462434, +0.478752]$ \\
+\texttt{r2667\_k1625} & 2.7919 & 683.2 & 7.264 & 2.20$\times$ & $+0.171490$ $[+0.167185, +0.175860]$ \\
+\bottomrule
+\end{tabular}
+\caption{Every two-dimensional weight outside the embedding of Qwen3.5-0.8B: 186 tensors, 497,614,848 of 752,393,024 parameters (66.1\%), from \texttt{fullmodel\_v1}. \texttt{effective bpw} includes the BF16 embedding, which \texttt{tie\_word\_embeddings} also makes the output head.}
+\label{tab:fullmodel}
+\end{table}

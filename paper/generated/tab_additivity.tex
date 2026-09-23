@@ -1,0 +1,16 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{llrrrr}
+\toprule
+Run & target set & params & bpw & $\Delta$NLL & avg.\ per 100M \\
+\midrule
+\texttt{ternary\_task\_v4} & in\_proj\_qkv (18) & 113,246,208 & 1.7251 & $+0.088512$ & $0.078$ \\
+\texttt{mlp\_task\_v1} & MLP (72) & 264,241,152 & 1.7250 & $+0.552558$ & $0.209$ \\
+\texttt{mixed\_alloc\_v1} & both (90) & 377,487,360 & 1.7250 & $+0.637829$ & $0.169$ \\
+\texttt{fullmodel\_v1} & all non-embedding (186) & 497,614,848 & 1.7250 & $+1.000022$ & $0.201$ \\
+\bottomrule
+\end{tabular}
+\caption{Damage against coverage at ternary rate, all rows sharing the same BF16 baseline ($3.436710$) and evaluation stream (261,284 targets). The two disjoint families give an additive reference: $0.088512 + 0.552558 = 0.641069$ against a measured $0.637829$ for converting both, a 0.5\% discrepancy. The jump at full coverage is composition, not breadth: going from the 90-tensor set to all 186 adds 120,127,488 parameters for $+0.362193$, i.e.\ $0.302$ per 100M, the highest marginal cost in the model. The last column is an average over each row's own target set, not a marginal rate.}
+\label{tab:additivity}
+\end{table}

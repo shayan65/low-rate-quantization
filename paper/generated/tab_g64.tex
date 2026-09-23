@@ -1,0 +1,21 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lrl}
+\toprule
+Contrast & $\Delta$NLL & 95\% CI \\
+\midrule
+grouping (g128 book fixed) & $+0.014019$ & $[+0.012133, +0.015908]$ \\
+grouping (g64 book fixed) & $+0.006568$ & $[+0.004410, +0.008588]$ \\
+codebook (g128 grouping fixed) & $-0.005831$ & $[-0.007809, -0.003792]$ \\
+codebook (g64 grouping fixed) & $-0.013281$ & $[-0.015222, -0.011297]$ \\
+\emph{both at once (the diagonal)} & $+0.000737$ & $[-0.001213, +0.002710]$ \\
+\midrule
+main effect, grouping & $+0.010293$ & --- \\
+main effect, codebook & $-0.009556$ & --- \\
+interaction & $+0.007451$ & --- \\
+\bottomrule
+\end{tabular}
+\caption{The scalar group-size control is a $2\times2$ over grouping and codebook, not a single knob, from \texttt{mechanism\_v2}. Moving to g64 at a fixed alphabet hurts; refitting the codebook in the new normalized space helps by a similar amount. An earlier draft read the diagonal as ``group size alone'' and concluded grouping was irrelevant; the two effects are of the same order and opposed, which is why the end-to-end contrast is small and unstable. Main effects and the interaction are differences of point estimates and carry no interval.}
+\label{tab:g64}
+\end{table}

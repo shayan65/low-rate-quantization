@@ -1,0 +1,20 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{llrrr}
+\toprule
+Calibration & code & wikitext-2 test & TinyStories & worst \\
+\midrule
+wikitext & scalar3 & $+0.121115$ & $+0.183486$ & $\mathbf{+0.183486}$ \\
+wikitext & vq8 & $+0.082309$ & $+0.140296$ & $\mathbf{+0.140296}$ \\
+\midrule
+tinystories & scalar3 & $+0.288304$ & $+0.036675$ & $\mathbf{+0.288304}$ \\
+tinystories & vq8 & $+0.199492$ & $+0.029201$ & $\mathbf{+0.199492}$ \\
+\midrule
+mixed50 & scalar3 & $+0.144351$ & $+0.051790$ & $\mathbf{+0.144351}$ \\
+mixed50 & vq8 & $+0.089604$ & $+0.042378$ & $\mathbf{+0.089604}$ \\
+\bottomrule
+\end{tabular}
+\caption{Calibration domain crossed with evaluation domain, identical recipe, storage and evaluated text throughout, from \texttt{mechanism\_v2} (65,536 calibration tokens in every condition). \texttt{mixed50} spends half its budget on each domain and is prespecified at 50/50; it is an exploratory intervention, designed after the pure conditions were seen. The last column is the worst-domain damage, which is what a mixture is meant to reduce.}
+\label{tab:calibration}
+\end{table}

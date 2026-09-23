@@ -1189,10 +1189,17 @@ Mean loss over 127 blocks of 2048 tokens, wikitext-2 test:
 | 1024–1536 | 2.4587 | 0.113739 | 0.084449 | 0.029290 |
 | 1536–2048 | 2.4480 | 0.118204 | 0.088811 | 0.029393 |
 
-Scalar damage is flat with position. **VQ8 damage rises monotonically**, from
-$0.079553$ to $0.088811$ — about 12% — so VQ8's advantage erodes from
-$0.037845$ to $0.029393$, roughly 22%, across the block. The aggregate hid
-this because it averages the two ends.
+Scalar damage is flat with position. VQ8 damage rises from $0.079553$ to
+$0.088811$ — about 12% — so VQ8's advantage erodes from $0.037845$ to
+$0.029393$, roughly 22%, across the block. The aggregate hid this because it
+averages the two ends.
+
+> **Superseded by §18.** These are means over 127 blocks with no measure of
+> spread, and the original wording ("rises monotonically") does not survive the
+> rerun that retains per-block losses: with intervals, VQ8's damage increase
+> across the block does *not* exclude zero, and it is not monotone over eight
+> buckets. What survives is the erosion of VQ8's *advantage*, which does exclude
+> zero. See §18 for the corrected reading.
 
 **This is position-dependent damage, not identified drift.** The original
 heading called it recurrent-state drift, which the design cannot support: later
@@ -1683,3 +1690,169 @@ multi-token-prediction head. Coverage is 66.1% of the loaded text model and
 every byte figure above is for that model. The runner now computes the
 BF16 leftovers by category and asserts they sum to the untouched total, so this
 particular description cannot drift from the run again.
+
+## 18. Calibration mismatch: an identity, and a mixture that acts on it (2026-09-23)
+
+A review made the sharpest observation in this project so far: **changing the
+calibration corpus changes damage substantially while changing storage not at
+all.** Every other lever here — dimension, rate, coverage — is paid for in
+bytes. This one is free. §14A established that mismatch drives the domain
+effect; this section says why it must, and tests the intervention that follows.
+
+### Why mismatch has an effect at all
+
+Write $E = \widehat{W} - W$ for the error a codec leaves in a weight matrix.
+For a fixed input distribution $D$ the layer reconstruction objective is
+quadratic,
+
+$$L_D(E) = \mathbb{E}_D \lVert E x \rVert_2^2 = \operatorname{tr}\!\left(E H_D E^{\top}\right), \qquad H_D = \mathbb{E}_D[x x^{\top}],$$
+
+so evaluating on one domain a quantizer fitted on another costs exactly
+
+$$L_{\text{test}}(E) - L_{\text{cal}}(E) = \operatorname{tr}\!\left[E\left(H_{\text{test}} - H_{\text{cal}}\right)E^{\top}\right],$$
+
+bounded elementarily by
+$\lVert H_{\text{test}} - H_{\text{cal}}\rVert_2 \lVert E \rVert_F^2$.
+
+**This is an identity and an elementary bound. It is not a theorem, and it says
+nothing about NLL.** What it does say is that the penalty depends on how $E$ is
+*oriented* relative to the difference of second moments: two quantizers with
+identical $\lVert E \rVert_F$ can differ arbitrarily in that trace. Plain weight
+MSE is $\lVert E \rVert_F^2$ up to a constant, so it is blind to the orientation
+by construction — the same blindness that makes it invert against loss in §14C
+and in the compensation results. Hessian-weighted objectives of this form
+underpin GPTQ and GPTVQ; nothing here is new, but it is the right frame for
+what §14A found empirically.
+
+### The mixture, and what it buys
+
+The identity suggests a fixed-budget intervention. For the quadratic objective,
+$H_{\text{mix}} = \tfrac12 H_{\text{WT}} + \tfrac12 H_{\text{TS}}$ represents
+*exactly* the equally weighted average of the two domains' reconstruction
+losses. Whether that improves **worst-domain NLL** does not follow — the
+objective is a local proxy and the mixture halves the data seen from each
+domain — so it is an experimental question.
+
+Protocol: the split is prespecified at 50/50 rather than tuned; the total
+calibration budget is held at 65,536 tokens, the same as every other condition;
+each domain's calibration text is disjoint from the text either is evaluated
+on; codebook fitting, seed, recipe and evaluated text are unchanged. Because
+the crossed results were inspected before this was designed, it is an
+**exploratory intervention**, not a confirmatory one.
+
+ΔNLL against BF16 (`results/mechanism_v2`):
+
+| calibration | code | wikitext-2 test | TinyStories | **worst domain** |
+|---|---|---:|---:|---:|
+| wikitext | scalar | 0.121115 | 0.183486 | 0.183486 |
+| wikitext | VQ8 | 0.082309 | 0.140296 | 0.140296 |
+| TinyStories | scalar | 0.288304 | 0.036675 | 0.288304 |
+| TinyStories | VQ8 | 0.199492 | 0.029201 | 0.199492 |
+| **mixed 50/50** | scalar | 0.144351 | 0.051790 | **0.144351** |
+| **mixed 50/50** | VQ8 | 0.089604 | 0.042378 | **0.089604** |
+
+**The mixture's worst-domain damage is lower than either pure condition's, for
+both codes**, at identical storage and identical calibration budget: $0.089604$
+against $0.140296$ and $0.199492$ for VQ8 — a $36\%$ reduction against the
+better pure condition — and $0.144351$ against $0.183486$ and $0.288304$ for
+scalar, a $21\%$ reduction.
+
+The price is on the matched diagonal, and it is small: VQ8 on wikitext goes
+from $0.082309$ matched to $0.089604$ mixed ($+0.0073$), and on TinyStories
+from $0.029201$ to $0.042378$ ($+0.0132$). Half the calibration data per domain
+costs far less than being calibrated on the wrong domain entirely.
+
+VQ8 beats scalar in all six cells, so the codec conclusion is unchanged by the
+mixture.
+
+**Scope, stated plainly.** Two corpora, one model, one recipe, one split, one
+run. This does not establish that mixing is optimal, that 50/50 is the right
+weighting, or that the result survives more domains — all of which the identity
+is silent on, since it describes a local quadratic proxy and the measurement is
+end-to-end loss. What it does show is that the free lever is real and
+actionable: a practitioner who does not know the deployment domain pays less by
+mixing calibration than by guessing.
+
+### The g64 2x2, with the interval that was missing
+
+Reran with all six pairwise contrasts. The four cells reproduce §14C exactly
+(0.121115, 0.121852, 0.135133, 0.115284), which is a useful reproducibility
+check in its own right.
+
+| contrast | holds fixed | ΔNLL | 95% CI |
+|---|---|---:|:--|
+| grouping, g128 book | codebook | $+0.014019$ | $[+0.012133,+0.015908]$ |
+| grouping, g64 book | codebook | $+0.006568$ | $[+0.004410,+0.008588]$ |
+| codebook, g128 grouping | grouping | $-0.005831$ | $[-0.007809,-0.003792]$ |
+| codebook, g64 grouping | grouping | $-0.013281$ | $[-0.015222,-0.011297]$ |
+| *diagonal (both change)* | nothing | $+0.000737$ | $[-0.001213,+0.002710]$ |
+
+The contrast §14C never computed now has an interval, and it **excludes zero**:
+moving to g64 with the g64-fitted codebook held fixed costs $+0.006568$
+$[+0.004410,+0.008588]$. So all four single-factor contrasts exclude zero and
+only the diagonal does not. Main effects $+0.010293$ (grouping) and $-0.009556$
+(codebook), interaction $+0.007451$.
+
+There is no reading of this in which group size "moves nothing". The correct
+one: **finer grouping hurts at a fixed alphabet, refitting the alphabet in the
+finer normalized space helps by about as much, and the two nearly cancel.** The
+original conclusion — that the instability is a codebook story and not a
+grouping story — was drawn from the one contrast in the table that confounds
+them.
+
+### Position-resolved damage, with the intervals that change the answer
+
+§14B read a trend off five bucket means with no measure of block-to-block
+spread. With all 127 blocks' per-position losses retained and eight buckets,
+the picture is weaker than §14B reported.
+
+| positions | scalar damage | VQ8 damage | VQ8 advantage |
+|---|---:|---:|---:|
+| 0–256 | $+0.117398$ | $+0.079553$ | $-0.037845$ |
+| 256–512 | $+0.115513$ | $+0.082541$ | $-0.032973$ |
+| 512–768 | $+0.114274$ | $+0.082985$ | $-0.031289$ |
+| 768–1024 | $+0.117822$ | $+0.082576$ | $-0.035247$ |
+| 1024–1280 | $+0.112215$ | $+0.083584$ | $-0.028631$ |
+| 1280–1536 | $+0.115263$ | $+0.085315$ | $-0.029948$ |
+| 1536–1792 | $+0.117893$ | $+0.087258$ | $-0.030636$ |
+| 1792–2048 | $+0.118514$ | $+0.090364$ | $-0.028150$ |
+
+Paired over blocks, last bucket against first:
+
+| quantity | Δ | 95% CI | |
+|---|---:|:--|:--|
+| VQ8 damage | $+0.010811$ | $[-0.000034,+0.021615]$ | **includes 0** |
+| scalar damage | $+0.001116$ | $[-0.010807,+0.012947]$ | includes 0 |
+| VQ8 advantage eroded | $+0.009695$ | $[+0.000130,+0.019355]$ | excludes 0 |
+
+And as a rank trend over all eight buckets, computed per block and bootstrapped
+over blocks:
+
+| quantity | mean Spearman ρ | 95% CI | blocks with ρ > 0 |
+|---|---:|:--|---:|
+| VQ8 damage | $+0.0934$ | $[+0.0244,+0.1631]$ | 77/127 |
+| scalar damage | $+0.0075$ | $[-0.0637,+0.0784]$ | 57/127 |
+| VQ8 advantage | $+0.0688$ | $[+0.0067,+0.1307]$ | 75/127 |
+
+**§14B's headline is withdrawn.** "VQ8 damage rises monotonically, about 12%"
+was read off means. With intervals, the endpoint contrast for VQ8 damage does
+not exclude zero; the rank trend over all eight buckets does, but weakly — mean
+ρ of 0.093, positive in 77 of 127 blocks, so the effect is real in aggregate
+and absent in nearly 40% of individual blocks. It is also not monotone: bucket
+4 sits below bucket 3.
+
+What survives, and is now properly supported:
+
+* scalar damage shows **no** position trend by either test;
+* VQ8's **advantage over scalar erodes** across the block — $-0.037845$ in the
+  first bucket against $-0.028150$ in the last, excluding zero on both the
+  endpoint contrast and the rank trend, though the endpoint interval nearly
+  touches zero;
+* the ordering is preserved in every bucket, so the headline codec claim is
+  untouched.
+
+Position and token content remain confounded: later positions hold different
+tokens as well as more accumulated recurrent state. **This is
+position-dependent damage, not identified drift**, and separating them needs
+the same tokens evaluated with and without a state reset, which is not run
+here.

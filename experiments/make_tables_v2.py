@@ -33,6 +33,8 @@ RUNS = {
     "q27b": ("qwen38_confirm_v2", "27B, GPTQ recipe, frozen full stream"),
     "refit": ("calib_variability_v1", "0.8B, 8 refits"),
     "gen": ("generalization_v1", "0.8B, fixed quantizer, varied evaluation"),
+    "full": ("fullmodel_v1", "0.8B, every non-embedding matrix"),
+    "mech2": ("mechanism_v2", "0.8B, calibration mixture and the g64 factorial"),
 }
 
 
@@ -218,10 +220,174 @@ def coverage_table():
     return "\n".join(L)
 
 
+def fullmodel_table():
+    """Full coverage, and the additive reference that kills super-linearity."""
+    r = load("full")
+    if r is None:
+        return ""
+    pl = r["plan"]
+    L = [r"\begin{table}[t]", r"\centering", r"\small",
+         r"\begin{tabular}{lrrrrl}", r"\toprule",
+         r"Arm & covered bpw & model MB & effective bpw & shrink & $\Delta$NLL \\",
+         r"\midrule"]
+    for nm, a in r["arms"].items():
+        L.append(f"\\texttt{{{esc(nm)}}} & {a['covered_bits_per_weight']:.4f} & "
+                 f"{a['model_bytes'] / 1e6:.1f} & "
+                 f"{a['effective_bits_per_weight']:.3f} & "
+                 f"{a['model_shrink_vs_bf16']:.2f}$\\times$ & "
+                 f"${a['delta_nll']:+.6f}$ {fmt_ci(a['delta_ci'])} \\\\")
+    L += [r"\bottomrule", r"\end{tabular}",
+          r"\caption{Every two-dimensional weight outside the embedding of "
+          f"Qwen3.5-0.8B: {pl['tensors']} tensors, {pl['covered_params']:,} of "
+          f"{pl['total_params']:,} parameters "
+          f"({pl['coverage'] * 100:.1f}\\%), from \\texttt{{{esc(RUNS['full'][0])}}}. "
+          r"\texttt{effective bpw} includes the BF16 embedding, which "
+          r"\texttt{tie\_word\_embeddings} also makes the output head.}",
+          r"\label{tab:fullmodel}", r"\end{table}", ""]
+    return "\n".join(L)
+
+
+def additivity_table():
+    """Damage against coverage at one rate, with the additive reference.
+
+    Four runs share a BF16 baseline, an evaluation stream and a rate, which is
+    what makes the comparison legitimate; the table asserts that rather than
+    leaving it to the reader, and refuses to print if it stops being true.
+    """
+    src = [("v4", "vq4_rot_gptq", "in\\_proj\\_qkv (18)", 113246208),
+           ("mlp", "mlp_vq4_rot_gptq", "MLP (72)", 264241152),
+           ("alloc", "all_low", "both (90)", 377487360)]
+    rows, base, targets = [], None, None
+    for key, arm, label, params in src:
+        r = load(key)
+        if r is None:
+            return ""
+        b = r["bf16"]["nll"]
+        base = b if base is None else base
+        assert abs(b - base) < 1e-12, f"{key}: BF16 baseline differs"
+        t = r["plan"]["eval_targets"]
+        targets = t if targets is None else targets
+        assert t == targets, f"{key}: evaluation stream differs"
+        a = r["arms"][arm]
+        rows.append((RUNS[key][0], label, params, a["bits_per_weight"],
+                     a["delta_nll"]))
+    rf = load("full")
+    if rf is not None:
+        af = rf["arms"]["r1600_k81"]
+        rows.append((RUNS["full"][0], "all non-embedding (186)",
+                     rf["plan"]["covered_params"],
+                     af["covered_bits_per_weight"], af["delta_nll"]))
+    additive = rows[0][4] + rows[1][4]
+    measured = rows[2][4]
+    L = [r"\begin{table}[t]", r"\centering", r"\small",
+         r"\begin{tabular}{llrrrr}", r"\toprule",
+         r"Run & target set & params & bpw & $\Delta$NLL & avg.\ per 100M \\",
+         r"\midrule"]
+    for nm, label, params, bpw, d in rows:
+        L.append(f"\\texttt{{{esc(nm)}}} & {label} & {params:,} & {bpw:.4f} & "
+                 f"${d:+.6f}$ & ${d / params * 1e8:.3f}$ \\\\")
+    L += [r"\bottomrule", r"\end{tabular}",
+          r"\caption{Damage against coverage at ternary rate, all rows sharing "
+          f"the same BF16 baseline (${base:.6f}$) and evaluation stream "
+          f"({targets:,} targets). The two disjoint families give an additive "
+          f"reference: ${rows[0][4]:.6f} + {rows[1][4]:.6f} = {additive:.6f}$ "
+          f"against a measured ${measured:.6f}$ for converting both, a "
+          f"{abs(additive - measured) / additive * 100:.1f}\\% discrepancy. The "
+          r"jump at full coverage is composition, not breadth: going from the "
+          f"90-tensor set to all 186 adds {rows[3][2] - rows[2][2]:,} parameters "
+          f"for ${rows[3][4] - rows[2][4]:+.6f}$, i.e.\\ "
+          f"${(rows[3][4] - rows[2][4]) / (rows[3][2] - rows[2][2]) * 1e8:.3f}$ per "
+          f"100M, the highest marginal cost in the model. The last column is an "
+          r"average over each row's own target set, not a marginal rate.}"
+          if len(rows) > 3 else r"}",
+          r"\label{tab:additivity}", r"\end{table}", ""]
+    return "\n".join(L)
+
+
+def calibration_table():
+    """Calibration domain x evaluation domain, including the 50/50 mixture."""
+    r = load("mech2")
+    if r is None or "M_calibration" not in r:
+        return ""
+    M = r["M_calibration"]
+    cals = ["wikitext", "tinystories", "mixed50"]
+    evals = ["wt2_test", "tinystories"]
+    L = [r"\begin{table}[t]", r"\centering", r"\small",
+         r"\begin{tabular}{llrrr}", r"\toprule",
+         r"Calibration & code & wikitext-2 test & TinyStories & worst \\",
+         r"\midrule"]
+    for c in cals:
+        for arm in ("scalar3", "vq8"):
+            cells = [M["cells"].get(f"{c}|{arm}|{e}") for e in evals]
+            if any(x is None for x in cells):
+                continue
+            vals = [x["delta_nll"] for x in cells]
+            L.append(f"{esc(c)} & {arm} & " +
+                     " & ".join(f"${v:+.6f}$" for v in vals) +
+                     f" & $\\mathbf{{{max(vals):+.6f}}}$ \\\\")
+        if c != cals[-1]:
+            L.append(r"\midrule")
+    L += [r"\bottomrule", r"\end{tabular}",
+          r"\caption{Calibration domain crossed with evaluation domain, "
+          r"identical recipe, storage and evaluated text throughout, from "
+          f"\\texttt{{{esc(RUNS['mech2'][0])}}} "
+          f"({r['plan']['cal_tokens']:,} calibration tokens in every condition). "
+          r"\texttt{mixed50} spends half its budget on each domain and is "
+          r"prespecified at 50/50; it is an exploratory intervention, designed "
+          r"after the pure conditions were seen. The last column is the "
+          r"worst-domain damage, which is what a mixture is meant to reduce.}",
+          r"\label{tab:calibration}", r"\end{table}", ""]
+    return "\n".join(L)
+
+
+def g64_table():
+    """The grouping/codebook 2x2, read as a factorial rather than a diagonal."""
+    r = load("mech2")
+    if r is None or "G_g64_factorial" not in r:
+        return ""
+    G = r["G_g64_factorial"]
+    named = [("grouping_at_fixed_g128_book", "grouping (g128 book fixed)"),
+             ("grouping_at_fixed_g64_book", "grouping (g64 book fixed)"),
+             ("codebook_at_fixed_g128_grouping", "codebook (g128 grouping fixed)"),
+             ("codebook_at_fixed_g64_grouping", "codebook (g64 grouping fixed)"),
+             ("confounded_diagonal", "\\emph{both at once (the diagonal)}")]
+    L = [r"\begin{table}[t]", r"\centering", r"\small",
+         r"\begin{tabular}{lrl}", r"\toprule",
+         r"Contrast & $\Delta$NLL & 95\% CI \\", r"\midrule"]
+    for key, label in named:
+        c = G["factorial"].get(key)
+        if not isinstance(c, dict):
+            continue
+        L.append(f"{label} & ${c['delta']:+.6f}$ & {fmt_ci(c['ci'])} \\\\")
+    f = G["factorial"]
+    L += [r"\midrule",
+          f"main effect, grouping & ${f['main_effect_grouping']:+.6f}$ & --- \\\\",
+          "main effect, codebook & $"
+          f"{f['main_effect_codebook_g64book_minus_g128book']:+.6f}$ & --- \\\\",
+          f"interaction & ${f['interaction']:+.6f}$ & --- \\\\",
+          r"\bottomrule", r"\end{tabular}",
+          r"\caption{The scalar group-size control is a $2\times2$ over grouping "
+          r"and codebook, not a single knob, from "
+          f"\\texttt{{{esc(RUNS['mech2'][0])}}}. Moving to g64 at a fixed "
+          r"alphabet hurts; refitting the codebook in the new normalized space "
+          r"helps by a similar amount. An earlier draft read the diagonal as "
+          r"``group size alone'' and concluded grouping was irrelevant; the two "
+          r"effects are of the same order and opposed, which is why the "
+          r"end-to-end contrast is small and unstable. Main effects and the "
+          r"interaction are differences of point estimates and carry no "
+          r"interval.}",
+          r"\label{tab:g64}", r"\end{table}", ""]
+    return "\n".join(L)
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     files = {
         "tab_coverage.tex": coverage_table(),
+        "tab_fullmodel.tex": fullmodel_table(),
+        "tab_additivity.tex": additivity_table(),
+        "tab_calibration.tex": calibration_table(),
+        "tab_g64.tex": g64_table(),
         "tab_rate.tex": rate_table(),
         "tab_v4_arms.tex": arm_table(
             "v4", "Codec and recipe ablation on the 0.8B DeltaNet QKV projections.",
@@ -249,6 +415,9 @@ def main():
            "tab:primary"),
     }
     for name, body in files.items():
+        if not body:
+            print(f"skipped {name} (source run not present)")
+            continue
         (OUT / name).write_text(body)
         print(f"wrote {name} ({len(body.splitlines())} lines)")
 
