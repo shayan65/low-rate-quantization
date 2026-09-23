@@ -1661,27 +1661,46 @@ latency flat to within $9\%$ — not a property of the format.
 
 | path | ms, batch 1 |
 |---|---:|
-| installed BF16 (cuBLAS) | 0.0186 |
-| **the Hadamard rotation alone** | **0.4710** |
-| Triton kernel including rotation | 0.5146 |
-| streamed path including rotation | 0.8399 |
+| installed BF16 (cuBLAS) | 0.0187 |
+| Hadamard rotation, PyTorch prototype | 0.4760 |
+| **Hadamard rotation, fused Triton** | **0.0182** |
+| Triton kernel + prototype rotation | 0.5233 |
+| **Triton kernel + fused rotation** | **0.0555** |
+| streamed path + prototype rotation | 0.8415 |
 
-At $6144\times1024$ this compressed path is $28\times$ slower than cuBLAS, far
-worse than the $3.5\times$ the synthetic benchmark suggested, and the rotation
-is most of it.
+The first version of this subsection reported only the prototype row and
+concluded the compressed path is $28\times$ slower than cuBLAS, "and about 90%
+of it is the activation rotation". A review objected that this diagnoses the
+implementation rather than the transform, and that no optimized figure should
+be inferred by subtracting separately timed components. Both objections were
+right, and the fused transform settles it by measurement.
 
-**What that does and does not diagnose.** `fwht` here is a prototype: ten
-Python-controlled butterfly stages over 1024 columns, with a `clone` and two
-slice assignments per stage. For a single activation vector that is a tiny
-amount of arithmetic wrapped in a large amount of launch and allocation
-overhead, so $0.4710$ ms measures *this implementation*, not the intrinsic cost
-of a Hadamard transform. A fused kernel is the obvious engineering target and
-is not attempted here. Nor should the GEMV cost be inferred by subtracting two
-separately timed components: that difference ($\approx 0.04$ ms) is not a
-measurement of anything that was run. The honest reading is that **this
-prototype is 28x slower than cuBLAS end to end, and most of the gap sits in an
-unoptimized transform** — which bounds what the format costs today without
-establishing what it would cost optimized.
+**`fwht` was the problem, not the Hadamard.** The prototype runs ten
+Python-controlled butterfly stages over 1024 columns, each cloning two
+half-tiles and writing two slice assignments back — eleven passes over the data
+for one activation vector, almost entirely launch and allocation overhead. The
+radix-2 FWHT in natural order is exactly a Kronecker product, so a
+$1024$-point block viewed as a $32\times32$ tile $X$ satisfies
+$\mathrm{FWHT}(x) = \mathrm{vec}(H_{32} X H_{32})/32$: two small matrix products
+in one kernel, with the sign flip folded in. Verified against `fwht` at three
+block sizes and three batch sizes (agreement $2\times10^{-7}$; on the benchmark
+vector, **bit-identical**).
+
+| | prototype | fused | |
+|---|---:|---:|---:|
+| rotation alone | 0.4760 ms | 0.0182 ms | **26.1x faster** |
+| whole compressed path | 0.5233 ms | 0.0555 ms | **9.4x faster** |
+| against cuBLAS | 28.0x slower | **3.0x slower** | |
+
+So the format's latency cost at this shape is **$3.0\times$ cuBLAS, not
+$28\times$**. That figure is also consistent with the synthetic benchmark's
+$3.1\times$ GEMV-only comparison at the 27B shape, where no transform is in the
+loop — two independent measurements agreeing, where the earlier subtraction
+argument would have been guesswork.
+
+What remains true: the compressed path is still slower than a tuned BF16 GEMM
+at batch one, and neither kernel is tuned beyond correctness. What is withdrawn:
+the claim that the rotation intrinsically dominates compressed inference.
 
 At the larger synthetic shape the GEMV comparison is $0.132$ ms against
 $0.404$ ms, $3.1\times$. So the kernel gap narrows with size, as a
@@ -1690,12 +1709,14 @@ that no amount of tensor size amortizes away and that a deployed system would
 have to fuse into the preceding operation. That fusion is not implemented or
 measured here.
 
-**Where this leaves the runtime claim.** The format is decodable at speed, more
-faithful than the BF16 weights the quality results used, and $5\times$ smaller
-at peak. It is not faster, and at small projections it is much slower, mostly
-because of a rotation the earlier benchmark silently omitted. "A kernel that
-runs it" overstated this; "a verified compressed path with a real memory win
-and an unresolved latency cost" is what was established.
+**Where this leaves the runtime claim.** The format is decodable at speed,
+reproduces the quantized operator four orders of magnitude more closely than
+the BF16 weights the quality results used, and peaks at $5\times$ less memory.
+It is $3.0\times$ slower than cuBLAS at batch one once the transform is fused —
+a real cost, but a tractable one, and no longer dominated by an artifact of the
+offline tooling. "A kernel that runs it" overstated the first version of this
+section; "a verified compressed path with a real memory win and a $3\times$
+latency cost" is what is established now.
 
 ### Defects found in this section, and what they cost
 
@@ -1903,9 +1924,14 @@ fixed) $= +0.000738$, against the measured diagonal of $+0.000737$.
 
 **What this still does not show.** Cancellation explains why the end-to-end
 contrast is *small*; it does not establish that these opposing effects are what
-make it *change sign* across refits. That needs the factorial repeated over
-refits, which is not run. For this single fit the decomposition is well
-supported; the connection to §12's sign instability remains a hypothesis.
+make it *change sign* across refits.
+
+> **§20 ran that test and the hypothesis failed.** Repeated over six refits, three
+> of the four single-factor contrasts change sign themselves, and the one that
+> varies most varies more than the diagonal it was meant to explain. §20 also
+> found that this factorial was measured on wikitext-2 *test* while the sign
+> instability it was invoked to explain was measured on *validation* — the two
+> were never on the same stream. Read §20 instead of this paragraph.
 
 ### Position-resolved damage, with the intervals that change the answer
 
@@ -2060,3 +2086,88 @@ the obvious alternative: **at fixed storage and fixed calibration budget, a
 practitioner who does not know the deployment domain pays substantially less by
 mixing calibration than by choosing one domain and hoping.** That is the only
 result in this project that costs nothing to adopt.
+
+## 20. The cancellation story, tested across refits — and falsified (2026-09-23)
+
+§18 explained the unstable g64 contrast as a cancellation: finer grouping hurts,
+refitting the alphabet in the finer space helps by about as much, and the
+end-to-end difference is what is left. A review accepted that for the single
+fit and pointed out precisely what it does not show — that cancellation
+explains *smallness*, not *sign instability*. This run tests it.
+
+The prediction was explicit and falsifiable: **if the diagonal is a small
+difference between two larger stable effects, the single-factor contrasts
+should hold their signs across refits while their difference wanders.**
+
+### Two design points that make this sharper than §18's version
+
+**Both codebooks are fitted from weights by a deterministic Lloyd-Max
+procedure**, so neither the calibration draw nor the seed can move them. Across
+refits the *only* thing that changes is the Hessian used for GPTQ assignment
+and compensation. That also explains why §12's seed axis moved this contrast by
+exactly zero — a fact previously recorded as a harness check rather than
+understood.
+
+**And this run evaluates on the corpus the instability was measured on.** §14C
+and §18 ran the 2x2 on wikitext-2 *test* (BF16 3.394295) while the refit
+instability it was invoked to explain comes from §12, on wikitext-2
+*validation* (BF16 3.436710). The two were never on the same stream, which
+nobody noticed. This run is on validation and reproduces §12's diagonal exactly
+at the shared cell: $-0.001815$ against §12's $-0.0018154856816332554$.
+
+### Result: every contrast is unstable, not just their difference
+
+Six refits — three disjoint calibration draws at 65,536 tokens, three
+calibration sizes at draw 0.
+
+| refit | tokens | grouping\|g128 book | grouping\|g64 book | codebook\|g128 | codebook\|g64 | diagonal |
+|---|---:|---:|---:|---:|---:|---:|
+| draw0_65k | 65,536 | $+0.008219$ | $+0.001926$ | $-0.003741$ | $-0.010034$ | $-0.001815$ |
+| draw1_65k | 65,536 | $+0.002475$ | $-0.001646$ | $-0.003525$ | $-0.007646$ | $-0.005171$ |
+| draw2_65k | 65,536 | $+0.005464$ | $-0.006581$ | $+0.001943$ | $-0.010102$ | $-0.004638$ |
+| draw0_16k | 16,384 | $+0.003979$ | $+0.005722$ | $-0.000687$ | $+0.001056$ | $+0.005035$ |
+| draw0_32k | 32,768 | $+0.007709$ | $-0.001560$ | $-0.000847$ | $-0.010115$ | $-0.002406$ |
+| draw0_131k | 131,072 | $+0.005366$ | $+0.008598$ | $-0.005929$ | $-0.002697$ | $+0.002669$ |
+
+| contrast | mean | range | same sign | excludes 0 |
+|---|---:|---:|:--|:--|
+| grouping at fixed g128 book | $+0.005535$ | 0.005744 | yes | 6/6 |
+| grouping at fixed g64 book | $+0.001077$ | 0.015179 | **no** | 3/6 |
+| codebook at fixed g128 grouping | $-0.002131$ | 0.007872 | **no** | 3/6 |
+| codebook at fixed g64 grouping | $-0.006590$ | 0.011171 | **no** | 5/6 |
+| confounded diagonal | $-0.001055$ | 0.010206 | **no** | 5/6 |
+| interaction | $+0.004459$ | 0.015278 | **no** | 0/6 |
+
+**The prediction fails.** Exactly one of the four single-factor contrasts holds
+its sign across refits — grouping at a fixed g128 codebook, $+0.005535$, which
+excludes zero in all six. The other three all change sign, and the one that
+wanders most (grouping at a fixed g64 codebook, range $0.015179$) wanders
+*more* than the diagonal it was supposed to explain (range $0.010206$). The
+interaction excludes zero in **none** of the six refits, against the
+$+0.007451$ that looked resolved on a single fit in §18.
+
+So §18's explanation is withdrawn. Cancellation is a correct description of one
+fit and not a mechanism for the instability.
+
+### What replaces it
+
+Since the codebooks are provably fixed across refits here, **every effect in
+the 2x2 is a function of the Hessian alone**, and the measurement says all of
+them are sensitive to it. The instability is not located in the grouping, nor
+in the codebook, nor in their cancellation: it is that GPTQ's compensation
+statistics, estimated from 16k–131k tokens, are themselves noisy enough to move
+every contrast in this family by $0.005$ to $0.015$ — comparable to or larger
+than the contrasts themselves.
+
+That is a more useful conclusion than the one it replaces, and it connects to
+§18's identity: the Hessian is what the mismatch term is built from, and a
+quantity estimated from a finite calibration sample carries sampling error into
+every downstream contrast. It also predicts that the g64 family should stabilize
+with more calibration tokens, which the size axis here does not obviously show
+(the 131k cell is not the tightest) and which is not tested properly by three
+nested sizes on one draw.
+
+**Scope.** One model, one tensor family, six refits, one corpus. The
+falsification is clean because the prediction was specific; the replacement is
+an interpretation of the same six numbers and has not been tested against
+anything.

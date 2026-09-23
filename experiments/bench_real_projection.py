@@ -54,6 +54,7 @@ from pathlib import Path
 
 import torch
 
+from fused_hadamard import HAVE_TRITON as HAVE_FUSED, hadamard_matrix, rotate_fused
 from packed_lowrate import decode, encode_vq, gnorm_fp16
 from packed_matmul import (HAVE_TRITON, matmul_streamed, matmul_triton,
                            resident_bytes, runtime_bits_per_weight,
@@ -208,16 +209,32 @@ def main() -> None:
                       "dtypes": rb["dtypes"]}), flush=True)
 
     # ---- latency at batch one, rotation included in the compressed path ----
+    # Both rotations are timed: the ten-stage PyTorch prototype that the first
+    # version of this benchmark used, and the fused Triton transform, which
+    # factors the 1024-point Hadamard as 32x32 and folds in the sign flip. The
+    # prototype's cost is a property of the prototype; reporting only it would
+    # overstate what the format requires.
     x1 = X[:1].contiguous()
     xb = x1.to(torch.bfloat16)
     lat = {"installed_bf16": timed(lambda: xb @ W_inst.T)}
-    lat["rotate_only"] = timed(lambda: rotate(x1, signs, BLOCK))
-    lat["streamed_with_rotation"] = timed(
+    lat["rotate_prototype"] = timed(lambda: rotate(x1, signs, BLOCK))
+    lat["streamed_with_prototype_rotation"] = timed(
         lambda: matmul_streamed(codes, book, sc16, rotate(x1, signs, BLOCK),
                                 rows, cols, DIM, GROUP))
     if HAVE_TRITON:
-        lat["triton_with_rotation"] = timed(
+        lat["triton_with_prototype_rotation"] = timed(
             lambda: matmul_triton(codes, book, sc16, rotate(x1, signs, BLOCK)[0],
+                                  rows, cols, DIM, GROUP))
+    if HAVE_FUSED:
+        hm = hadamard_matrix(int(round(BLOCK ** 0.5)), "cuda")
+        chk = (rotate_fused(x1, signs, BLOCK, hm) - rotate(x1, signs, BLOCK))
+        res["fused_rotation_rel_err"] = float(
+            chk.abs().max() / rotate(x1, signs, BLOCK).abs().max())
+        assert res["fused_rotation_rel_err"] < 1e-5, "fused rotation disagrees"
+        lat["rotate_fused"] = timed(lambda: rotate_fused(x1, signs, BLOCK, hm))
+        lat["triton_with_fused_rotation"] = timed(
+            lambda: matmul_triton(codes, book, sc16,
+                                  rotate_fused(x1, signs, BLOCK, hm)[0],
                                   rows, cols, DIM, GROUP))
     res["latency_ms"] = lat
     print(json.dumps({"latency_ms": {k: round(v, 4) for k, v in lat.items()}}),
@@ -261,8 +278,17 @@ def main() -> None:
     for k, v in lat.items():
         L.append(f"| {k.replace('_', ' ')} | {v:.4f} |")
     L += ["", "The rotation is a required part of the compressed path and is "
-          "inside the timed region; it is also reported alone so its share is "
-          "visible."]
+          "inside the timed region; both the ten-stage PyTorch prototype and "
+          "the fused Triton transform are reported, alone and in the full "
+          "path, so the format's cost is separated from the prototype's."]
+    if "rotate_fused" in lat:
+        sp = lat["rotate_prototype"] / lat["rotate_fused"]
+        best = lat["triton_with_fused_rotation"] / lat["installed_bf16"]
+        L += ["", f"Fusing the rotation makes it **{sp:.1f}x** faster and brings "
+              f"the whole compressed path to **{best:.1f}x** cuBLAS, from "
+              f"{lat['triton_with_prototype_rotation'] / lat['installed_bf16']:.1f}x "
+              f"with the prototype. Fused rotation agrees with the reference to "
+              f"{res['fused_rotation_rel_err']:.2e}."]
     (out / "summary.md").write_text("\n".join(L) + "\n")
     print("\n".join(L))
 

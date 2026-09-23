@@ -41,11 +41,14 @@
       "total": 2.25848388671875
     }
   },
+  "fused_rotation_rel_err": 0.0,
   "latency_ms": {
-    "installed_bf16": 0.01864986028522253,
-    "rotate_only": 0.4709728015586734,
-    "streamed_with_rotation": 0.83993247942999,
-    "triton_with_rotation": 0.5146072409115732
+    "installed_bf16": 0.01870378153398633,
+    "rotate_prototype": 0.47597254160791636,
+    "streamed_with_prototype_rotation": 0.8415381400845945,
+    "triton_with_prototype_rotation": 0.5232961196452379,
+    "rotate_fused": 0.018217440228909254,
+    "triton_with_fused_rotation": 0.055488720536231995
   },
   "seconds": 19.2
 }

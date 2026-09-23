@@ -69,8 +69,12 @@ def arm_table(key, caption, label, rows=None):
         L.append(f"{esc(n)} & {a['bits_per_weight']:.4f} & "
                  f"{a['stored_bytes'] / 1e6:.2f} & ${a['delta_nll']:+.6f}$ & {fmt_ci(a['delta_ci'])} \\\\")
     L += [r"\bottomrule", r"\end{tabular}",
-          f"\\caption{{{caption} Source: \\texttt{{results/{esc(RUNS[key][0])}}} ({RUNS[key][1]}); "
-          f"BF16 NLL {r['bf16']['nll']:.6f}.}}",
+          # The caption's last line stretches badly when it lands nearly full;
+          # the extra clause states something true and worth stating, and fills.
+          f"\\caption{{{caption} Every arm is decoded from packed bytes and "
+          f"evaluated on the same stream, so the rows differ only in codec and "
+          f"recipe. Source: \\texttt{{results/{esc(RUNS[key][0])}}} "
+          f"({RUNS[key][1]}); BF16 NLL {r['bf16']['nll']:.6f}.}}",
           f"\\label{{{label}}}", r"\end{table}", ""]
     return "\n".join(L)
 

@@ -13,6 +13,6 @@ mlp\_vq8\_rot\_gptq\_pertype & 1.7345 & 57.29 & $+0.521963$ & $[+0.514011, +0.52
 mlp\_scalar3\_g64\_rot\_gptq & 1.8500 & 61.11 & $+0.656502$ & $[+0.647276, +0.665713]$ \\
 \bottomrule
 \end{tabular}
-\caption{The same recipe on all 72 MLP tensors of the 0.8B model. Source: \texttt{results/mlp\_task\_v1} (0.8B MLP, GPTQ recipe); BF16 NLL 3.436710.}
+\caption{The same recipe on all 72 MLP tensors of the 0.8B model. Every arm is decoded from packed bytes and evaluated on the same stream, so the rows differ only in codec and recipe. Source: \texttt{results/mlp\_task\_v1} (0.8B MLP, GPTQ recipe); BF16 NLL 3.436710.}
 \label{tab:mlp}
 \end{table}

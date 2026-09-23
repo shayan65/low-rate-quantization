@@ -33,9 +33,13 @@ Reduction: **7.08x**.
 
 | path | ms |
 |---|---:|
-| installed bf16 | 0.0186 |
-| rotate only | 0.4710 |
-| streamed with rotation | 0.8399 |
-| triton with rotation | 0.5146 |
+| installed bf16 | 0.0187 |
+| rotate prototype | 0.4760 |
+| streamed with prototype rotation | 0.8415 |
+| triton with prototype rotation | 0.5233 |
+| rotate fused | 0.0182 |
+| triton with fused rotation | 0.0555 |
 
-The rotation is a required part of the compressed path and is inside the timed region; it is also reported alone so its share is visible.
+The rotation is a required part of the compressed path and is inside the timed region; both the ten-stage PyTorch prototype and the fused Triton transform are reported, alone and in the full path, so the format's cost is separated from the prototype's.
+
+Fusing the rotation makes it **26.1x** faster and brings the whole compressed path to **3.0x** cuBLAS, from 28.0x with the prototype. Fused rotation agrees with the reference to 0.00e+00.

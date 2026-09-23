@@ -8,7 +8,7 @@
 \setlength{\emergencystretch}{3em}
 \title{Low-Rate Quantization in Hybrid Language Models:\\
 Codebook Dimension, Error Compensation, and Coverage}
-\author{Working research draft}
+\author{Shayan Hemmatiyan}
 \date{September 22, 2026}
 \begin{document}
 \maketitle
@@ -64,8 +64,8 @@ $83\%$ of what remains: at these rates the binding constraint is embedding
 precision, not the weight codec. A compressed matmul on a real projection reproduces
 the quantized FP32 operator four orders of magnitude more closely than the BF16
 weights our loss numbers were measured with, and peaks at $5.00\times$ less
-memory, but our prototype is slower than cuBLAS, most of the gap sitting in an
-unfused activation rotation. These are two checkpoints and two corpora; we establish neither
+memory, but is $3.0\times$ slower than cuBLAS at batch one once the activation
+rotation the format requires is fused into a single kernel. These are two checkpoints and two corpora; we establish neither
 end-to-end deployment nor a new algorithm.
 \end{abstract}
 
@@ -133,9 +133,9 @@ leaves the tied embedding at BF16, and that embedding is $83\%$ of the
 compressed model. No end-to-end quantized checkpoint was served: KV cache,
 recurrent state and decoding buffers remain unmeasured.
 \item \textbf{No latency claim.} A compressed matmul is verified and measured
-(\S\ref{sec:coverage-runtime}), and it is \emph{slower} than a BF16 cuBLAS
-product at batch one. The memory reduction is real; the speed is not
-established, and the activation rotation the format requires is unfused.
+(\S\ref{sec:coverage-runtime}), and it is $3.0\times$ \emph{slower} than a BF16
+cuBLAS product at batch one. The memory reduction is real; a speed advantage is
+not established, and neither kernel is tuned beyond correctness.
 \item \textbf{No four-bit deployment claim.} A historical $+0.008393$ NLL
 four-bit measurement exists, but it is a 0.8B projection-subset result
 ($0.24\%$ of baseline NLL, $0.84\%$ relative perplexity --- distinct
@@ -228,17 +228,17 @@ $0.93261$ --- the vector code wins while storing $6.7\%$ \emph{fewer} bytes. A
 512-block pilot of the same comparison was inconclusive
 ($-0.001736$ $[-0.004444,+0.000923]$).
 
-On the frozen confirmation, dimension-8 beats dimension-4 by $-0.004034$
-$[-0.005334,-0.002715]$ --- more than half of dimension-8's entire advantage
+On the frozen confirmation, dimension-8 beats dimension-4 by $-0.004034$ with
+an interval of $[-0.005334,-0.002715]$ --- more than half of dimension-8's entire advantage
 over the scalar code, though on a single refit; at 0.8B the same contrast keeps
 its sign across all eight refits. The 512-block pilot had dimension-4 capturing
 $95.4\%$ of the gain, with dimension-8 ahead by only $0.000181$; that reading
-did not survive the complete stream. The difference is not sampling: the pilot's blocks
-and the remaining $1{,}530$ agree with each other, and BF16 loss on the pilot's
-blocks is identical across runs to all printed digits. What differs is
-calibration size ($32{,}768$ against $65{,}536$ tokens), which moved the
-storage-dominance contrast across non-overlapping intervals on identical
-evaluation data. Every interval reported here is conditional on one fitted
+did not survive the complete stream. The difference is not sampling. The pilot's blocks
+and the remaining $1{,}530$ agree with each other, and BF16 loss on the
+pilot's blocks is identical across runs to all printed digits. What differs
+is calibration size, $32{,}768$ tokens against $65{,}536$, which moved the
+storage-dominance contrast across disjoint intervals on the same evaluation
+data. Every interval reported here is conditional on one fitted
 quantizer, and calibration variability is not inside it.
 
 \subsection{Compensation dominates the codec, and inverts the proxy}
@@ -437,9 +437,28 @@ held fixed, and adopting the finer-fitted codebook helps by $-0.005831$ or
 $-0.013281$ depending on which grouping is held. Main effects are $+0.010293$
 (grouping) and $-0.009556$ (codebook) with a $+0.007451$ interaction: two
 opposed effects of similar size, whose near-cancellation is what makes the
-end-to-end contrast small and unstable.
+end-to-end contrast small.
 
 \input{generated/tab_g64}
+
+It does \emph{not} explain why that contrast changes sign across refits, and we
+tested whether it does. Both codebooks here are deterministic Lloyd-Max fits
+over weights, so no draw or seed can move them and the Hessian is the only thing
+that varies across refits --- which is also why the seed axis moved this
+contrast by exactly zero. Repeating the $2\times2$ over six refits (three
+disjoint draws, three calibration sizes), three of the four single-factor
+contrasts change sign themselves, and the one that varies most (grouping at a
+fixed g64 codebook, range $0.015179$) varies more than the diagonal it was meant
+to explain (range $0.010206$); the interaction excludes zero in none of the six.
+The cancellation account of the \emph{instability} is therefore withdrawn. What
+the design does establish, since the codebooks are provably fixed, is that every
+effect in this family is a function of the compensation statistics alone, and
+that those statistics --- estimated from 16k--131k calibration tokens --- are
+noisy enough to move each contrast by $0.005$ to $0.015$, comparable to or
+larger than the contrasts themselves. We also note that the single-fit factorial
+above was evaluated on wikitext-2 test while the sign instability it was invoked
+to explain was measured on validation; the refit study is on validation and
+reproduces that study's diagonal exactly.
 
 \section{Full coverage and a compressed matmul}
 \label{sec:coverage-runtime}
@@ -508,15 +527,20 @@ layers downstream need not respond monotonically to a local perturbation.
 
 Resident bytes fall $7.08\times$ on that tensor and $7.47\times$ at the 27B QKV
 shape, the difference being codebook amortization; peak allocation during a
-product falls $5.00\times$ ($113.5 \to 22.7$ MB). Latency does not improve: at
-batch one this prototype takes $0.5146$ ms against $0.0186$ ms for cuBLAS, and
-$0.4710$ ms of that is the activation rotation. That rotation is ten
-Python-controlled butterfly stages over 1024 columns, so the figure measures
-our implementation rather than the intrinsic cost of a Hadamard transform, and
-we do not infer a GEMV cost by subtracting separately timed components. At the
-larger synthetic shape, where the transform is not in the loop, the GEMV
-comparison alone is $3.1\times$. The format is verified, smaller, and slower as
-built.
+product falls $5.00\times$ ($113.5 \to 22.7$ MB). Latency does not improve, though it is far better than our first
+implementation suggested. With the rotation written as ten Python-controlled
+butterfly stages the compressed path took $0.5233$ ms against $0.0187$ ms for
+cuBLAS, $0.4760$ ms of it in the transform. That measured the prototype, not the
+transform: the radix-2 FWHT in natural order is a Kronecker product, so a
+1024-point block viewed as a $32\times32$ tile $X$ satisfies
+$\mathrm{FWHT}(x) = \mathrm{vec}(H_{32} X H_{32})/32$ --- two small matrix
+products in one kernel with the sign flip folded in. Fused, the rotation costs
+$0.0182$ ms ($26.1\times$ faster, bit-identical to the reference on this input)
+and the whole compressed path $0.0555$ ms, or $\mathbf{3.0\times}$ cuBLAS rather
+than $28\times$. That agrees with the $3.1\times$ GEMV-only comparison at the
+larger synthetic shape, where no transform is in the loop. The format is
+verified, smaller, and about three times slower at batch one; neither kernel is
+tuned beyond correctness.
 
 \section{Negative results retained from earlier work}
 
@@ -585,25 +609,19 @@ effect.
 \textbf{Generalization scope.} The five evaluation configurations in
 Section~\ref{sec:results} are two corpora and three context lengths, not five
 independent replications; the three wikitext-test rows share their text.
-Position-resolved loss is measured with per-block intervals over 127 blocks. An
-earlier draft reported that VQ8 damage ``rises monotonically'' across a
-2048-token block; with intervals the endpoint contrast is $+0.010811$ and does
-not exclude zero, and the rise is not monotone. A rank trend over eight buckets
-does exclude zero but is weak (mean Spearman $\rho = 0.093$, $[0.024,0.163]$,
-positive in only 77 of 127 blocks), and what erodes is VQ8's \emph{advantage}
-over the scalar code, $+0.009695$ from the first bucket to the last. Scalar
-damage shows no trend by either test. These bounds sit close enough to zero
-that 5{,}000 bootstrap replicates let the seed flip the classification, so they
-are computed at 100{,}000 replicates and reported as the range over five seeds:
-the VQ8 damage contrast has a lower bound in $[-0.000223,-0.000124]$ (includes
-zero on every seed) and the advantage erosion in $[+0.000052,+0.000126]$
-(excludes zero on every seed, by a margin two orders of magnitude smaller than
-the effect). Since the analysis also followed inspection of the earlier bucket
-means, we treat the erosion as weak evidence of position-dependent damage and
-lean on it nowhere. Position and token content are in any case confounded
-within a block, so we do not identify recurrent-state drift as the mechanism;
-that would need the same tokens evaluated with and without a state reset, which
-was not run. Higher damage out of domain is attributed to
+Position-resolved loss is measured with per-block intervals over 127 blocks,
+and we report it as weak evidence and lean on it nowhere. An earlier draft said
+VQ8 damage ``rises monotonically'' across a 2048-token block; with intervals
+the endpoint contrast does not exclude zero and the rise is not monotone. What
+erodes is VQ8's \emph{advantage} over the scalar code, $+0.009695$ from the
+first bucket to the last, and that excludes zero on all five bootstrap seeds at
+$100{,}000$ replicates --- but by a lower bound between $5\times10^{-5}$ and
+$1.3\times10^{-4}$, two orders of magnitude below the effect, and the analysis
+followed inspection of the bucket means rather than preceding it. Scalar damage
+shows no trend. Position and token content are confounded within a block in any
+case, so we report position-dependent damage and do not identify
+recurrent-state drift as its mechanism; that would need the same tokens
+evaluated with and without a state reset, which was not run. Higher damage out of domain is attributed to
 calibration mismatch on the strength of the crossed design in
 Section~\ref{sec:calibration}, which rules out the alternative reading that
 TinyStories is intrinsically harder for this recipe; it does not decompose the
