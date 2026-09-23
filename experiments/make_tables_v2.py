@@ -254,29 +254,30 @@ def additivity_table():
     what makes the comparison legitimate; the table asserts that rather than
     leaving it to the reader, and refuses to print if it stops being true.
     """
-    src = [("v4", "vq4_rot_gptq", "in\\_proj\\_qkv (18)", 113246208),
-           ("mlp", "mlp_vq4_rot_gptq", "MLP (72)", 264241152),
-           ("alloc", "all_low", "both (90)", 377487360)]
+    src = [("v4", "vq4_rot_gptq", "in\\_proj\\_qkv (18)", 113246208, "bits_per_weight"),
+           ("mlp", "mlp_vq4_rot_gptq", "MLP (72)", 264241152, "bits_per_weight"),
+           ("alloc", "all_low", "both (90)", 377487360, "bits_per_weight"),
+           ("full", "r1600_k81", "all non-embedding (186)", None,
+            "covered_bits_per_weight")]
     rows, base, targets = [], None, None
-    for key, arm, label, params in src:
+    for key, arm, label, params, bitkey in src:
         r = load(key)
         if r is None:
             return ""
+        # The BF16 NLL is a float computed over the entire evaluation stream,
+        # so agreement to full double precision is a far stronger fingerprint
+        # than a matching target count -- which an earlier version of this
+        # function checked, and then skipped entirely for the full-model row.
         b = r["bf16"]["nll"]
         base = b if base is None else base
-        assert abs(b - base) < 1e-12, f"{key}: BF16 baseline differs"
+        assert b == base, f"{key}: BF16 baseline differs ({b!r} vs {base!r})"
         t = r["plan"]["eval_targets"]
         targets = t if targets is None else targets
-        assert t == targets, f"{key}: evaluation stream differs"
+        assert t == targets, f"{key}: evaluation target count differs"
         a = r["arms"][arm]
-        rows.append((RUNS[key][0], label, params, a["bits_per_weight"],
-                     a["delta_nll"]))
-    rf = load("full")
-    if rf is not None:
-        af = rf["arms"]["r1600_k81"]
-        rows.append((RUNS["full"][0], "all non-embedding (186)",
-                     rf["plan"]["covered_params"],
-                     af["covered_bits_per_weight"], af["delta_nll"]))
+        rows.append((RUNS[key][0], label,
+                     params if params is not None else r["plan"]["covered_params"],
+                     a[bitkey], a["delta_nll"]))
     additive = rows[0][4] + rows[1][4]
     measured = rows[2][4]
     L = [r"\begin{table}[t]", r"\centering", r"\small",
@@ -287,12 +288,17 @@ def additivity_table():
         L.append(f"\\texttt{{{esc(nm)}}} & {label} & {params:,} & {bpw:.4f} & "
                  f"${d:+.6f}$ & ${d / params * 1e8:.3f}$ \\\\")
     L += [r"\bottomrule", r"\end{tabular}",
-          r"\caption{Damage against coverage at ternary rate, all rows sharing "
-          f"the same BF16 baseline (${base:.6f}$) and evaluation stream "
-          f"({targets:,} targets). The two disjoint families give an additive "
-          f"reference: ${rows[0][4]:.6f} + {rows[1][4]:.6f} = {additive:.6f}$ "
-          f"against a measured ${measured:.6f}$ for converting both, a "
-          f"{abs(additive - measured) / additive * 100:.1f}\\% discrepancy. The "
+          r"\caption{Damage against coverage at ternary rate. Every row is "
+          r"asserted at generation time to share the same BF16 baseline to full "
+          f"double precision (${base:.6f}$) and the same target count "
+          f"({targets:,}); a matching count alone would not establish stream "
+          f"identity, but a loss computed over the whole stream agreeing in all "
+          f"digits does. The two disjoint families give an apparent additive "
+          f"reference, ${rows[0][4]:.6f} + {rows[1][4]:.6f} = {additive:.6f}$ "
+          f"against a measured ${measured:.6f}$, but these rows fit their "
+          f"codebooks on different pools; the frozen-artifact test reports an "
+          f"interaction of $+0.003818$ $[+0.000769,+0.006835]$, so damage is "
+          f"slightly super-additive. The "
           r"jump at full coverage is composition, not breadth: going from the "
           f"90-tensor set to all 186 adds {rows[3][2] - rows[2][2]:,} parameters "
           f"for ${rows[3][4] - rows[2][4]:+.6f}$, i.e.\\ "

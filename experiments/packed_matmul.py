@@ -7,11 +7,18 @@ its dense footprint.
 
 **Storage format and runtime format are not the same thing, and this is where
 that becomes concrete.** The storage packing puts five base-6561 codes in a
-uint64 for exactly 1.600 bits of index per weight, which is optimal. It is also
-not directly indexable on a GPU: 6561^5 = 1.216e19 exceeds 2^63, so the words
-set the sign bit, and PyTorch and Triton have no unsigned 64-bit arithmetic.
-Peeling base-6561 digits at every access would also cost five integer
-divisions per word on the critical path.
+uint64 for exactly 1.600 bits of index per weight, which is optimal. It is not
+convenient to index directly: 6561^5 = 1.216e19 exceeds 2^63, so the words set
+the sign bit and must be handled as unsigned.
+
+An earlier version of this note claimed "PyTorch and Triton have no unsigned
+64-bit arithmetic". That is wrong about Triton, which has `tl.uint64`. What is
+true, checked on this machine (torch 2.11, triton 3.6): PyTorch will *hold* a
+`torch.uint64` tensor but raises `NotImplementedError: "add_stub" not
+implemented for 'UInt64'` on arithmetic, so the host side cannot do the digit
+extraction; and in a kernel the extraction costs five integer divisions per
+word on the critical path. So the reason for a wider runtime layout is cost and
+host-side support, not a type the language lacks.
 
 So the runtime layout differs from the storage layout. A dim-8 code needs 13
 bits and fits in an int16, which is directly indexable:

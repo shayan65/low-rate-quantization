@@ -53,11 +53,11 @@ forward-side ranking failure we record. Converting \emph{every} non-embedding
 matrix ($66.1\%$ of parameters) costs $+1.000022$ NLL at ternary rate and
 shrinks the model only $2.44\times$, because a tied BF16 embedding is then
 $83\%$ of what remains: at these rates the binding constraint is embedding
-precision, not the weight codec. A compressed matmul on a real projection is
-four orders of magnitude more faithful to the codec than the BF16 weights our
-loss numbers were measured with, and peaks at $5.00\times$ less memory, but is
-slower than cuBLAS --- mostly because of the activation rotation the format
-requires. These are two checkpoints and two corpora; we establish neither
+precision, not the weight codec. A compressed matmul on a real projection reproduces
+the quantized FP32 operator four orders of magnitude more closely than the BF16
+weights our loss numbers were measured with, and peaks at $5.00\times$ less
+memory, but our prototype is slower than cuBLAS, most of the gap sitting in an
+unfused activation rotation. These are two checkpoints and two corpora; we establish neither
 end-to-end deployment nor a new algorithm.
 \end{abstract}
 
@@ -425,15 +425,22 @@ $2.125$ bits and $+0.171490$ at $2.792$ bits.
 \input{generated/tab_fullmodel}
 \input{generated/tab_additivity}
 
-Damage across disjoint tensor families is \emph{additive} at this rate
-(Table~\ref{tab:additivity}): the QKV projections alone cost $+0.088512$ and the
-MLP weights alone $+0.552558$, summing to $0.641069$ against a measured
-$+0.637829$ for converting both, a $0.5\%$ discrepancy. An earlier draft called
-damage ``markedly super-linear in coverage'' on the strength of a comparison
-between a dim-4 full-model arm and a dim-8 subset arm; that claim is withdrawn.
-The larger jump to full coverage is composition rather than breadth --- the
-$120{,}127{,}488$ parameters that no subset covered cost $+0.362193$ between
-them, $0.302$ NLL per $100$M against $0.209$ for MLP and $0.078$ for QKV.
+Damage across disjoint tensor families is \emph{approximately} additive at this
+rate (Table~\ref{tab:additivity}), and we measured the residual directly. The
+observed totals agree with an additive reference to within $0.5\%$, but those
+rows come from separate runs that each fit a codebook on their own tensor pool,
+so the comparison confounds a family interaction with a change in the codec each
+family receives. Quantizing once, freezing the artifacts and installing subsets
+removes that confound: with bit-identical weights in every arm that includes a
+tensor, QKV alone costs $+0.085350$, MLP alone $+0.548660$, both $+0.637829$,
+and the interaction $L_{AB}-L_A-L_B+L_{\mathrm{BF16}}$ is $+0.003818$
+$[+0.000769,+0.006835]$ --- small, but excluding zero, so damage is slightly
+\emph{super}-additive. An earlier draft called damage ``markedly super-linear in
+coverage'' (wrong by orders of magnitude) and a later one called it ``additive''
+(wrong in sign); the measured answer is a small positive interaction. The jump
+to full coverage is largely composition, though we cannot attribute all of it to
+the added $120{,}127{,}488$ parameters, since the full-coverage run also refits
+its codebook over a four-times-larger pool.
 
 The byte accounting is the more consequential result. The covered matrices
 compress $9.28\times$ ($995 \to 107$ MB), but the model shrinks only
@@ -446,28 +453,39 @@ weight codec.}
 \subsection{A compressed matmul on a real projection}
 
 Storage layout is not runtime layout: five base-$6561$ codes in a \texttt{uint64}
-give an optimal $1.600$ bits of index but are not directly indexable, since
-$6561^5 > 2^{63}$ sets the sign bit and neither PyTorch nor Triton has unsigned
-64-bit arithmetic. One code per \texttt{int16} costs $2.000$ bits instead. Nor
+give an optimal $1.600$ bits of index but are inconvenient to index, since
+$6561^5 > 2^{63}$ sets the sign bit. PyTorch will hold a \texttt{uint64} tensor
+but raises \texttt{NotImplementedError} on its arithmetic, so the host cannot do
+the digit extraction; Triton does have \texttt{tl.uint64}, and there the
+extraction costs five integer divisions per word on the critical path. One code
+per \texttt{int16} costs $2.000$ bits instead. Nor
 is the runtime activation the stored one: the codes hold $\mathrm{rotate}(W)$,
 so a compressed path must apply the same blockwise Hadamard to its input,
 $y = \mathrm{rotate}(x)\,\widehat{W}^{\top}$.
 
 On \texttt{in\_proj\_qkv} of the 0.8B model quantized with the full recipe, and
 on activations captured from the model, the Triton path's relative error
-against an exact FP32 product is $1.37\times10^{-7}$, against
-$3.41\times10^{-3}$ for the installed BF16 weights that every $\Delta$NLL in
-this paper was measured with. \emph{The kernel is four orders of magnitude more
-faithful to the codec than the weights our quality numbers used}, so those
-numbers are conservative with respect to compressed execution.
+against an exact FP32 product is $2.71\times10^{-7}$, against
+$3.55\times10^{-3}$ for the installed BF16 weights that every $\Delta$NLL in
+this paper was measured with (all paths scored on the same 256 rows with the
+same denominator). \emph{The compressed kernel closely reproduces the quantized
+FP32 reference on the tested activations; its end-to-end quality relative to
+decoded BF16 execution remains unmeasured.} An earlier draft called the reported
+NLL figures ``conservative'' on this evidence; that does not follow, since BF16
+rounding can reinforce or partially cancel quantization error and the nonlinear
+layers downstream need not respond monotonically to a local perturbation.
 
 Resident bytes fall $7.08\times$ on that tensor and $7.47\times$ at the 27B QKV
 shape, the difference being codebook amortization; peak allocation during a
 product falls $5.00\times$ ($113.5 \to 22.7$ MB). Latency does not improve: at
-batch one the compressed path takes $0.5322$ ms against $0.0188$ ms for cuBLAS,
-and $0.4796$ ms of that --- about $90\%$ --- is the activation rotation, which is
-unfused here. At the larger shape the GEMV comparison alone is $3.1\times$. The
-format is verified, smaller and slower.
+batch one this prototype takes $0.5146$ ms against $0.0186$ ms for cuBLAS, and
+$0.4710$ ms of that is the activation rotation. That rotation is ten
+Python-controlled butterfly stages over 1024 columns, so the figure measures
+our implementation rather than the intrinsic cost of a Hadamard transform, and
+we do not infer a GEMV cost by subtracting separately timed components. At the
+larger synthetic shape, where the transform is not in the loop, the GEMV
+comparison alone is $3.1\times$. The format is verified, smaller, and slower as
+built.
 
 \section{Negative results retained from earlier work}
 

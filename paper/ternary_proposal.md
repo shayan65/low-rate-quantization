@@ -1476,11 +1476,16 @@ identical rate, recipe, BF16 baseline ($3.436710$) and evaluation stream
 | both (90) | 377,487,360 | 50.2% | $+0.637829$ | `mixed_alloc_v1` |
 | all non-embedding (186) | 497,614,848 | 66.1% | $+1.000022$ | `fullmodel_v1` |
 
-The two disjoint families give an additive reference: $0.088512 + 0.552558 =
-0.641070$ against a measured $0.637829$ for converting both together. Damage
-from disjoint tensor families is **additive to within $0.5\%$**, very slightly
-sub-additive. At this coverage there is no super-linearity to find, and the
-original claim is withdrawn.
+The two disjoint families give an apparent additive reference: $0.088512 +
+0.552558 = 0.641069$ against a measured $0.637829$ for converting both
+together, agreeing to within $0.5\%$.
+
+**That agreement is real but it is not a measurement of additivity**, and a
+review was right to say so. Those three numbers come from three separate runs,
+each fitting its shared codebook on its own tensor pool, so expanding coverage
+changes the perturbation applied to the *previously covered* tensors as well.
+The comparison confounds an interaction between tensor families with a change
+in the codec each family receives. See below for the test that removes it.
 
 What the jump to 66.1% shows instead is composition. Damage per covered
 parameter:
@@ -1491,17 +1496,48 @@ parameter:
 | MLP | $0.209$ |
 | the remaining 120.1M (attention, `in_proj_z`, `out_proj`) | $0.302$ |
 
-The tensors added last are the most damaging per parameter in the model —
-$3.9\times$ `in_proj_qkv` and $1.4\times$ MLP — so the extra $+0.362$ from
-$50.2\%$ to $66.1\%$ is what those particular tensors cost, not a penalty for
-breadth as such. The correct statement is the weaker and more useful one:
-**converting every non-embedding matrix costs far more than any subset here,
-because the tensors no subset covered are the most sensitive ones.** Whether
-damage stays additive out to full coverage is untested — it would need the
-remaining families measured alone, which was not run.
+The tensors added last are the most damaging per parameter in the model, so the
+extra $+0.362$ from $50.2\%$ to $66.1\%$ is largely what those particular
+tensors cost rather than a penalty for breadth as such. But the same confound
+applies, and more strongly: **assigning that entire difference to the added
+120.1M parameters is not justified**, because the full-model run also re-fits
+the codebook over a pool four times larger, changing what the already-covered
+tensors receive. The defensible statement is the weak one: converting every
+non-embedding matrix costs far more than any subset here, and composition is
+clearly part of why.
 
-Each run fits its codebook pooled over its own target set, which is inherent to
-changing coverage rather than a confound that could be removed.
+### The interaction test, with the codec held fixed
+
+The review proposed the clean design: quantize once, freeze the artifacts, and
+install subsets. One Hessian capture, one codebook fitted over all 90 tensors,
+one quantization pass — then the dequantized weights installed as QKV only, MLP
+only, and both, so **every tensor carries bit-identical weights in every arm
+that includes it** (`results/interaction_v1`).
+
+| arm | tensors | params | ΔNLL | 95% CI |
+|---|---:|---:|---:|:--|
+| A — `in_proj_qkv` | 18 | 113,246,208 | $+0.085350$ | $[+0.082522,+0.088216]$ |
+| B — MLP | 72 | 264,241,152 | $+0.548660$ | $[+0.540311,+0.557142]$ |
+| AB — both | 90 | 377,487,360 | $+0.637829$ | $[+0.628446,+0.647323]$ |
+
+$$I = L_{AB} - L_A - L_B + L_{\text{BF16}} = +0.003818 \quad [+0.000769,\, +0.006835]$$
+
+paired over the same resampled evaluation blocks. **The interaction excludes
+zero: damage is slightly super-additive, not additive.**
+
+Two things worth noting. First, the effect is small — $+0.003818$ against a
+total of $+0.637829$, about $0.6\%$ — so "approximately additive" remains a
+good working description even though strict additivity is rejected. Second, the
+confound was real and measurable: with the codebook fitted over all 90 tensors
+instead of each subset alone, QKV damage falls from $+0.088512$ to $+0.085350$
+and MLP damage from $+0.552558$ to $+0.548660$. The earlier $0.5\%$ agreement
+was partly those two shifts cancelling the interaction, which is exactly why a
+frozen-artifact design was needed to see either.
+
+So the record on this question now reads: the original "markedly super-linear"
+claim was wrong in magnitude by orders of magnitude; the correction to
+"additive" was wrong in sign; and the measured answer is a small, resolvable,
+positive interaction.
 
 ### Embeddings dominate the compressed model
 
@@ -1542,12 +1578,20 @@ labelled a synthetic microbenchmark, and the claim below rests on a new run
 (`results/real_projection_v1`) that uses the real recipe.
 
 **Storage layout is not runtime layout.** The storage packing puts five
-base-6561 codes in a uint64 for 1.600 bits of index, which is optimal and *not
-directly indexable*: $6561^5 = 1.216\times10^{19}$ exceeds $2^{63}$, so the
-words set the sign bit and neither PyTorch nor Triton has unsigned 64-bit
-arithmetic. A runtime layout of one code per int16 costs 2.000 bits of index
-instead. Quoting 1.725 bits/weight as a resident footprint, as earlier sections
-did implicitly, is wrong.
+base-6561 codes in a uint64 for 1.600 bits of index, which is optimal;
+$6561^5 = 1.216\times10^{19}$ exceeds $2^{63}$, so the words set the sign bit
+and must be treated as unsigned. A runtime layout of one code per int16 costs
+2.000 bits of index instead. Quoting 1.725 bits/weight as a resident footprint,
+as earlier sections did implicitly, is wrong.
+
+*A factual correction.* An earlier draft justified the wider runtime layout by
+saying "neither PyTorch nor Triton has unsigned 64-bit arithmetic". That is
+wrong about Triton, which has `tl.uint64`. Checked on this machine (torch 2.11,
+triton 3.6): PyTorch will hold a `torch.uint64` tensor but raises
+`NotImplementedError: "add_stub" not implemented for 'UInt64'` on arithmetic,
+so the host side cannot do the digit extraction; inside a kernel the extraction
+is possible and costs five integer divisions per word on the critical path. The
+reason for the wider layout is cost and host-side support, not a missing type.
 
 **And the runtime activation is not the stored one.** The codes represent
 `rotate(W) = W A^T` while the quality runs install `unrotate(dq) = dq A`, so
@@ -1562,20 +1606,32 @@ omitted that step entirely, and it turns out to dominate the cost.
 pooled over all 18 projections, GPTQ against a Hessian from 65,536 calibration
 tokens — and evaluated on activations captured from the model itself.
 
+All paths scored on the same 256 activation rows with the same denominator. An
+earlier version of this table took the BF16 maximum over 1024 rows and the
+Triton maximum over 16, so the ratio between them compared samples of different
+size; that defect is fixed and the numbers below are the corrected ones.
+
 | comparison | relative error |
 |---|---:|
-| installed BF16 vs exact FP32 | $3.41\times10^{-3}$ |
-| streamed path vs exact FP32 | $7.38\times10^{-7}$ |
-| **Triton kernel vs exact FP32** | $\mathbf{1.37\times10^{-7}}$ |
-| Triton kernel vs installed BF16 | $1.94\times10^{-3}$ |
+| installed BF16 vs exact FP32 | $3.55\times10^{-3}$ |
+| streamed path vs exact FP32 | $1.08\times10^{-7}$ |
+| **Triton kernel vs exact FP32** | $\mathbf{2.71\times10^{-7}}$ |
+| Triton kernel vs installed BF16 | $3.54\times10^{-3}$ |
 
 "Exact" is the FP32 product with the dequantized weights; "installed" is the
-BF16 product with `unrotate(dq)`, which is literally the operation behind every
-ΔNLL in this document. **The kernel is four orders of magnitude more faithful
-to the codec than the BF16 weights the loss was measured with.** Every quality
-number here is therefore conservative with respect to compressed execution: the
-error the kernel adds is negligible beside the error already accepted by
-installing BF16.
+BF16 product with `unrotate(dq)`, which is the operation behind every ΔNLL in
+this document. The kernel reproduces the quantized FP32 operator to four orders
+of magnitude better than the BF16 weights do.
+
+**That is operator fidelity, and an earlier draft drew more from it than it
+supports.** It said "every quality number here is therefore conservative with
+respect to compressed execution". That does not follow. A smaller local
+numerical error does not imply lower end-to-end loss: BF16 rounding can
+reinforce *or partially cancel* the quantization error, and the nonlinear
+layers downstream need not respond monotonically to a local perturbation. The
+claim is withdrawn. What is established: **the compressed kernel closely
+reproduces the quantized FP32 reference on the tested activations; its
+end-to-end quality relative to decoded BF16 execution remains unmeasured.**
 
 #### Memory: the claim holds, after an accounting fix
 
@@ -1605,16 +1661,27 @@ latency flat to within $9\%$ — not a property of the format.
 
 | path | ms, batch 1 |
 |---|---:|
-| installed BF16 (cuBLAS) | 0.0188 |
-| **the Hadamard rotation alone** | **0.4796** |
-| Triton kernel including rotation | 0.5322 |
-| streamed path including rotation | 0.8477 |
+| installed BF16 (cuBLAS) | 0.0186 |
+| **the Hadamard rotation alone** | **0.4710** |
+| Triton kernel including rotation | 0.5146 |
+| streamed path including rotation | 0.8399 |
 
-At $6144\times1024$ the compressed path is $28\times$ slower than cuBLAS, far
-worse than the $3.5\times$ the synthetic benchmark suggested — and about $90\%$
-of it is the activation rotation, which that benchmark did not perform. The
-GEMV itself is roughly $0.05$ ms by subtraction, a few times cuBLAS on a
-projection this small, where both are launch-bound.
+At $6144\times1024$ this compressed path is $28\times$ slower than cuBLAS, far
+worse than the $3.5\times$ the synthetic benchmark suggested, and the rotation
+is most of it.
+
+**What that does and does not diagnose.** `fwht` here is a prototype: ten
+Python-controlled butterfly stages over 1024 columns, with a `clone` and two
+slice assignments per stage. For a single activation vector that is a tiny
+amount of arithmetic wrapped in a large amount of launch and allocation
+overhead, so $0.4710$ ms measures *this implementation*, not the intrinsic cost
+of a Hadamard transform. A fused kernel is the obvious engineering target and
+is not attempted here. Nor should the GEMV cost be inferred by subtracting two
+separately timed components: that difference ($\approx 0.04$ ms) is not a
+measurement of anything that was run. The honest reading is that **this
+prototype is 28x slower than cuBLAS end to end, and most of the gap sits in an
+unoptimized transform** — which bounds what the format costs today without
+establishing what it would cost optimized.
 
 At the larger synthetic shape the GEMV comparison is $0.132$ ms against
 $0.404$ ms, $3.1\times$. So the kernel gap narrows with size, as a
@@ -1724,6 +1791,27 @@ and in the compensation results. Hessian-weighted objectives of this form
 underpin GPTQ and GPTVQ; nothing here is new, but it is the right frame for
 what §14A found empirically.
 
+### Why a mixture should help at all
+
+A review supplied the mechanism, and it is worth stating because it is more
+specific than "more diverse data is better". The codebook here is fitted from
+weights with a fixed seed, so changing the calibration corpus changes almost
+nothing about the alphabet — what it changes is the **Hessian used for GPTQ
+assignment and compensation**. A pure-domain Hessian protects the activation
+directions that domain uses and leaves the rest comparatively unprotected, even
+if another domain leans on them heavily. Since the second-moment matrices are
+positive semidefinite, a direction is unpenalized under
+$H_{\text{mix}} = \tfrac12 H_{\text{WT}} + \tfrac12 H_{\text{TS}}$ only if
+*both* domains leave it unpenalized. Broader calibration buys coverage of
+directions, not merely more samples.
+
+The results below are consistent with that reading: half the wikitext samples
+retain most of the wikitext benefit while the TinyStories samples remove most
+of the mismatch penalty. But **it is a plausible explanation, not a
+demonstrated one** — no directions were inspected, no conditioning measured,
+and the test that would separate direction coverage from sample count is the
+half-budget control in §19 rather than anything in this section.
+
 ### The mixture, and what it buys
 
 The identity suggests a fixed-budget intervention. For the quadratic objective,
@@ -1766,7 +1854,12 @@ VQ8 beats scalar in all six cells, so the codec conclusion is unchanged by the
 mixture.
 
 **Scope, stated plainly.** Two corpora, one model, one recipe, one split, one
-run. This does not establish that mixing is optimal, that 50/50 is the right
+calibration draw, one seed. Note also that the mixture averages two
+**32,768-token** Hessian estimates while each pure condition uses a single
+**65,536-token** estimate, so "mixing helps" and "two smaller estimates of
+different things beat one larger estimate of one thing" are not separated here.
+§19 adds disjoint draws, direct paired contrasts and a half-budget control that
+addresses exactly that. This does not establish that mixing is optimal, that 50/50 is the right
 weighting, or that the result survives more domains — all of which the identity
 is silent on, since it describes a local quadratic proxy and the measurement is
 end-to-end loss. What it does show is that the free lever is real and
@@ -1817,13 +1910,20 @@ the picture is weaker than §14B reported.
 | 1536–1792 | $+0.117893$ | $+0.087258$ | $-0.030636$ |
 | 1792–2048 | $+0.118514$ | $+0.090364$ | $-0.028150$ |
 
-Paired over blocks, last bucket against first:
+Paired over blocks, last bucket against first. A review pointed out that at
+5,000 replicates the seed can flip a threshold this close to zero, so these are
+100,000 replicates and the interval is reported as its range over five seeds:
 
-| quantity | Δ | 95% CI | |
-|---|---:|:--|:--|
-| VQ8 damage | $+0.010811$ | $[-0.000034,+0.021615]$ | **includes 0** |
-| scalar damage | $+0.001116$ | $[-0.010807,+0.012947]$ | includes 0 |
-| VQ8 advantage eroded | $+0.009695$ | $[+0.000130,+0.019355]$ | excludes 0 |
+| quantity | Δ | lower bound | upper bound | |
+|---|---:|:--|:--|:--|
+| VQ8 damage | $+0.010811$ | $[-0.000223, -0.000124]$ | $[+0.021601,+0.021675]$ | **includes 0, all seeds** |
+| scalar damage | $+0.001116$ | $[-0.010856,-0.010721]$ | $[+0.013004,+0.013096]$ | includes 0, all seeds |
+| VQ8 advantage eroded | $+0.009695$ | $[+0.000052,+0.000126]$ | $[+0.019264,+0.019330]$ | excludes 0, all seeds — *barely* |
+
+The classifications are stable across seeds at this replicate count, but the
+erosion's lower bound sits between $5\times10^{-5}$ and $1.3\times10^{-4}$: it
+excludes zero by a margin two orders of magnitude smaller than the effect
+itself.
 
 And as a rank trend over all eight buckets, computed per block and bootstrapped
 over blocks:
@@ -1846,10 +1946,17 @@ What survives, and is now properly supported:
 * scalar damage shows **no** position trend by either test;
 * VQ8's **advantage over scalar erodes** across the block — $-0.037845$ in the
   first bucket against $-0.028150$ in the last, excluding zero on both the
-  endpoint contrast and the rank trend, though the endpoint interval nearly
-  touches zero;
+  endpoint contrast and the rank trend, though only just;
 * the ordering is preserved in every bucket, so the headline codec claim is
   untouched.
+
+**How much weight this should carry: not much.** The erosion is the one
+surviving positive finding here, and it survives by a margin of about
+$10^{-4}$. It is also a post-hoc analysis — the buckets were inspected in §14B
+before this rerun was designed — so it has none of the protection a
+prespecified test would have. It belongs in the paper as weak evidence of
+position-dependent erosion and should not be promoted above the calibration
+result, which is larger, better identified, and actionable.
 
 Position and token content remain confounded: later positions hold different
 tokens as well as more accumulated recurrent state. **This is

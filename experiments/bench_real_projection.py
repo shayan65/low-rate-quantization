@@ -32,10 +32,19 @@ Three vectors are compared on activations captured from the model itself:
                    operation behind every ΔNLL in this project;
   * `kernel`    -- the compressed path.
 
-If the kernel's error against `exact` is at or below `installed`'s, then the
-compressed path is at least as faithful as the weights the loss numbers were
-measured with, which is the claim that matters. Reporting only the kernel's
-error, as the synthetic benchmark did, cannot establish that.
+All three are scored on the same rows with the same denominator, which an
+earlier version did not do -- it took the BF16 maximum over 1024 rows and the
+Triton maximum over 16, so the ratio between them compared samples of different
+size.
+
+**What this can and cannot conclude.** A small error against `exact` establishes
+that the kernel implements the quantized operator faithfully. It does *not*
+establish that the kernel's end-to-end language-model loss is lower than the
+BF16 implementation's: BF16 rounding can reinforce or partially cancel
+quantization error, and the nonlinear layers downstream need not respond
+monotonically to local numerical error. Calling the reported NLL figures
+"conservative" on this evidence would be wrong; the end-to-end comparison is
+not run here.
 """
 
 import argparse
@@ -83,6 +92,7 @@ def main() -> None:
     ap.add_argument("--cal-blocks", type=int, default=128)
     ap.add_argument("--cal-len", type=int, default=512)
     ap.add_argument("--act-blocks", type=int, default=8)
+    ap.add_argument("--fid-rows", type=int, default=256)
     ap.add_argument("--layer", type=int, default=-1, help="-1 = middle layer")
     ap.add_argument("--seconds", type=float, default=3600)
     a = ap.parse_args()
@@ -161,23 +171,27 @@ def main() -> None:
                             "path rotates its input, and that rotation is timed"}}
 
     # ---- fidelity against the weights the loss numbers were measured with ----
-    xs = X[:1024]
+    # Every path is scored on the SAME rows with the SAME denominator. An
+    # earlier version measured the BF16 error over 1024 rows and the Triton
+    # error over 16, which makes the ratio between them meaningless: the max
+    # over 1024 rows is drawn from a larger sample than the max over 16.
+    xs = X[: a.fid_rows]
     xr = rotate(xs, signs, BLOCK)
     y_exact = xr @ dq.float().T
     y_inst = (xs.to(torch.bfloat16) @ W_inst.T).float()
     y_stream = matmul_streamed(codes, book, sc16, xr, rows, cols, DIM, GROUP)
-    fid = {"installed_bf16_vs_exact": relerr(y_inst, y_exact),
+    fid = {"rows_scored": int(xs.shape[0]),
+           "installed_bf16_vs_exact": relerr(y_inst, y_exact),
            "streamed_vs_exact": relerr(y_stream, y_exact)}
     if HAVE_TRITON:
-        y_tri = torch.stack([matmul_triton(codes, book, sc16,
-                                           rotate(xs[i : i + 1], signs, BLOCK)[0],
-                                           rows, cols, DIM, GROUP)
-                             for i in range(16)])
-        fid["triton_vs_exact"] = relerr(y_tri, y_exact[:16])
-        fid["triton_vs_installed"] = relerr(y_tri, y_inst[:16])
-    fid["verdict"] = ("kernel at or below the BF16 install error"
-                      if fid.get("triton_vs_exact", 1) <= fid["installed_bf16_vs_exact"]
-                      else "kernel error exceeds the BF16 install error")
+        y_tri = torch.stack([matmul_triton(codes, book, sc16, xr[i], rows, cols,
+                                           DIM, GROUP)
+                             for i in range(xs.shape[0])])
+        fid["triton_vs_exact"] = relerr(y_tri, y_exact)
+        fid["triton_vs_installed"] = relerr(y_tri, y_inst)
+    fid["note"] = ("all rows scored identically; this is operator fidelity to "
+                   "the quantized FP32 reference, not an end-to-end quality "
+                   "comparison against decoded BF16 execution")
     res["fidelity"] = fid
     print(json.dumps({"fidelity": fid}), flush=True)
 
@@ -226,9 +240,16 @@ def main() -> None:
          "`unrotate(dq)`, which is the operation behind every reported ΔNLL.", "",
          "| comparison | relative error |", "|---|---:|"]
     for k, v in fid.items():
-        if k != "verdict":
+        if isinstance(v, float):
             L.append(f"| {k.replace('_', ' ')} | {v:.2e} |")
-    L += ["", f"**{fid['verdict']}.**", "",
+    L += ["", f"All paths scored on the same {fid['rows_scored']} activation rows "
+          "with the same denominator.", "",
+          "This is **operator fidelity** to the quantized FP32 reference. It does "
+          "not establish that the kernel's end-to-end language-model loss is "
+          "lower than decoded BF16 execution's: BF16 rounding can reinforce or "
+          "partially cancel quantization error, and the downstream layers need "
+          "not respond monotonically to local numerical error. That comparison "
+          "is unmeasured.", "",
           "## Resident bytes", "",
           f"| tensor | dtype | MB |", "|---|---|---:|"]
     for k in ("codes", "codebook", "scales"):
