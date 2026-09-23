@@ -1,0 +1,33 @@
+{
+  "shape": [
+    10240,
+    5120
+  ],
+  "dim": 8,
+  "k": 6561,
+  "group": 128,
+  "streamed_rel_err": 3.2702641306059377e-07,
+  "triton_rel_err": 3.488281663521775e-07,
+  "resident": {
+    "bf16_bytes": 104857600,
+    "runtime_bytes": 14031376,
+    "ratio": 7.47308033082429,
+    "storage_index_bpw": 1.6,
+    "runtime_bits_per_weight": {
+      "index": 2.0,
+      "scales": 0.125,
+      "codebook_amortized": 0.01601806640625,
+      "total": 2.14101806640625
+    }
+  },
+  "peak_bytes": {
+    "dense_bf16": 811720192,
+    "streamed": 775060992,
+    "ratio": 1.0472984711892197
+  },
+  "latency_ms": {
+    "dense_bf16": 0.13161174720153213,
+    "streamed": 5.407819198444486,
+    "triton": 0.4660998994950205
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "plan": {
+    "model": "../models/Qwen3.5-0.8B-Base",
+    "tensors": 186,
+    "covered_params": 497614848,
+    "total_params": 752393024,
+    "coverage": 0.6613762118028357,
+    "untouched_params": 254778176,
+    "eval_targets": 261284,
+    "bf16_model_bytes": 1504786048,
+    "note": "embeddings and LM head stay BF16; the vision tower is counted in bytes but not exercised by a text evaluation"
+  },
+  "bf16": {
+    "nll": 3.4367098761642176
+  },
+  "arms": {
+    "r1600_k81": {
+      "dim": 4,
+      "k": 81,
+      "covered_bits_per_weight": 1.7250218385766496,
+      "converted_bytes": 107299560,
+      "untouched_bytes": 509556352,
+      "model_bytes": 616855912,
+      "model_shrink_vs_bf16": 2.439444963931869,
+      "effective_bits_per_weight": 6.558869020029617,
+      "nll": 4.436731593209296,
+      "delta_nll": 1.0000217170450783,
+      "delta_ci": [
+        0.986485121987115,
+        1.013519560630463
+      ],
+      "seconds": 50.29451205104124
+    },
+    "r2000_k255": {
+      "dim": 4,
+      "k": 255,
+      "covered_bits_per_weight": 2.125032796449032,
+      "converted_bytes": 132180984,
+      "untouched_bytes": 509556352,
+      "model_bytes": 641737336,
+      "model_shrink_vs_bf16": 2.3448628645786007,
+      "effective_bits_per_weight": 6.823426752026877,
+      "nll": 3.9074253366037337,
+      "delta_nll": 0.47071546043951606,
+      "delta_ci": [
+        0.462434318983458,
+        0.4787517583772667
+      ],
+      "seconds": 50.56981994595844
+    },
+    "r2667_k1625": {
+      "dim": 4,
+      "k": 1625,
+      "covered_bits_per_weight": 2.7918882677713026,
+      "converted_bytes": 173660632,
+      "untouched_bytes": 509556352,
+      "model_bytes": 683216984,
+      "model_shrink_vs_bf16": 2.202500937827974,
+      "effective_bits_per_weight": 7.264469097469995,
+      "nll": 3.608199556700841,
+      "delta_nll": 0.17148968053662328,
+      "delta_ci": [
+        0.16718517232398333,
+        0.1758600577244163
+      ],
+      "seconds": 54.87206042103935
+    }
+  },
+  "seconds": 212.6
+}

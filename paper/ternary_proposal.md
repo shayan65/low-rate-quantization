@@ -1382,3 +1382,93 @@ This does not touch the 0.8B result, where the same eight-refit protocol gives
 8/8 consistency at five times the spread. It does mean the 27B evidence
 supports *direction on average*, not a reliable per-conversion benefit, and the
 paper should not lean on it.
+
+## 17. A whole model, and a kernel that runs it (2026-09-23)
+
+Two gaps have been listed as unmeasured since the beginning: no full-coverage
+conversion, and no packed inference path. Both are now measured, and both
+results are worse for the deployment story than the subset experiments implied.
+
+### Full coverage costs far more than the subsets suggested
+
+Every 2-D weight except embeddings and the LM head: 186 tensors, 497,614,848
+of 752,393,024 parameters (66.1%), evaluated on the complete validation stream.
+
+| Arm | covered bpw | model MB | effective bpw | shrink | ΔNLL | perplexity |
+|---|---:|---:|---:|---:|---:|---:|
+| dim-4 K=81 | 1.7250 | 616.9 | 6.559 | 2.44x | $+1.000022$ | $+171.8\%$ |
+| dim-4 K=255 | 2.1250 | 641.7 | 6.823 | 2.34x | $+0.470715$ | $+60.1\%$ |
+| dim-4 K=1625 | 2.7919 | 683.2 | 7.264 | 2.20x | $+0.171490$ | $+18.7\%$ |
+
+Ternary-rate full coverage costs **a full nat** — perplexity nearly triples.
+The 18-projection subset at the same rate cost $+0.077061$ ($+8.0\%$). Coverage
+is 4.4x larger and damage is 13x larger, so damage is markedly super-linear in
+coverage, and no subset result in this document should be read as predicting a
+full conversion.
+
+### Embeddings dominate the compressed model
+
+The byte accounting is the more useful surprise:
+
+| Arm | converted tensors | embeddings + head | embeddings' share |
+|---|---:|---:|---:|
+| dim-4 K=81 | 107.3 MB | 509.6 MB | **82.6%** |
+| dim-4 K=1625 | 173.7 MB | 509.6 MB | 74.6% |
+
+The weight matrices compress 9.28x at ternary rate — 995 MB to 107 MB, which
+is what the codec work bought. The *model* shrinks only 2.44x, because the
+254.8M-parameter embedding and head matrices stay at BF16 and then account for
+83% of what remains. Effective rate over the whole model is 6.559 bits/weight
+even with the covered tensors at 1.725.
+
+**At low rates the binding constraint is embedding precision, not the weight
+codec.** Halving the embeddings to FP8 would save more bytes than moving the
+covered tensors from 2.667 bits to ternary, and would cost an unmeasured but
+probably far smaller amount of quality. That comparison was never run here
+because the project's attention was on the weight codec throughout; on this
+evidence that emphasis was misplaced for deployment purposes, though not for
+the codec question the paper actually answers.
+
+### A compressed matmul: memory yes, latency no
+
+The dimension-8 codec, on the 27B QKV shape (10240 x 5120), with both paths
+verified against the reference decoder before any timing.
+
+**Storage layout is not runtime layout.** The storage packing puts five
+base-6561 codes in a uint64 for 1.600 bits of index, which is optimal and *not
+directly indexable*: $6561^5 = 1.216\times10^{19}$ exceeds $2^{63}$, so the
+words set the sign bit and neither PyTorch nor Triton has unsigned 64-bit
+arithmetic. A runtime layout of one code per int16 costs 2.000 bits of index
+instead. Quoting 1.725 bits/weight as a resident footprint, as earlier sections
+did implicitly, is wrong.
+
+| quantity | BF16 | compressed | ratio |
+|---|---:|---:|---:|
+| resident bytes, one tensor | 104.9 MB | 14.0 MB | **7.47x** |
+| latency, batch 1 (cuBLAS vs Triton) | 0.132 ms | 0.466 ms | **3.5x slower** |
+| latency, streamed PyTorch path | — | 5.408 ms | 41x slower |
+
+Correctness: relative error $3.3\times10^{-7}$ (streamed) and
+$3.5\times10^{-7}$ (Triton) against decode-then-dense.
+
+So the format is decodable at speed but **not** competitive with a tuned BF16
+GEMM at batch one. A first-cut Triton kernel that gathers from a 6561-entry
+codebook loses 3.5x to cuBLAS. That is a real cost of the format and it is
+reported rather than buried; whether a better kernel closes the gap is open,
+and the theoretical traffic reduction (roughly 8x) says there is room, but this
+work does not demonstrate it.
+
+### Two measurement defects in this section
+
+**The peak-allocation comparison is contaminated.** Dense 811.7 MB against
+streamed 775.1 MB is a 4.5% difference, far short of what streaming should
+give, because the benchmark keeps the dense FP32 reference tensor alive for
+correctness checking throughout. The resident-bytes figure (7.47x) is sound;
+the peak figure measures the harness, not the method, and should be rerun
+without the reference resident.
+
+**The vision tower is absent, not included.** The module docstring claims it is
+counted in the byte total. It is not: the checkpoint holds 873.4M parameters
+but `AutoModelForCausalLM` loads 752.4M, and the missing 121.0M is the vision
+tower, which this class does not instantiate. Coverage is 66.1% of the loaded
+text model, and every byte figure above is for that model.
