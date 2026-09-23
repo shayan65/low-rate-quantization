@@ -1,9 +1,14 @@
-"""Fetch audited full-run metadata from the authorized workstation; no checkpoints."""
+"""Fetch audited full-run metadata from the authorized workstation; no checkpoints.
+
+The workstation address comes from $QQ_WORKSTATION so no private host is
+recorded in the repository.
+"""
+import os
 import subprocess
 from pathlib import Path
 
 def main():
-    workstation='shayan@100.99.214.80'
+    workstation=os.environ.get('QQ_WORKSTATION', 'user@workstation')
     remote='/home/shayan/quantum_quantization'
     local=Path(__file__).resolve().parent.parent/'results'/'wikitext103_full_v1'
     local.mkdir(parents=True,exist_ok=True)
