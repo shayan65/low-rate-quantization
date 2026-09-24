@@ -53,12 +53,26 @@ def plain(tex: str) -> str:
 
 
 def pasted() -> str | None:
-    """The copy in SUBMISSION.md, so the two cannot drift apart unnoticed."""
+    """The copy in SUBMISSION.md, so the two cannot drift apart unnoticed.
+
+    Fences are anchored to line starts and the opener is allowed a language
+    tag. Without both, ```` ```bash ```` fails to match as an opener while its
+    closing fence matches, the pairing slips by one, and every "block" found is
+    the prose between two code blocks -- which is how the first version of this
+    silently found no abstract at all and checked nothing.
+    """
     md = HERE / "SUBMISSION.md"
     if not md.exists():
         return None
-    blocks = re.findall(r"```\n(.*?)\n```", md.read_text(), re.S)
-    return next((b.strip() for b in blocks if b.startswith("We study")), None)
+    blocks = re.findall(r"^```[A-Za-z]*\n(.*?)\n^```\s*$", md.read_text(),
+                        re.S | re.M)
+    found = [b.strip() for b in blocks if b.strip().startswith("We stud")]
+    if not found:
+        raise SystemExit(
+            "SUBMISSION.md has no abstract block to compare against. Either it "
+            "was removed, or this extraction is broken -- do not read the "
+            "absence as agreement.")
+    return found[0]
 
 
 def main() -> int:
@@ -75,11 +89,29 @@ def main() -> int:
         print(f"abstract is {len(text)} characters, {len(text) - LIMIT} over "
               f"arXiv's {LIMIT}; shorten it in main.tex", file=sys.stderr)
         return 1
-    if (p := pasted()) is not None and p != text:
+    p = pasted()
+    if p is None:
+        print(f"abstract fits: {len(text)}/{LIMIT} characters "
+              "(no SUBMISSION.md to cross-check)", file=sys.stderr)
+        return 0
+    if p != text:
         print("SUBMISSION.md's abstract has drifted from main.tex; "
-              "replace it with the output of ./abstract_plain.py", file=sys.stderr)
+              "replace it with the output of ./abstract_plain.py",
+              file=sys.stderr)
+        # Show the first sentence that differs, from its first differing
+        # character, so the hint points at the change rather than past it.
+        for a, b in zip(p.split(". "), text.split(". ")):
+            if a == b:
+                continue
+            i = next((k for k, (x, y) in enumerate(zip(a, b)) if x != y),
+                     min(len(a), len(b)))
+            print(f"  at character {i} of a sentence:\n"
+                  f"    SUBMISSION.md: {a[max(0, i - 20):i + 50]}\n"
+                  f"    main.tex:      {b[max(0, i - 20):i + 50]}", file=sys.stderr)
+            break
         return 1
-    print(f"abstract fits: {len(text)}/{LIMIT} characters", file=sys.stderr)
+    print(f"abstract fits: {len(text)}/{LIMIT} characters, "
+          "SUBMISSION.md matches", file=sys.stderr)
     return 0
 
 
