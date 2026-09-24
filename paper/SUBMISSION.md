@@ -1,10 +1,10 @@
 # arXiv submission
 
 Everything the arXiv form asks for, in the order it asks for it. Copy the
-fields; do not retype them. The abstract in particular is 1909 characters
-against arXiv's 1920-character limit, so an edit of more than a word or two
-there will be rejected by the form — change `main.tex` and regenerate the text
-below instead of editing it in place:
+fields; do not retype them. The abstract in particular runs against arXiv's
+1920-character limit — it was 2551 characters before being cut for it, and has
+45 to spare now — so change `main.tex` and regenerate the text below rather
+than editing it in place:
 
 ```bash
 ./abstract_plain.py
@@ -44,16 +44,16 @@ Low-Rate Quantization of a Hybrid Language Model: What Moves Loss, and Where the
 Shayan Hemmatiyan
 ```
 
-**Abstract** (1909 characters)
+**Abstract** (1875 characters)
 
 ```
-We study post-training weight quantization below two bits in a hybrid linear-attention language model, with storage measured from bytes written. Three findings outrank the codec comparisons that motivated it. First, byte allocation dominates codec design at this scale: quantizing the tied embedding costs 0.000098 NLL per 100 MB saved against 0.020873 and 2.127315 for the codec's first and last steps, so 2.792-bit weights with an INT4 embedding are half the size and a fifth of the damage of ternary weights with a BF16 embedding, and every sub-two-bit configuration we measure is off the whole-model-size frontier. That is a statement about parameter shares (33.8% of this text tower, 9.45% of the 27B one), so it inverts with scale. Second, the calibration distribution is a lever that costs no bytes: a prespecified 50/50 domain mixture at equal token budget cuts worst-domain damage below either pure condition on three disjoint draws; a half-budget control shows the mechanism is direction coverage, not sample count. Third, the codec results hold but are smaller: on 0.8B DeltaNet projections a shared eight-dimensional codebook beats a learned three-level scalar code by 0.036118 NLL [0.033768, 0.038414] at 0.43% more payload bytes, keeping its sign under eight refits; GPTQ-style compensation removes 68-69% of the damage while raising plain weight MSE; rate then dominates compensation and coverage dominates rate, yet a Hessian-derived ranking built to exploit coverage loses to random selection. The direction reproduces at 27B, smaller than the refit spread. Finally, the converted model is served on compressed weights: all 186 non-embedding matrices become code-and-codebook modules, reproducing decoded-BF16 loss to 1.6e-5 at 1.92x less resident memory and 3.0x cuBLAS latency once the Hadamard rotation is fused. We claim no new algorithm and separate what is established from what is not.
+We study post-training weight quantization below two bits in a hybrid linear-attention language model, with storage measured from bytes written. Three findings outrank the codec comparisons that motivated it. First, byte allocation dominates codec design at this scale: quantizing the tied embedding costs 0.000098 NLL per 100 MB saved against 0.020873 and 2.127315 for the codec's first and last steps, so 2.792-bit weights with an INT4 embedding are half the size and a fifth of the damage of ternary weights with a BF16 embedding, and every sub-two-bit configuration we measure is off the whole-model-size frontier. That is about parameter shares (33.8% of this text tower, 9.45% of the 27B one), so it inverts with scale. Second, the calibration distribution is a lever that costs no bytes: a prespecified 50/50 domain mixture at equal token budget cuts worst-domain damage below either pure condition on three disjoint draws; a half-budget control shows the mechanism is direction coverage, not sample count. Third, the codec results hold but are smaller: on 0.8B DeltaNet projections a shared eight-dimensional codebook beats a learned three-level scalar code by 0.036118 NLL [0.033768, 0.038414] at 0.43% more payload bytes, keeping its sign under eight refits; GPTQ-style compensation removes 68-69% of the damage while raising weight MSE; rate then dominates compensation and coverage dominates rate, yet a Hessian-derived ranking built to exploit coverage loses to random selection. The direction reproduces at 27B, below the refit spread. Finally, the converted model is served on compressed weights: all 186 non-embedding matrices become code-and-codebook modules, reproducing decoded-BF16 loss to 1.6e-5 at 1.92x less resident memory and 3.0x cuBLAS latency once the rotation is fused. We claim no new algorithm and separate what is established from what is not.
 ```
 
 **Comments**
 
 ```
-21 pages, 4 figures, 14 tables. Code, saved run artifacts and the running record of the study: https://github.com/shayan65/low-rate-quantization
+20 pages, 4 figures, 14 tables. Code, saved run artifacts and the running record of the study: https://github.com/shayan65/low-rate-quantization
 ```
 
 **Categories**
