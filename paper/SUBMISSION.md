@@ -26,7 +26,7 @@ exists in the working tree but is missing from the list fails locally instead of
 on arXiv. It refuses to produce a tarball if that build reports an undefined
 reference or an over/underfull box.
 
-Contents: `main.tex`, `fig_method.tex`, and `generated/` (14 tables, 3 figures).
+Contents: `main.tex`, `fig_method.tex`, and `generated/` (17 tables, 3 figures).
 The bibliography is a `thebibliography` environment inside `main.tex`, so there
 is no `.bbl` or `.bib` to include. No custom class, no fonts, no shell-escape.
 
@@ -53,7 +53,7 @@ We study post-training weight quantization below two bits in a hybrid linear-att
 **Comments**
 
 ```
-20 pages, 4 figures, 14 tables. Code, saved run artifacts and the running record of the study: https://github.com/shayan65/low-rate-quantization
+21 pages, 4 figures, 17 tables. Code, saved run artifacts and the running record of the study: https://github.com/shayan65/low-rate-quantization
 ```
 
 **Categories**

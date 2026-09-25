@@ -471,6 +471,78 @@ def mixture_table():
     return "\n".join(L)
 
 
+def mixture_contrast_table():
+    """The mixed-versus-pure contrasts themselves, with their intervals.
+
+    `mixture_table` reports each condition's worst-domain damage and the range
+    over draws, which answers "is the mixture better" only by subtraction of
+    two means. A review asked for the contrast measured directly, and the run
+    already computes it: every mixed-versus-pure difference is a paired block
+    bootstrap on the same evaluation stream, per draw. Reporting the means
+    while withholding the intervals was the gap.
+
+    Each row's interval is the envelope over the three draws -- the lowest
+    lower bound and the highest upper bound seen -- which is wider than any
+    single draw's interval and is not a coverage statement about the mean. It
+    is the honest summary here because the draws are separate fits, not
+    resamples of one.
+    """
+    r = load("mix")
+    if r is None or "contrasts" not in r:
+        return ""
+    ev = {"wt2_test": "wikitext", "tinystories": "TinyStories"}
+    ref = {"wikitext": "wikitext", "tinystories": "TinyStories",
+           "wikitext_half": "wikitext, half", "tinystories_half": "TinyStories, half"}
+    L = [r"\begin{table}[t]", r"\centering", r"\small",
+         r"\begin{tabular}{lllrrc}", r"\toprule",
+         r"code & evaluated on & mixture vs. & mean $\Delta$ & "
+         r"interval over draws & excludes 0 \\",
+         r"\midrule"]
+    n_excl = 0
+    for arm in ("scalar3", "vq8"):
+        for domain in ("wt2_test", "tinystories"):
+            for base in ("wikitext", "tinystories", "wikitext_half",
+                         "tinystories_half"):
+                v = r["contrasts"].get(f"mixed50_vs_{base}|{arm}|{domain}")
+                if v is None:
+                    continue
+                lo = min(d["ci"][0] for d in v["per_draw"])
+                hi = max(d["ci"][1] for d in v["per_draw"])
+                excl = lo > 0 or hi < 0
+                n_excl += excl
+                L.append(f"{arm} & {ev[domain]} & {ref[base]} & "
+                         f"${v['mean']:+.6f}$ & $[{lo:+.6f}, {hi:+.6f}]$ & "
+                         f"{'yes' if excl else r'\textbf{no}'} \\\\")
+        if arm == "scalar3":
+            L.append(r"\midrule")
+    total = len(r["contrasts"])
+    # The exception, read out rather than typed in: a hand-copied envelope in
+    # this caption disagreed with the row above it on the first attempt.
+    x = r["contrasts"]["mixed50_vs_wikitext_half|vq8|wt2_test"]
+    x_lo = min(d["ci"][0] for d in x["per_draw"])
+    x_hi = max(d["ci"][1] for d in x["per_draw"])
+    L += [r"\bottomrule", r"\end{tabular}",
+          r"\caption{Mixed-versus-pure contrasts measured directly, rather "
+          r"than by differencing the means in Table~\ref{tab:mixture}. Each is "
+          r"a paired block bootstrap on the same evaluation stream; the "
+          r"interval shown is the envelope over the "
+          f"{r['plan']['draws']} disjoint calibration draws (lowest lower "
+          r"bound, highest upper bound), so it is wider than any single "
+          r"draw's and is not a coverage statement about the mean. A negative "
+          r"$\Delta$ favours the mixture. "
+          f"{n_excl} of {total} exclude zero across all draws. "
+          r"The exception is the mixture's \emph{price} against the "
+          r"half-budget wikitext control on wikitext itself "
+          f"(${x['mean']:+.6f}$, envelope $[{x_lo:+.6f}, {x_hi:+.6f}]$) --- "
+          r"the cost side "
+          r"of the trade is the one quantity here not distinguishable from "
+          r"zero, which does not weaken the gain but should not be quoted as "
+          r"an established cost either. Source: "
+          f"\\texttt{{{esc(RUNS['mix'][0])}}}.}}",
+          r"\label{tab:mixcontrast}", r"\end{table}", ""]
+    return "\n".join(L)
+
+
 def embedding_table():
     """Embedding precision crossed with weight rate: the byte-allocation table."""
     r = load("embed")
@@ -557,6 +629,7 @@ def main():
         "tab_interaction.tex": interaction_table(),
         "tab_calibration.tex": calibration_table(),
         "tab_mixture.tex": mixture_table(),
+        "tab_mixture_contrasts.tex": mixture_contrast_table(),
         "tab_embed.tex": embedding_table(),
         "tab_e2e.tex": endtoend_table(),
         "tab_g64.tex": g64_table(),

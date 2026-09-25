@@ -462,6 +462,7 @@ storage and evaluated text throughout (Table~\ref{tab:calibration}).
 
 \input{generated/tab_calibration}
 \input{generated/tab_mixture}
+\input{generated/tab_mixture_contrasts}
 
 Damage is minimized on the diagonal in all four cells, and the off-diagonal
 penalty is large: calibrating on TinyStories and evaluating on wikitext costs
@@ -492,11 +493,23 @@ Over three disjoint calibration draws (Table~\ref{tab:mixture}) the mixture's
 worst-domain damage is lower than either pure condition's, for both codes, at
 identical storage: mean $0.095211$ for VQ8 against $0.147013$ and $0.191296$, a
 $35\%$ reduction against the better pure condition, and $0.143482$ for scalar
-against $0.190325$ and $0.282648$ ($25\%$). The price falls on the matched
-domain and is small --- against the half-budget wikitext condition the mixture
-gives up $0.007311$ on wikitext and gains $0.113104$ on TinyStories, a
-sixteen-to-one trade, and all sixteen mixed-versus-pure contrasts keep their
-sign across all three draws.
+against $0.190325$ and $0.282648$ ($25\%$). Differencing two means is a weak way
+to report that, so the contrasts are also measured directly, as paired
+bootstraps on the same evaluation stream
+(Table~\ref{tab:mixcontrast}): all sixteen keep their sign across all three
+draws, and fifteen exclude zero in every draw.
+
+The sixteenth is worth naming, because it is the one the summary above leans
+on. The price falls on the matched domain and is small --- against the
+half-budget wikitext condition the mixture gives up $0.007311$ on wikitext and
+gains $0.113104$ on TinyStories, a sixteen-to-one trade --- but that $0.007311$
+is precisely the contrast whose interval reaches across zero
+($[-0.000921, +0.013929]$ over the three draws). So the direction of the trade
+is established and its numerator is not: the mixture's cost against a
+half-budget pure control is somewhere between nothing and a hundredth of a nat,
+and we should not quote it as an established price. That cuts in the mixture's
+favour, which is exactly why it needs saying rather than leaving to a reader to
+notice.
 
 \textbf{This is domain coverage, not sample count.} The mixture averages two
 $32{,}768$-token Hessian estimates while each pure condition uses one

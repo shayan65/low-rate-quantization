@@ -1,0 +1,29 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lllrrc}
+\toprule
+code & evaluated on & mixture vs. & mean $\Delta$ & interval over draws & excludes 0 \\
+\midrule
+scalar3 & wikitext & wikitext & $+0.022350$ & $[+0.019505, +0.025443]$ & yes \\
+scalar3 & wikitext & TinyStories & $-0.139167$ & $[-0.147458, -0.126066]$ & yes \\
+scalar3 & wikitext & wikitext, half & $+0.017774$ & $[+0.008981, +0.026298]$ & yes \\
+scalar3 & wikitext & TinyStories, half & $-0.144971$ & $[-0.155178, -0.136608]$ & yes \\
+scalar3 & TinyStories & wikitext & $-0.133362$ & $[-0.138079, -0.129567]$ & yes \\
+scalar3 & TinyStories & TinyStories & $+0.022804$ & $[+0.013627, +0.028832]$ & yes \\
+scalar3 & TinyStories & wikitext, half & $-0.139384$ & $[-0.156489, -0.122494]$ & yes \\
+scalar3 & TinyStories & TinyStories, half & $+0.027619$ & $[+0.020049, +0.034678]$ & yes \\
+\midrule
+vq8 & wikitext & wikitext & $+0.011011$ & $[+0.005067, +0.017658]$ & yes \\
+vq8 & wikitext & TinyStories & $-0.096086$ & $[-0.112867, -0.085271]$ & yes \\
+vq8 & wikitext & wikitext, half & $+0.007311$ & $[-0.000921, +0.013929]$ & \textbf{no} \\
+vq8 & wikitext & TinyStories, half & $-0.111270$ & $[-0.127316, -0.093785]$ & yes \\
+vq8 & TinyStories & wikitext & $-0.104183$ & $[-0.110486, -0.096044]$ & yes \\
+vq8 & TinyStories & TinyStories & $+0.016595$ & $[+0.011744, +0.020482]$ & yes \\
+vq8 & TinyStories & wikitext, half & $-0.113104$ & $[-0.121678, -0.098675]$ & yes \\
+vq8 & TinyStories & TinyStories, half & $+0.017898$ & $[+0.010845, +0.027028]$ & yes \\
+\bottomrule
+\end{tabular}
+\caption{Mixed-versus-pure contrasts measured directly, rather than by differencing the means in Table~\ref{tab:mixture}. Each is a paired block bootstrap on the same evaluation stream; the interval shown is the envelope over the 3 disjoint calibration draws (lowest lower bound, highest upper bound), so it is wider than any single draw's and is not a coverage statement about the mean. A negative $\Delta$ favours the mixture. 15 of 16 exclude zero across all draws. The exception is the mixture's \emph{price} against the half-budget wikitext control on wikitext itself ($+0.007311$, envelope $[-0.000921, +0.013929]$) --- the cost side of the trade is the one quantity here not distinguishable from zero, which does not weaken the gain but should not be quoted as an established cost either. Source: \texttt{calib\_mix\_v2}.}
+\label{tab:mixcontrast}
+\end{table}
